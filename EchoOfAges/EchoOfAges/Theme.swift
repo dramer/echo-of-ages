@@ -23,12 +23,16 @@ extension Color {
 }
 
 enum EgyptFont {
+    // Cinzel is a variable font (Cinzel-VariableFont_wght.ttf).
+    // PostScript name is "Cinzel-Regular" for all weights;
+    // bold weight is accessed via .bold() on the Font.
     static func title(_ size: CGFloat) -> Font {
         .custom("Cinzel-Regular", size: size)
     }
     static func titleBold(_ size: CGFloat) -> Font {
-        .custom("Cinzel-Bold", size: size)
+        .custom("Cinzel-Regular", size: size).bold()
     }
+    // CrimsonText ships as separate weight files.
     static func body(_ size: CGFloat) -> Font {
         .custom("CrimsonText-Regular", size: size)
     }

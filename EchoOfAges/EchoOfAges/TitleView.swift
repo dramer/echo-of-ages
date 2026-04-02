@@ -96,48 +96,68 @@ struct TitleView: View {
     // MARK: Title Block
 
     private var titleBlock: some View {
-        VStack(spacing: 12) {
-            Text("ECHO OF AGES")
-                .font(EgyptFont.titleBold(36))
-                .foregroundStyle(
-                    LinearGradient(
-                        colors: [Color.goldBright, Color.goldMid, Color.goldBright],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
+        VStack(spacing: 0) {
+            // Gold banner with title
+            ZStack {
+                // Banner background
+                LinearGradient(
+                    colors: [
+                        Color(red: 0.38, green: 0.26, blue: 0.04),
+                        Color(red: 0.52, green: 0.37, blue: 0.07),
+                        Color(red: 0.38, green: 0.26, blue: 0.04)
+                    ],
+                    startPoint: .leading,
+                    endPoint: .trailing
                 )
-                .tracking(5)
-                .shadow(color: Color.goldDark.opacity(glowPulse ? 0.9 : 0.4), radius: 12, x: 0, y: 0)
+                .frame(maxWidth: .infinity)
+                .frame(height: 120)
+
+                // Top + bottom rule lines
+                VStack {
+                    Rectangle()
+                        .fill(Color.goldBright.opacity(0.5))
+                        .frame(height: 1.2)
+                    Spacer()
+                    Rectangle()
+                        .fill(Color.goldBright.opacity(0.5))
+                        .frame(height: 1.2)
+                }
+                .frame(height: 120)
+
+                // Text content
+                VStack(spacing: 6) {
+                    Text("ECHO OF AGES")
+                        .font(EgyptFont.titleBold(40))
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [Color.goldBright, Color(red: 0.97, green: 0.86, blue: 0.50), Color.goldBright],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .tracking(5)
+                        .shadow(color: Color.goldDark.opacity(glowPulse ? 0.9 : 0.3), radius: 10, x: 0, y: 0)
+
+                    Text("by David Ramer")
+                        .font(EgyptFont.bodyItalic(16))
+                        .foregroundStyle(Color.papyrus.opacity(0.85))
+                        .tracking(1)
+                }
+            }
+            .padding(.horizontal, -32) // bleed to edges past parent padding
+
+            Spacer(minLength: 20)
+
+            Text("An Ancient Hieroglyph Deduction Puzzle")
+                .font(EgyptFont.bodyItalic(16))
+                .foregroundStyle(Color.papyrus.opacity(0.70))
                 .multilineTextAlignment(.center)
 
-            // Ornamental rule
-            HStack {
-                Rectangle()
-                    .fill(
-                        LinearGradient(colors: [.clear, .goldDark, .clear], startPoint: .leading, endPoint: .trailing)
-                    )
-                    .frame(height: 0.8)
-                Text("𓊹")
-                    .font(.system(size: 16))
-                    .foregroundStyle(Color.goldDark)
-                    .padding(.horizontal, 8)
-                Rectangle()
-                    .fill(
-                        LinearGradient(colors: [.clear, .goldDark, .clear], startPoint: .leading, endPoint: .trailing)
-                    )
-                    .frame(height: 0.8)
-            }
-            .padding(.vertical, 4)
-
-            Text("An Egyptian Hieroglyph Puzzle")
-                .font(EgyptFont.bodyItalic(17))
-                .foregroundStyle(Color.papyrus.opacity(0.75))
-
-            Spacer(minLength: 16)
+            Spacer(minLength: 20)
 
             Text("\"In the beginning was the Word,\nand the Word was carved in stone.\"")
                 .font(EgyptFont.bodyItalic(15))
-                .foregroundStyle(Color.papyrus.opacity(0.55))
+                .foregroundStyle(Color.papyrus.opacity(0.50))
                 .multilineTextAlignment(.center)
                 .lineSpacing(4)
         }

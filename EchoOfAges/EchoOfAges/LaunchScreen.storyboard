@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="13122.16" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" launchScreen="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="01J-lp-oVM">
+    <dependencies>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="13104.12"/>
+        <capability name="Safe area layout guides" minToolsVersion="9.0"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <scenes>
+        <!--View Controller-->
+        <scene sceneID="EHf-IW-A2E">
+            <objects>
+                <viewController id="01J-lp-oVM" sceneMemberID="viewController">
+                    <view key="view" contentMode="scaleToFill" id="Ze5-6b-2t3">
+                        <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+
+                            <!-- Gold banner strip -->
+                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="goldBanner">
+                                <rect key="frame" x="0.0" y="366" width="393" height="120"/>
+                                <subviews>
+                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="ECHO OF AGES" textAlignment="center" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="titleLbl">
+                                        <rect key="frame" x="0.0" y="18" width="393" height="52"/>
+                                        <fontDescription key="fontDescription" type="boldSystem" pointSize="42"/>
+                                        <color key="textColor" red="0.921" green="0.780" blue="0.302" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                        <nil key="highlightedColor"/>
+                                    </label>
+                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="by David Ramer" textAlignment="center" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="byLbl">
+                                        <rect key="frame" x="0.0" y="76" width="393" height="28"/>
+                                        <fontDescription key="fontDescription" type="italicSystem" pointSize="18"/>
+                                        <color key="textColor" red="0.871" green="0.792" blue="0.580" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                        <nil key="highlightedColor"/>
+                                    </label>
+                                </subviews>
+                                <color key="backgroundColor" red="0.420" green="0.290" blue="0.040" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                <constraints>
+                                    <constraint firstItem="titleLbl" firstAttribute="leading" secondItem="goldBanner" secondAttribute="leading" id="tl1"/>
+                                    <constraint firstItem="titleLbl" firstAttribute="trailing" secondItem="goldBanner" secondAttribute="trailing" id="tl2"/>
+                                    <constraint firstItem="titleLbl" firstAttribute="top" secondItem="goldBanner" secondAttribute="top" constant="18" id="tl3"/>
+                                    <constraint firstItem="byLbl" firstAttribute="leading" secondItem="goldBanner" secondAttribute="leading" id="bl1"/>
+                                    <constraint firstItem="byLbl" firstAttribute="trailing" secondItem="goldBanner" secondAttribute="trailing" id="bl2"/>
+                                    <constraint firstItem="byLbl" firstAttribute="top" secondItem="titleLbl" secondAttribute="bottom" constant="6" id="bl3"/>
+                                </constraints>
+                            </view>
+
+                            <!-- Glyphs above banner -->
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="𓂀  𓅓  𓈖  𓃭  𓇯" textAlignment="center" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="glyphTop">
+                                <rect key="frame" x="0.0" y="306" width="393" height="36"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="26"/>
+                                <color key="textColor" red="0.55" green="0.42" blue="0.22" alpha="0.75" colorSpace="custom" customColorSpace="sRGB"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+
+                            <!-- Glyphs below banner -->
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="𓅱  𓆑  𓏏  𓈖  𓊪" textAlignment="center" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="glyphBot">
+                                <rect key="frame" x="0.0" y="510" width="393" height="30"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="20"/>
+                                <color key="textColor" red="0.38" green="0.28" blue="0.15" alpha="0.70" colorSpace="custom" customColorSpace="sRGB"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+
+                        </subviews>
+
+                        <!-- Stone dark background: #231710 -->
+                        <color key="backgroundColor" red="0.137" green="0.090" blue="0.051" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+
+                        <constraints>
+                            <constraint firstItem="goldBanner" firstAttribute="leading" secondItem="Ze5-6b-2t3" secondAttribute="leading" id="c1"/>
+                            <constraint firstItem="goldBanner" firstAttribute="trailing" secondItem="Ze5-6b-2t3" secondAttribute="trailing" id="c2"/>
+                            <constraint firstItem="goldBanner" firstAttribute="centerY" secondItem="Ze5-6b-2t3" secondAttribute="centerY" id="c3"/>
+                            <constraint firstItem="goldBanner" firstAttribute="height" secondAttribute="notAnAttribute" constant="120" id="c4"/>
+                            <constraint firstItem="glyphTop" firstAttribute="leading" secondItem="Ze5-6b-2t3" secondAttribute="leading" id="c5"/>
+                            <constraint firstItem="glyphTop" firstAttribute="trailing" secondItem="Ze5-6b-2t3" secondAttribute="trailing" id="c6"/>
+                            <constraint firstItem="glyphTop" firstAttribute="bottom" secondItem="goldBanner" secondAttribute="top" constant="-24" id="c7"/>
+                            <constraint firstItem="glyphBot" firstAttribute="leading" secondItem="Ze5-6b-2t3" secondAttribute="leading" id="c8"/>
+                            <constraint firstItem="glyphBot" firstAttribute="trailing" secondItem="Ze5-6b-2t3" secondAttribute="trailing" id="c9"/>
+                            <constraint firstItem="glyphBot" firstAttribute="top" secondItem="goldBanner" secondAttribute="bottom" constant="24" id="c10"/>
+                        </constraints>
+                        <viewLayoutGuide key="safeArea" id="Bcu-3y-fUS"/>
+                    </view>
+                </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="iYj-Kq-Ea1" userLabel="First Responder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="53" y="375"/>
+        </scene>
+    </scenes>
+</document>
