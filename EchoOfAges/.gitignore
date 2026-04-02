@@ -12,3 +12,6 @@ DerivedData/
 # SPM
 .build/
 *.resolved
+
+# Original font files at project root (bundled copies live in EchoOfAges/)
+/*.ttf

@@ -97,54 +97,13 @@ struct TitleView: View {
 
     private var titleBlock: some View {
         VStack(spacing: 0) {
-            // Gold banner with title
-            ZStack {
-                // Banner background
-                LinearGradient(
-                    colors: [
-                        Color(red: 0.38, green: 0.26, blue: 0.04),
-                        Color(red: 0.52, green: 0.37, blue: 0.07),
-                        Color(red: 0.38, green: 0.26, blue: 0.04)
-                    ],
-                    startPoint: .leading,
-                    endPoint: .trailing
-                )
+            // Banner image — full width, aspect-fit
+            Image("banner")
+                .resizable()
+                .scaledToFit()
                 .frame(maxWidth: .infinity)
-                .frame(height: 120)
-
-                // Top + bottom rule lines
-                VStack {
-                    Rectangle()
-                        .fill(Color.goldBright.opacity(0.5))
-                        .frame(height: 1.2)
-                    Spacer()
-                    Rectangle()
-                        .fill(Color.goldBright.opacity(0.5))
-                        .frame(height: 1.2)
-                }
-                .frame(height: 120)
-
-                // Text content
-                VStack(spacing: 6) {
-                    Text("ECHO OF AGES")
-                        .font(EgyptFont.titleBold(40))
-                        .foregroundStyle(
-                            LinearGradient(
-                                colors: [Color.goldBright, Color(red: 0.97, green: 0.86, blue: 0.50), Color.goldBright],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                        .tracking(5)
-                        .shadow(color: Color.goldDark.opacity(glowPulse ? 0.9 : 0.3), radius: 10, x: 0, y: 0)
-
-                    Text("by David Ramer")
-                        .font(EgyptFont.bodyItalic(16))
-                        .foregroundStyle(Color.papyrus.opacity(0.85))
-                        .tracking(1)
-                }
-            }
-            .padding(.horizontal, -32) // bleed to edges past parent padding
+                .shadow(color: Color.goldDark.opacity(glowPulse ? 0.6 : 0.2), radius: 16, x: 0, y: 4)
+                .padding(.horizontal, -32) // bleed edge-to-edge past parent padding
 
             Spacer(minLength: 20)
 
