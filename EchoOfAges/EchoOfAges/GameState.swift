@@ -36,7 +36,28 @@ final class GameState: ObservableObject {
     // The journal entry to highlight (set when completing a level)
     @Published var spotlightJournalId: Int? = nil
 
+    // Archaeologist's Codex — glyphs discovered so far, in encounter order
+    @Published var discoveredGlyphs: [Glyph] = []
+
+    // Decoded messages from completed inscriptions, keyed by level id
+    @Published var decodedMessages: [Int: String] = [:]
+
+    // The message shown on the level-complete screen
+    @Published var pendingDecodedMessage: String = ""
+
     var currentLevel: Level { Level.allLevels[currentLevelIndex] }
+
+    // Ordered list of discovered glyphs (respects Glyph.allCases canonical order)
+    var codexGlyphs: [Glyph] {
+        Glyph.allCases.filter { discoveredGlyphs.contains($0) }
+    }
+
+    // All 5 chronicle entries in narrative order
+    var chronicleMessages: [(level: Level, message: String?)] {
+        Level.allLevels.map { level in
+            (level: level, message: decodedMessages[level.id])
+        }
+    }
 
     // MARK: Init
 
@@ -96,7 +117,6 @@ final class GameState: ObservableObject {
     }
 
     private func resetGrid(for level: Level) {
-        // Deep-copy the initial grid so mutations don't affect the static
         playerGrid = level.initialGrid.map { $0.map { $0 } }
     }
 
@@ -121,14 +141,12 @@ final class GameState: ObservableObject {
         }
 
         if let picked = selectedGlyph {
-            // Place or toggle-off the selected glyph
             if playerGrid[position.row][position.col] == picked {
                 playerGrid[position.row][position.col] = nil
             } else {
                 playerGrid[position.row][position.col] = picked
             }
         } else {
-            // No palette selection — cycle through available glyphs
             let glyphs = level.availableGlyphs
             let current = playerGrid[position.row][position.col]
             if let current, let idx = glyphs.firstIndex(of: current) {
@@ -177,7 +195,6 @@ final class GameState: ObservableObject {
 
     private func checkSolution() {
         let level = currentLevel
-        // Must have all cells filled before checking
         for row in 0..<level.rows {
             for col in 0..<level.cols {
                 if playerGrid[row][col] == nil { return }
@@ -192,9 +209,22 @@ final class GameState: ObservableObject {
         isAnimatingCompletion = true
         HapticFeedback.success()
 
-        let entryId = currentLevel.journalEntry.id
+        let level = currentLevel
+
+        // Unlock journal entry
+        let entryId = level.journalEntry.id
         unlockedJournalEntries.insert(entryId)
         spotlightJournalId = entryId
+
+        // Record decoded message for the chronicle
+        decodedMessages[level.id] = level.decodedMessage
+        pendingDecodedMessage = level.decodedMessage
+
+        // Add new glyphs to the codex (in encounter order)
+        for glyph in level.availableGlyphs where !discoveredGlyphs.contains(glyph) {
+            discoveredGlyphs.append(glyph)
+        }
+
         saveProgress()
 
         Task {
@@ -211,13 +241,23 @@ final class GameState: ObservableObject {
     // MARK: Progress Persistence
 
     private func saveProgress() {
-        let ids = Array(unlockedJournalEntries)
-        UserDefaults.standard.set(ids, forKey: "EOA_unlockedEntries")
+        UserDefaults.standard.set(Array(unlockedJournalEntries), forKey: "EOA_unlockedEntries")
+        UserDefaults.standard.set(discoveredGlyphs.map(\.rawValue), forKey: "EOA_codex")
+        let messagesDict = decodedMessages.reduce(into: [String: String]()) { $0["\($1.key)"] = $1.value }
+        UserDefaults.standard.set(messagesDict, forKey: "EOA_chronicle")
     }
 
     private func loadProgress() {
         let ids = UserDefaults.standard.array(forKey: "EOA_unlockedEntries") as? [Int] ?? []
         unlockedJournalEntries = Set(ids)
+
+        let rawValues = UserDefaults.standard.array(forKey: "EOA_codex") as? [String] ?? []
+        discoveredGlyphs = rawValues.compactMap { Glyph(rawValue: $0) }
+
+        let messagesDict = UserDefaults.standard.dictionary(forKey: "EOA_chronicle") as? [String: String] ?? [:]
+        decodedMessages = messagesDict.reduce(into: [Int: String]()) {
+            if let id = Int($1.key) { $0[id] = $1.value }
+        }
     }
 
     var hasProgress: Bool {

@@ -3,6 +3,7 @@
 //
 // Latin-square puzzle: each glyph appears exactly once per row and column.
 // Fixed cells are pre-placed and cannot be changed. Player fills the rest.
+// Completing a puzzle deciphers a message that contributes to the Tree of Life narrative.
 
 import Foundation
 
@@ -36,6 +37,33 @@ enum Glyph: String, CaseIterable, Codable, Equatable, Hashable, Identifiable {
         case .sky:   return "Eternity & Heaven"
         }
     }
+
+    // The archaeologist's field note — written the first time this glyph was encountered
+    var discoveryNote: String {
+        switch self {
+        case .eye:
+            return "Appears at every threshold in Kha's tomb — above doorways, beside cartouches. Not merely decorative. It seems to represent the act of seeing itself, and of being seen by something vast and old."
+        case .owl:
+            return "Rare in formal inscriptions. The owl is usually a phonetic marker — the consonant 'm' — but here it stands as a primary symbol. Knowledge held in darkness. What the owl knows, it does not speak aloud."
+        case .water:
+            return "The three zigzag lines: the Nile in miniature. Without the flood, nothing lives, nothing grows, nothing endures. This may be the oldest mark of civilization ever pressed into stone."
+        case .lion:
+            return "New in the second chamber. Not hunting — guarding. Seated upright beside Ra's cartouche. Power that does not need to prove itself. The fourth symbol changes the puzzle entirely. I was not ready for it."
+        case .sky:
+            return "Found only deep within Thoth's sanctuary, near the ceiling. A vaulted arch: the sky imagined as a roof over the flat earth. To carve the sky is to name the infinite. The fifth and final symbol. The last piece."
+        }
+    }
+
+    // Which level number first introduces this glyph
+    var introducedInLevel: Int {
+        switch self {
+        case .eye:   return 1
+        case .owl:   return 1
+        case .water: return 1
+        case .lion:  return 2
+        case .sky:   return 4
+        }
+    }
 }
 
 // MARK: - Grid Position
@@ -61,7 +89,7 @@ struct Level: Identifiable {
     let title: String
     let subtitle: String
     let lore: String
-    let inscriptions: [String]
+    let inscriptions: [String]          // Field notes — clues for solving
     let rows: Int
     let cols: Int
     let availableGlyphs: [Glyph]
@@ -69,6 +97,8 @@ struct Level: Identifiable {
     let fixedPositions: Set<GridPosition>
     let solution: [[Glyph]]
     let journalEntry: JournalEntry
+    let decodedMessage: String          // The message revealed when the inscription is solved
+    let newGlyphs: [Glyph]             // Glyphs introduced for the first time in this level
 
     func isFixed(_ position: GridPosition) -> Bool {
         fixedPositions.contains(position)
@@ -101,6 +131,7 @@ struct Level: Identifiable {
 // Solutions are verified Latin squares (no cyclic-shift patterns).
 // Fixed cells are placed off-diagonal to vary the visual starting point.
 // Inscriptions give specific positional clues, not just rule restatements.
+// decodedMessage is the narrative text revealed upon solving each inscription.
 //
 // Verification key: E=eye O=owl W=water L=lion S=sky
 
@@ -151,7 +182,9 @@ extension Level {
             title: "The Scribe's Testament",
             body: "Here lies Kha, Master Scribe of the Great House. He who deciphers this seal shall know: three sacred symbols govern the world of the living — the Owl of wisdom, the Water of life, and the Eye of sight. Where they rest is not random. Each claims one position in every row, one in every column. In their proper order lies harmony; in disorder, chaos reigns eternal.",
             artifact: "𓏠"
-        )
+        ),
+        decodedMessage: "In the age before memory, three forces shaped the world: the Eye that sees all truth, the Owl that guards all knowledge, the Water that gives all life. From these three, the first root of the great Tree was born beneath the earth, unseen, patient, waiting.",
+        newGlyphs: [.eye, .owl, .water]
     )
 
     // ─────────────────────────────────────────────────
@@ -202,7 +235,9 @@ extension Level {
             title: "The Solar Hymn",
             body: "Ra's four sacred symbols do not simply rotate — they interlock like the teeth of a great celestial wheel. The Eye sees across rows; the Lion holds corners; the Owl glides between them; Water fills the remaining voids. To understand their arrangement is to read the mind of the sun god himself.",
             artifact: "𓇳"
-        )
+        ),
+        decodedMessage: "Ra looked upon the first roots and raised a fourth power: the Lion of Strength, to protect what grows. Four forces now balanced the world — sight, wisdom, life, and strength. The trunk of the Tree rose toward the heavens, and Ra called it good.",
+        newGlyphs: [.lion]
     )
 
     // ─────────────────────────────────────────────────
@@ -253,7 +288,9 @@ extension Level {
             title: "The Weighing of the Heart",
             body: "Anubis places the heart upon the golden scales. Opposite rests the Feather of Ma'at — truth itself. If the heart is light, unclouded by sin, the soul passes onward to Aaru. If heavy with wrongdoing, the Devourer waits. The seal mirrors this judgment: every position must be earned, every symbol placed with intention — not guessed, not assumed.",
             artifact: "𓂋"
-        )
+        ),
+        decodedMessage: "Anubis weighed each soul who sought the Tree. Only those who balanced Eye and Lion, Water and Owl — each in its proper place, none repeated, none omitted — could pass beneath its branches. Order is the first law of the living. It is also the last law of the dead.",
+        newGlyphs: []
     )
 
     // ─────────────────────────────────────────────────
@@ -311,7 +348,9 @@ extension Level {
             title: "The Library of Thoth",
             body: "In the forty-two sacred books of Thoth lies all knowledge: medicine, magic, astronomy, law, and the arts of the living and the dead. The five great glyphs represent five mysteries. Their arrangement here follows no simple pattern — it must be reasoned out, inscription by inscription, column by column, until the seal yields its truth.",
             artifact: "𓆓"
-        )
+        ),
+        decodedMessage: "Thoth inscribed a fifth force in his sacred books: the Sky, the vault of eternity above all things. Five forces, five directions, five chambers of truth. The branches of the Tree now reached from earth to heaven. And Thoth wrote in the margin: all things in their proper place is the first law of the universe, and also the last.",
+        newGlyphs: [.sky]
     )
 
     // ─────────────────────────────────────────────────
@@ -367,6 +406,8 @@ extension Level {
             title: "The Gates of Aaru",
             body: "Beyond the Final Seal lies the Field of Reeds — Aaru, the Egyptian paradise. Here the worthy live in eternal bliss beneath a sky of endless gold. You solved not by pattern but by reason — each clue a stepping stone, each deduction a gate opened. The five glyphs, now in perfect arrangement, sing the oldest song: all things in their proper place, all souls in their proper rest. You have heard the echo of ages.",
             artifact: "𓇋"
-        )
+        ),
+        decodedMessage: "You have heard the echo of ages. The Tree of Life stands at the center of all worlds — its roots in the waters of creation, its trunk the strength of lions, its branches the owl's wisdom spread wide, its leaves ten thousand eyes watching eternity, its fruit the sky itself: infinite, undying, and patient. Plant one truth each day. Let no symbol stand twice in the same place. This is how the world was made, and how it shall endure.",
+        newGlyphs: []
     )
 }

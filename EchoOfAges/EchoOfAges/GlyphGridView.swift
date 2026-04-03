@@ -9,7 +9,8 @@ import SwiftUI
 
 struct GameView: View {
     @EnvironmentObject var gameState: GameState
-    @State private var inscriptionsExpanded = false
+    @State private var fieldNotesExpanded = false
+    @State private var codexExpanded = false
 
     var body: some View {
         GeometryReader { geo in
@@ -21,8 +22,10 @@ struct GameView: View {
                     GlyphGridView(geo: geo)
                     Spacer(minLength: 20)
                     palette
-                    Spacer(minLength: 22)
-                    inscriptionsPanel
+                    Spacer(minLength: 14)
+                    knownGlyphsPanel
+                    Spacer(minLength: 14)
+                    fieldNotesPanel
                     Spacer(minLength: 22)
                     actionButtons
                     Spacer(minLength: 30)
@@ -41,7 +44,7 @@ struct GameView: View {
                 HStack(spacing: 6) {
                     Image(systemName: "book.closed")
                         .font(.system(size: 14, weight: .medium))
-                    Text("Journal")
+                    Text("Field Diary")
                         .font(EgyptFont.title(13))
                 }
                 .foregroundStyle(Color.goldMid)
@@ -90,7 +93,7 @@ struct GameView: View {
 
     private var palette: some View {
         VStack(spacing: 10) {
-            Text("Select a Glyph")
+            Text("Place a Glyph")
                 .font(EgyptFont.body(13))
                 .foregroundStyle(Color.stoneSurface)
 
@@ -104,23 +107,26 @@ struct GameView: View {
         }
     }
 
-    // MARK: Inscriptions Panel
+    // MARK: Known Glyphs (Codex Reference)
 
-    private var inscriptionsPanel: some View {
+    private var knownGlyphsPanel: some View {
         VStack(spacing: 0) {
             Button(action: {
                 withAnimation(.easeInOut(duration: 0.25)) {
-                    inscriptionsExpanded.toggle()
+                    codexExpanded.toggle()
                 }
                 HapticFeedback.tap()
             }) {
                 HStack {
-                    Image(systemName: "text.quote")
+                    Image(systemName: "magnifyingglass")
                         .font(.system(size: 13))
-                    Text("Inscriptions")
+                    Text("Known Glyphs")
                         .font(EgyptFont.title(14))
                     Spacer()
-                    Image(systemName: inscriptionsExpanded ? "chevron.up" : "chevron.down")
+                    Text("\(gameState.codexGlyphs.count) recorded")
+                        .font(EgyptFont.body(12))
+                        .foregroundStyle(Color.stoneSurface)
+                    Image(systemName: codexExpanded ? "chevron.up" : "chevron.down")
                         .font(.system(size: 12, weight: .semibold))
                 }
                 .foregroundStyle(Color.goldMid)
@@ -136,14 +142,104 @@ struct GameView: View {
                 )
             }
 
-            if inscriptionsExpanded {
+            if codexExpanded {
+                if gameState.codexGlyphs.isEmpty {
+                    Text("No glyphs recorded yet. Decipher the first inscription to fill your codex.")
+                        .font(EgyptFont.bodyItalic(14))
+                        .foregroundStyle(Color.papyrus.opacity(0.6))
+                        .multilineTextAlignment(.center)
+                        .padding(16)
+                        .frame(maxWidth: .infinity)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(Color.stoneDark.opacity(0.7))
+                        )
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                } else {
+                    VStack(spacing: 10) {
+                        ForEach(gameState.codexGlyphs) { glyph in
+                            HStack(spacing: 12) {
+                                Text(glyph.rawValue)
+                                    .font(.system(size: 26))
+                                    .foregroundStyle(Color.goldBright)
+                                    .frame(width: 36)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(glyph.displayName)
+                                        .font(EgyptFont.titleBold(13))
+                                        .foregroundStyle(Color.goldBright)
+                                    Text(glyph.meaning)
+                                        .font(EgyptFont.bodyItalic(12))
+                                        .foregroundStyle(Color.papyrus.opacity(0.7))
+                                }
+                                Spacer()
+                            }
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 8)
+                            .background(
+                                RoundedRectangle(cornerRadius: 7)
+                                    .fill(Color.stoneMid.opacity(0.5))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 7)
+                                            .stroke(Color.goldDark.opacity(0.2), lineWidth: 0.6)
+                                    )
+                            )
+                        }
+                    }
+                    .padding(12)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(Color.stoneDark.opacity(0.7))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(Color.stoneLight.opacity(0.3), lineWidth: 0.5)
+                            )
+                    )
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                }
+            }
+        }
+    }
+
+    // MARK: Field Notes Panel
+
+    private var fieldNotesPanel: some View {
+        VStack(spacing: 0) {
+            Button(action: {
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    fieldNotesExpanded.toggle()
+                }
+                HapticFeedback.tap()
+            }) {
+                HStack {
+                    Image(systemName: "pencil")
+                        .font(.system(size: 13))
+                    Text("Field Notes")
+                        .font(EgyptFont.title(14))
+                    Spacer()
+                    Image(systemName: fieldNotesExpanded ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 12, weight: .semibold))
+                }
+                .foregroundStyle(Color.goldMid)
+                .padding(.vertical, 12)
+                .padding(.horizontal, 16)
+                .background(
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color.stoneMid)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(Color.stoneLight.opacity(0.5), lineWidth: 0.8)
+                        )
+                )
+            }
+
+            if fieldNotesExpanded {
                 VStack(alignment: .leading, spacing: 10) {
-                    ForEach(Array(gameState.currentLevel.inscriptions.enumerated()), id: \.offset) { _, inscription in
+                    ForEach(Array(gameState.currentLevel.inscriptions.enumerated()), id: \.offset) { _, note in
                         HStack(alignment: .top, spacing: 10) {
                             Text("𓏲")
                                 .font(.system(size: 14))
                                 .foregroundStyle(Color.goldDark)
-                            Text(inscription)
+                            Text(note)
                                 .font(EgyptFont.bodyItalic(15))
                                 .foregroundStyle(Color.papyrus.opacity(0.9))
                         }
@@ -182,7 +278,6 @@ struct GameView: View {
     private var stoneBackground: some View {
         ZStack {
             Color.stoneDark.ignoresSafeArea()
-            // Subtle vignette
             RadialGradient(
                 colors: [.clear, Color.black.opacity(0.35)],
                 center: .center,
@@ -203,7 +298,7 @@ struct GlyphGridView: View {
     private var level: Level { gameState.currentLevel }
 
     private var cellSize: CGFloat {
-        let usableWidth = geo.size.width - 32 // 16pt padding each side
+        let usableWidth = geo.size.width - 32
         let spacing = CGFloat(level.cols - 1) * 6
         return (usableWidth - spacing) / CGFloat(level.cols)
     }
@@ -236,7 +331,6 @@ struct GlyphGridView: View {
                         .stroke(Color.goldDark.opacity(0.35), lineWidth: 1)
                 )
         )
-        // Completion border glow
         .overlay(
             RoundedRectangle(cornerRadius: 12)
                 .stroke(Color.goldBright, lineWidth: 2.5)
