@@ -139,9 +139,35 @@ struct JournalView: View {
     private var tabletContent: some View {
         VStack(alignment: .leading, spacing: 20) {
             tabletIntro
+            discoveryMap
             tabletGrid
             civilizationLegend
             tabletDecodedMessage
+        }
+    }
+
+    private var discoveryMap: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("DISCOVERY SITE")
+                .font(EgyptFont.title(11))
+                .foregroundStyle(Color.stoneLight.opacity(0.6))
+                .tracking(3)
+
+            Image("map")
+                .resizable()
+                .scaledToFit()
+                .frame(maxWidth: .infinity)
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10)
+                        .stroke(Color.goldDark.opacity(0.5), lineWidth: 1.2)
+                )
+                .shadow(color: Color.black.opacity(0.5), radius: 8, x: 0, y: 4)
+
+            Text("The island bearing the Tablet of Mandu lies at the convergence of ancient maritime routes — equidistant between South America and Africa. It appears on no modern navigational chart. The expedition team has withheld its exact coordinates pending further excavation.")
+                .font(EgyptFont.bodyItalic(13))
+                .foregroundStyle(Color.papyrus.opacity(0.6))
+                .lineSpacing(4)
         }
     }
 
