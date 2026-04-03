@@ -266,6 +266,8 @@ struct JournalView: View {
     private var chronicleContent: some View {
         VStack(alignment: .leading, spacing: 16) {
             chronicleIntro
+            treeOfLifePanel
+            dividerRule
 
             ForEach(Array(gameState.chronicleMessages.enumerated()), id: \.offset) { _, entry in
                 chronicleEntry(level: entry.level, message: entry.message)
@@ -279,12 +281,113 @@ struct JournalView: View {
                 .font(EgyptFont.title(11))
                 .foregroundStyle(Color.stoneLight.opacity(0.6))
                 .tracking(3)
-            Text("Each inscription deciphered reveals a fragment of an ancient message. Together, they tell the story of the Tree of Life.")
+            Text("Each inscription deciphered adds a fragment to the Tree of Life message below. Tap any entry to read the full decoded text and your field notes.")
                 .font(EgyptFont.bodyItalic(14))
                 .foregroundStyle(Color.papyrus.opacity(0.6))
                 .lineSpacing(3)
         }
         .padding(.bottom, 4)
+    }
+
+    // The growing combined narrative — shows all decoded messages joined together
+    @ViewBuilder
+    private var treeOfLifePanel: some View {
+        let decoded = gameState.chronicleMessages.compactMap(\.message)
+        let remaining = Level.allLevels.count - decoded.count
+        let combinedText = decoded.joined(separator: "\n\n")
+
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 10) {
+                Text("𓇋")
+                    .font(.system(size: 24))
+                    .foregroundStyle(Color.goldBright)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("THE TREE OF LIFE")
+                        .font(EgyptFont.titleBold(14))
+                        .foregroundStyle(Color.goldBright)
+                        .tracking(2)
+                    Text(decoded.isEmpty
+                         ? "Message not yet begun"
+                         : remaining == 0
+                             ? "Complete — all five inscriptions deciphered"
+                             : "\(decoded.count) of 5 fragments deciphered")
+                        .font(EgyptFont.bodyItalic(12))
+                        .foregroundStyle(decoded.isEmpty ? Color.stoneLight.opacity(0.5) : Color.goldMid.opacity(0.8))
+                }
+                Spacer()
+            }
+
+            if decoded.isEmpty {
+                Text("Decipher the first inscription to reveal the opening of the ancient message.")
+                    .font(EgyptFont.bodyItalic(15))
+                    .foregroundStyle(Color.stoneLight.opacity(0.45))
+                    .lineSpacing(4)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                Text(combinedText)
+                    .font(EgyptFont.bodyItalic(16))
+                    .foregroundStyle(Color.papyrus)
+                    .lineSpacing(7)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                if remaining > 0 {
+                    HStack(spacing: 6) {
+                        ForEach(0..<Level.allLevels.count, id: \.self) { i in
+                            Circle()
+                                .fill(i < decoded.count ? Color.goldBright : Color.stoneLight.opacity(0.3))
+                                .frame(width: 6, height: 6)
+                        }
+                        Text("·  \(remaining) fragment\(remaining == 1 ? "" : "s") remaining")
+                            .font(EgyptFont.body(12))
+                            .foregroundStyle(Color.stoneLight.opacity(0.5))
+                    }
+                    .padding(.top, 4)
+                } else {
+                    HStack(spacing: 8) {
+                        Text("𓊹")
+                            .font(.system(size: 14))
+                            .foregroundStyle(Color.goldDark)
+                        Text("The message is complete.")
+                            .font(EgyptFont.bodyItalic(13))
+                            .foregroundStyle(Color.goldDark.opacity(0.8))
+                    }
+                    .padding(.top, 4)
+                }
+            }
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(decoded.isEmpty
+                      ? AnyShapeStyle(Color.stoneDark.opacity(0.5))
+                      : AnyShapeStyle(LinearGradient(
+                            colors: [Color(red: 0.22, green: 0.16, blue: 0.07), Color.stoneMid.opacity(0.6)],
+                            startPoint: .top, endPoint: .bottom)))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(decoded.isEmpty ? Color.stoneLight.opacity(0.15) : Color.goldDark.opacity(0.6),
+                                lineWidth: decoded.isEmpty ? 0.5 : 1.2)
+                )
+        )
+        .shadow(color: decoded.isEmpty ? .clear : Color.goldDark.opacity(0.2), radius: 8, x: 0, y: 0)
+    }
+
+    private var dividerRule: some View {
+        HStack {
+            Rectangle()
+                .fill(LinearGradient(colors: [.clear, .goldDark.opacity(0.4), .clear],
+                                     startPoint: .leading, endPoint: .trailing))
+                .frame(height: 0.8)
+            Text("𓊹")
+                .font(.system(size: 12))
+                .foregroundStyle(Color.goldDark.opacity(0.5))
+                .padding(.horizontal, 8)
+            Rectangle()
+                .fill(LinearGradient(colors: [.clear, .goldDark.opacity(0.4), .clear],
+                                     startPoint: .leading, endPoint: .trailing))
+                .frame(height: 0.8)
+        }
+        .padding(.vertical, 4)
     }
 
     @ViewBuilder
