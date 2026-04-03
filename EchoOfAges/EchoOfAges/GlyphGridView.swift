@@ -39,30 +39,28 @@ struct GameView: View {
     // MARK: Top Bar
 
     private var topBar: some View {
-        HStack {
+        HStack(alignment: .center) {
+            // Diary image button — tap to open Field Diary
             Button(action: { gameState.openJournal() }) {
-                HStack(spacing: 6) {
-                    Image(systemName: "book.closed")
-                        .font(.system(size: 14, weight: .medium))
-                    Text("Field Diary")
-                        .font(EgyptFont.title(13))
-                }
-                .foregroundStyle(Color.goldMid)
-                .padding(.vertical, 8)
-                .padding(.horizontal, 12)
-                .background(
-                    RoundedRectangle(cornerRadius: 7)
-                        .fill(Color.stoneMid.opacity(0.8))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 7)
-                                .stroke(Color.stoneLight.opacity(0.5), lineWidth: 0.7)
-                        )
-                )
+                Image("diary")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 54, height: 54)
+                    .shadow(color: Color.goldDark.opacity(0.5), radius: 6, x: 0, y: 2)
             }
+
             Spacer()
-            Text("Chamber \(gameState.currentLevel.romanNumeral) / V")
-                .font(EgyptFont.body(13))
-                .foregroundStyle(Color.stoneSurface)
+
+            VStack(spacing: 2) {
+                Text(gameState.currentLevel.title.uppercased())
+                    .font(EgyptFont.title(11))
+                    .foregroundStyle(Color.goldDark)
+                    .tracking(2)
+                    .lineLimit(1)
+                Text("Chamber \(gameState.currentLevel.romanNumeral) of V")
+                    .font(EgyptFont.body(12))
+                    .foregroundStyle(Color.stoneSurface)
+            }
         }
         .padding(.top, 16)
         .padding(.bottom, 8)

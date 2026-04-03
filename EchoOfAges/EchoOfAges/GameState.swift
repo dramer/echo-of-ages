@@ -59,6 +59,28 @@ final class GameState: ObservableObject {
         }
     }
 
+    // Which civilizations have all their partial tablets fully deciphered
+    var completedCivilizations: Set<CivilizationID> {
+        var completed = Set<CivilizationID>()
+        for civ in Civilization.all where civ.isUnlocked {
+            let civLevels = Level.allLevels.filter { $0.civilization == civ.id }
+            let allSolved = civLevels.allSatisfy { unlockedJournalEntries.contains($0.journalEntry.id) }
+            if allSolved && !civLevels.isEmpty { completed.insert(civ.id) }
+        }
+        return completed
+    }
+
+    // Tablet slots decoded so far (civilization must be complete)
+    var decodedTabletSlots: Set<Int> {
+        let done = completedCivilizations
+        return Set(TabletSlot.all.filter { done.contains($0.civilization) }.map(\.id))
+    }
+
+    // Whether all 6 civilizations are complete — the tablet is fully decoded
+    var isTabletFullyDecoded: Bool {
+        Civilization.all.filter(\.isUnlocked).allSatisfy { completedCivilizations.contains($0.id) }
+    }
+
     // MARK: Init
 
     init() {

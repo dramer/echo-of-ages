@@ -86,6 +86,7 @@ struct JournalEntry: Identifiable {
 
 struct Level: Identifiable {
     let id: Int
+    let civilization: CivilizationID    // Which civilization this partial tablet belongs to
     let title: String
     let subtitle: String
     let lore: String
@@ -150,6 +151,7 @@ extension Level {
     // ─────────────────────────────────────────────────
     static let level1 = Level(
         id: 1,
+        civilization: .egyptian,
         title: "Tomb of Kha",
         subtitle: "The First Seal",
         lore: "Deep within the tomb of the master scribe Kha, three sacred symbols await their proper arrangement. The priests left them scattered as a test of worthiness. Only one who reads the fixed stones carefully may unlock the seal.",
@@ -200,6 +202,7 @@ extension Level {
     // ─────────────────────────────────────────────────
     static let level2 = Level(
         id: 2,
+        civilization: .egyptian,
         title: "Chamber of Ra",
         subtitle: "The Solar Seal",
         lore: "The sun god Ra guards this chamber with four powerful symbols. The placement here is not a simple cycle — the Lion and the Eye hold fixed positions that reveal the structure only to those who reason carefully from what is known.",
@@ -253,6 +256,7 @@ extension Level {
     // ─────────────────────────────────────────────────
     static let level3 = Level(
         id: 3,
+        civilization: .egyptian,
         title: "Hall of Anubis",
         subtitle: "The Judgment Seal",
         lore: "In the Hall of Two Truths, Anubis weighs the heart against the feather of Ma'at. The four symbols here follow no repeating pattern — each row is its own judgment. The fixed stones reveal corners of truth; the rest must be earned through deduction.",
@@ -307,6 +311,7 @@ extension Level {
     // ─────────────────────────────────────────────────
     static let level4 = Level(
         id: 4,
+        civilization: .egyptian,
         title: "Sanctuary of Thoth",
         subtitle: "The Wisdom Seal",
         lore: "Thoth, god of wisdom, devised this seal without repetition or cycle — five symbols woven in a pattern that requires careful reasoning at every step. The fixed stones are scattered across the grid; no two share a row or column with the same glyph.",
@@ -367,6 +372,7 @@ extension Level {
     // ─────────────────────────────────────────────────
     static let level5 = Level(
         id: 5,
+        civilization: .egyptian,
         title: "The Final Seal",
         subtitle: "The Eternal Gate",
         lore: "Before the gates of the Field of Reeds stands the Final Seal — the greatest test devised by the gods. Only five stones are fixed. The rest must be drawn entirely from reason. No pattern will save you here; only patience, and the knowledge earned in every chamber before.",
