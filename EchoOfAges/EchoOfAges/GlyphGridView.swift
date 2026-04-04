@@ -180,7 +180,7 @@ struct GameView: View {
         .padding(.vertical, 8)
         .background(
             RoundedRectangle(cornerRadius: 14)
-                .fill(Color.stoneMid.opacity(0.7))
+                .fill(Color.white)
                 .overlay(
                     RoundedRectangle(cornerRadius: 14)
                         .stroke(Color.goldDark.opacity(0.4), lineWidth: 1)
@@ -212,7 +212,7 @@ struct GameView: View {
                 }
                 Text(label)
                     .font(EgyptFont.body(11))
-                    .foregroundStyle(Color.stoneSurface)
+                    .foregroundStyle(Color.stoneDark)
                     .lineLimit(1)
             }
             .frame(maxWidth: .infinity)
