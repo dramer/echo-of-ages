@@ -6,41 +6,24 @@ import SwiftUI
 struct TitleView: View {
     @EnvironmentObject var gameState: GameState
     @State private var glowPulse = false
-    @State private var appeared = false
+    @State private var appeared  = false
 
     var body: some View {
         ZStack {
             background
 
-            // Settings gear — top right corner
-            VStack {
-                HStack {
-                    Spacer()
-                    Button(action: {
-                        HapticFeedback.tap()
-                        gameState.openSettings()
-                    }) {
-                        Image(systemName: "gearshape.fill")
-                            .font(.system(size: 22))
-                            .foregroundStyle(Color.stoneSurface.opacity(0.7))
-                            .padding(16)
-                    }
-                }
-                Spacer()
-            }
-
             VStack(spacing: 0) {
                 Spacer()
                 glyphDecoration
-                Spacer(minLength: 28)
+                Spacer(minLength: 24)
                 titleBlock
-                Spacer(minLength: 40)
-                buttons
+                Spacer(minLength: 36)
+                imageButtons
                 Spacer()
                 footerHieroglyphs
                 Spacer(minLength: 24)
             }
-            .padding(.horizontal, 32)
+            .padding(.horizontal, 24)
         }
         .onAppear {
             withAnimation(.easeInOut(duration: 2.2).repeatForever(autoreverses: true)) {
@@ -57,23 +40,14 @@ struct TitleView: View {
     private var background: some View {
         ZStack {
             Color.stoneDark.ignoresSafeArea()
-            // Warm center glow
             RadialGradient(
-                colors: [
-                    Color(red: 0.25, green: 0.15, blue: 0.06).opacity(0.7),
-                    Color.clear
-                ],
-                center: .center,
-                startRadius: 80,
-                endRadius: 380
+                colors: [Color(red: 0.25, green: 0.15, blue: 0.06).opacity(0.7), Color.clear],
+                center: .center, startRadius: 80, endRadius: 380
             )
             .ignoresSafeArea()
-            // Vignette
             RadialGradient(
                 colors: [.clear, Color.black.opacity(0.5)],
-                center: .center,
-                startRadius: 250,
-                endRadius: 550
+                center: .center, startRadius: 250, endRadius: 550
             )
             .ignoresSafeArea()
         }
@@ -83,21 +57,21 @@ struct TitleView: View {
 
     private var glyphDecoration: some View {
         HStack(spacing: 0) {
-            decorativeGlyph("𓂀", delay: 0.1)
+            decorativeGlyph("𓂀")
             decorativeDivider
-            decorativeGlyph("𓅓", delay: 0.2)
+            decorativeGlyph("𓅓")
             decorativeDivider
-            decorativeGlyph("𓈖", delay: 0.3)
+            decorativeGlyph("𓈖")
             decorativeDivider
-            decorativeGlyph("𓃭", delay: 0.2)
+            decorativeGlyph("𓃭")
             decorativeDivider
-            decorativeGlyph("𓇯", delay: 0.1)
+            decorativeGlyph("𓇯")
         }
         .opacity(appeared ? 1 : 0)
         .animation(.easeIn(duration: 0.9), value: appeared)
     }
 
-    private func decorativeGlyph(_ symbol: String, delay: Double) -> some View {
+    private func decorativeGlyph(_ symbol: String) -> some View {
         Text(symbol)
             .font(.system(size: 32))
             .foregroundStyle(Color.goldMid.opacity(0.75))
@@ -115,22 +89,21 @@ struct TitleView: View {
 
     private var titleBlock: some View {
         VStack(spacing: 0) {
-            // Banner image — full width, aspect-fit
             Image("banner")
                 .resizable()
                 .scaledToFit()
                 .frame(maxWidth: .infinity)
                 .shadow(color: Color.goldDark.opacity(glowPulse ? 0.6 : 0.2), radius: 16, x: 0, y: 4)
-                .padding(.horizontal, -32) // bleed edge-to-edge past parent padding
+                .padding(.horizontal, -24)
 
-            Spacer(minLength: 20)
+            Spacer(minLength: 18)
 
             Text("An Ancient Hieroglyph Deduction Puzzle")
                 .font(EgyptFont.bodyItalic(16))
                 .foregroundStyle(Color.papyrus.opacity(0.70))
                 .multilineTextAlignment(.center)
 
-            Spacer(minLength: 20)
+            Spacer(minLength: 18)
 
             Text("\"In the beginning was the Word,\nand the Word was carved in stone.\"")
                 .font(EgyptFont.bodyItalic(15))
@@ -143,42 +116,98 @@ struct TitleView: View {
         .animation(.easeOut(duration: 0.8).delay(0.1), value: appeared)
     }
 
-    // MARK: Buttons
+    // MARK: Image Buttons
 
-    private var buttons: some View {
-        VStack(spacing: 14) {
-            Button(action: {
+    private var imageButtons: some View {
+        HStack(spacing: 0) {
+            // Begin Journey — always shown
+            landingButton(
+                asset:    "begin_journey",
+                fallback: "arrow.right.circle.fill",
+                label:    "Begin Journey"
+            ) {
                 HapticFeedback.heavy()
-                withAnimation(.easeInOut(duration: 0.4)) {
-                    gameState.startNewGame()
-                }
-            }) {
-                StoneButton(title: "Begin Journey", icon: "arrow.right.circle.fill", style: .gold)
+                withAnimation(.easeInOut(duration: 0.4)) { gameState.startNewGame() }
             }
 
+            // Continue Journey — only shown when progress exists
             if gameState.hasProgress {
-                Button(action: {
+                landingButton(
+                    asset:    "continue_journey",
+                    fallback: "forward.fill",
+                    label:    "Continue"
+                ) {
                     HapticFeedback.tap()
-                    withAnimation(.easeInOut(duration: 0.4)) {
-                        gameState.continueGame()
-                    }
-                }) {
-                    StoneButton(title: "Continue Journey", icon: "forward.fill", style: .muted)
+                    withAnimation(.easeInOut(duration: 0.4)) { gameState.continueGame() }
                 }
             }
 
-            Button(action: {
+            // Open Journal
+            landingButton(
+                asset:    "open_journal",
+                fallback: "book.closed.fill",
+                label:    "Journal"
+            ) {
                 HapticFeedback.tap()
-                withAnimation(.easeInOut(duration: 0.4)) {
-                    gameState.openJournal()
-                }
-            }) {
-                StoneButton(title: "Open Journal", icon: "book.closed.fill", style: .muted)
+                withAnimation(.easeInOut(duration: 0.4)) { gameState.openJournal() }
+            }
+
+            // Settings
+            landingButton(
+                asset:    "settings",
+                fallback: "gearshape.fill",
+                label:    "Settings"
+            ) {
+                HapticFeedback.tap()
+                gameState.openSettings()
             }
         }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color.stoneMid.opacity(0.65))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(Color.goldDark.opacity(0.45), lineWidth: 1)
+                )
+        )
+        .shadow(color: .black.opacity(0.45), radius: 8, x: 0, y: 4)
         .opacity(appeared ? 1 : 0)
         .offset(y: appeared ? 0 : 15)
         .animation(.easeOut(duration: 0.7).delay(0.25), value: appeared)
+    }
+
+    /// Single landing-page button: image asset with label below.
+    /// Falls back to an SF Symbol if the asset has no artwork yet.
+    private func landingButton(
+        asset:    String,
+        fallback: String,
+        label:    String,
+        action:   @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            VStack(spacing: 6) {
+                if UIImage(named: asset) != nil {
+                    Image(asset)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(height: 56)
+                } else {
+                    Image(systemName: fallback)
+                        .font(.system(size: 32))
+                        .foregroundStyle(Color.goldMid)
+                        .frame(height: 56)
+                }
+                Text(label)
+                    .font(EgyptFont.body(13))
+                    .foregroundStyle(Color.stoneSurface)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 4)
+        }
     }
 
     // MARK: Footer
