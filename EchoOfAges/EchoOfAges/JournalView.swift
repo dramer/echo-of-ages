@@ -10,6 +10,7 @@ import SwiftUI
 
 private enum DiaryPage: Equatable {
     case frontPage
+    case drMandu             // Dr. Elena Mandu biography
     case mapPage
     case tabletStory
     case tabletGrid
@@ -48,7 +49,7 @@ struct JournalView: View {
     @State private var currentPageIndex: Int = 0
 
     private var pages: [DiaryPage] {
-        var list: [DiaryPage] = [.frontPage, .mapPage, .tabletStory, .tabletGrid, .civilizations]
+        var list: [DiaryPage] = [.frontPage, .drMandu, .mapPage, .tabletStory, .tabletGrid, .civilizations]
         // Codex: one page per known glyph
         for glyph in gameState.codexGlyphs { list.append(.codexGlyph(glyph)) }
         list.append(.greekAlphabet)
@@ -250,6 +251,7 @@ private struct BookPage: View {
     private var pageContent: some View {
         switch pageType {
         case .frontPage:       FrontPageContent()
+        case .drMandu:         DrManduContent()
         case .mapPage:         MapPageContent()
         case .tabletStory:     TabletStoryContent()
         case .tabletGrid:      TabletGridContent()
@@ -670,6 +672,103 @@ private struct HowToSolveContent: View {
             HandNote(text: "When stuck: don't guess. List only what is certain. Each truth reveals the next. This is how Champollion did it. It is the only way.", color: Color.inkBlue.opacity(0.85))
             Spacer(minLength: 8)
             HandNote(text: "Use the Known Glyphs panel in the puzzle screen to reference your codex without leaving the inscription.", color: Color.inkSepia.opacity(0.6))
+        }
+    }
+}
+
+// MARK: - Dr. Mandu Biography Page
+
+private struct DrManduContent: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+
+            // Page title
+            HandTitle(text: "Dr. Elena Mandu", size: 26, color: .inkBlue)
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.bottom, 4)
+
+            Text("Lead Archaeologist — Mandu Expedition")
+                .font(handFont(13))
+                .foregroundStyle(Color.inkSepia.opacity(0.6))
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.bottom, 16)
+
+            SectionRule()
+
+            // Photo — uses the 'mandu' image asset
+            if UIImage(named: "mandu") != nil {
+                Image("mandu")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(maxWidth: 220)
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 6)
+                            .stroke(Color.ruledLine.opacity(0.6), lineWidth: 1.5)
+                    )
+                    .shadow(color: .black.opacity(0.18), radius: 5, x: 2, y: 3)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.bottom, 6)
+
+                Text("Dr. Elena Mandu, 2024")
+                    .font(handFont(11))
+                    .foregroundStyle(Color.inkSepia.opacity(0.55))
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.bottom, 16)
+            }
+
+            SectionRule()
+
+            // Biography
+            HandBody(text: "Dr. Elena Mandu is one of the world's foremost authorities on ancient writing systems and cross-cultural linguistics. With her signature thick-framed glasses and an unnerving ability to read a room — or a ruin — she has led excavations on four continents.")
+
+            Spacer(minLength: 14)
+
+            HandBody(text: "Born in São Paulo, Brazil, Elena displayed an obsession with pattern and language from an early age. She taught herself Ancient Greek at fourteen using library books and stubbornness in equal measure.")
+
+            Spacer(minLength: 14)
+
+            SectionRule()
+
+            HandTitle(text: "Education", size: 17, color: .inkBlue)
+                .padding(.bottom, 6)
+
+            HStack(alignment: .top, spacing: 10) {
+                Text("𓏲").font(.system(size: 14)).foregroundStyle(Color.inkRed)
+                VStack(alignment: .leading, spacing: 2) {
+                    HandBody(text: "B.A. Linguistics & Classical Studies", size: 14)
+                    HandNote(text: "Rice University, Houston  ·  Magna Cum Laude", size: 12, color: Color.inkSepia.opacity(0.65))
+                }
+            }
+            .padding(.bottom, 8)
+
+            HStack(alignment: .top, spacing: 10) {
+                Text("𓏲").font(.system(size: 14)).foregroundStyle(Color.inkRed)
+                VStack(alignment: .leading, spacing: 2) {
+                    HandBody(text: "Ph.D. Archaeological Linguistics", size: 14)
+                    HandNote(text: "Stanford University  ·  Dissertation: \"Parallel Symbol Systems in Pre-Contact Civilizations\"", size: 12, color: Color.inkSepia.opacity(0.65))
+                }
+            }
+            .padding(.bottom, 14)
+
+            SectionRule()
+
+            HandTitle(text: "The Discovery", size: 17, color: .inkBlue)
+                .padding(.bottom, 6)
+
+            HandBody(text: "In the summer of 2024, Dr. Mandu was serving as a scientific advisor aboard the R/V Peregrine when sonar anomalies led the crew to a previously uncharted volcanic island in the Mid-Atlantic Ridge.")
+
+            Spacer(minLength: 14)
+
+            HandBody(text: "It was Elena who first recognized the obsidian slab for what it was. She cleared the ash from its surface with her own hands, and when the first symbols emerged, she reportedly said nothing for four minutes.")
+
+            Spacer(minLength: 14)
+
+            HandNote(text: "\"I have spent my whole career looking for proof that the ancient world was more connected than we think. I was not prepared to actually find it.\"", color: Color.inkBlue.opacity(0.8))
+
+            Spacer(minLength: 14)
+
+            HandNote(text: "— Dr. Elena Mandu, interview with Nature, September 2024", size: 12, color: Color.inkSepia.opacity(0.55))
         }
     }
 }
