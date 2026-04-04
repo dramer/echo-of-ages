@@ -14,8 +14,9 @@ import AVFoundation
 // MARK: - Intro phases
 
 private enum IntroPhase {
-    case mapReveal   // map is showing
-    case crawl       // text scrolling
+    case mapReveal    // map is showing
+    case crawl        // text scrolling
+    case tabletReveal // tree_tablet image shown before fade to black
 }
 
 // MARK: - Crawl height preference key
@@ -44,6 +45,13 @@ struct IntroView: View {
     @State private var crawlOffset:     CGFloat = 0
     @State private var contentHeight:   CGFloat = 0
     @State private var crawlStarted:    Bool    = false
+
+    // Tablet reveal layer
+    @State private var tabletOpacity:   Double = 0
+    @State private var tabletScale:     Double = 0.88
+
+    // Fade-to-black overlay (used for final transition)
+    @State private var blackOpacity:    Double = 0
 
     // UI chrome
     @State private var skipOpacity:     Double = 0
@@ -76,6 +84,17 @@ struct IntroView: View {
                 crawlLayer
             }
 
+            // ── Phase 3: Tablet reveal ────────────────────────────────────────
+            if phase == .tabletReveal {
+                tabletRevealLayer
+            }
+
+            // ── Fade-to-black overlay (final transition) ──────────────────────
+            Color.black
+                .ignoresSafeArea()
+                .opacity(blackOpacity)
+                .allowsHitTesting(false)
+
             // ── Fade masks (always on top of content) ─────────────────────────
             VStack(spacing: 0) {
                 LinearGradient(colors: [.black, .clear],
@@ -94,7 +113,13 @@ struct IntroView: View {
                 Spacer()
                 HStack {
                     Spacer()
-                    Button(action: { endIntro() }) {
+                    Button(action: {
+                        if phase == .tabletReveal {
+                            endIntro()
+                        } else {
+                            showTablet()
+                        }
+                    }) {
                         HStack(spacing: 6) {
                             Text("Skip")
                                 .font(EgyptFont.body(18))
@@ -146,6 +171,31 @@ struct IntroView: View {
                     .foregroundStyle(Color.papyrus.opacity(0.65))
             }
             .opacity(mapLabelOpacity)
+
+            Spacer()
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    // MARK: Tablet reveal layer
+
+    private var tabletRevealLayer: some View {
+        VStack(spacing: 24) {
+            Spacer()
+
+            Image("tree_tablet")
+                .resizable()
+                .scaledToFit()
+                .frame(maxWidth: 460)
+                .shadow(color: Color.goldBright.opacity(0.35), radius: 40, x: 0, y: 0)
+                .opacity(tabletOpacity)
+                .scaleEffect(tabletScale)
+
+            Text("THE TABLET OF MANDU")
+                .font(EgyptFont.titleBold(20))
+                .foregroundStyle(Color.goldBright)
+                .tracking(5)
+                .opacity(tabletOpacity)
 
             Spacer()
         }
@@ -307,20 +357,38 @@ struct IntroView: View {
             }
         }
 
-        // Auto-end when crawl finishes
+        // When crawl finishes, show the tablet before ending
         DispatchQueue.main.asyncAfter(deadline: .now() + duration) {
+            showTablet()
+        }
+    }
+
+    private func showTablet() {
+        // Fade out crawl, switch to tablet phase
+        withAnimation(.easeOut(duration: 1.0)) { crawlOpacity = 0 }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+            phase = .tabletReveal
+            // Tablet rises in with a gentle scale + fade
+            withAnimation(.easeOut(duration: 1.6)) {
+                tabletOpacity = 1.0
+                tabletScale   = 1.0
+            }
+        }
+        // Hold on tablet for ~4 seconds then fade everything to black
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5.2) {
             endIntro()
         }
     }
 
     private func endIntro() {
-        fadeOutAudio()
-        withAnimation(.easeIn(duration: 0.8)) {
-            mapOpacity    = 0
-            crawlOpacity  = 0
-            skipOpacity   = 0
+        fadeOutAudio(duration: 2.0)
+        // Fade skip button and then bring in the black overlay
+        withAnimation(.easeIn(duration: 0.4)) { skipOpacity = 0 }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            withAnimation(.easeIn(duration: 2.0)) { blackOpacity = 1.0 }
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+        // Once fully black, transition to title
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.4) {
             gameState.finishIntro()
         }
     }
