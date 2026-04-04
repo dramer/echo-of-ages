@@ -105,10 +105,8 @@ struct JournalView: View {
                     currentPageIndex = idx
                 }
             } else {
-                // Default: open to field notes
-                if let idx = pages.firstIndex(of: .fieldNotes) {
-                    currentPageIndex = idx
-                }
+                // Default: open at the front page
+                currentPageIndex = 0
             }
         }
     }
