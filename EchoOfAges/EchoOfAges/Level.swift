@@ -156,10 +156,10 @@ extension Level {
         subtitle: "The First Seal",
         lore: "Deep within the tomb of the master scribe Kha, three sacred symbols await their proper arrangement. The priests left them scattered as a test of worthiness. Only one who reads the fixed stones carefully may unlock the seal.",
         inscriptions: [
-            "The Owl stands guard at the first corner of the first row.",
-            "The Eye watches from the far end of that same row.",
-            "The Owl appears again — this time in the middle of the last row.",
-            "No symbol may appear twice in any row or column."
+            "The guardian symbol always opens a new line of thought. The Egyptians placed their watcher at every threshold — physical and spiritual.",
+            "The Eye and the Owl never share a line in this tomb. One governs the day, one the night. Kha's scribes kept them apart as the priests decreed.",
+            "Three forces in perfect balance. Each appears once in every direction of the inscription — to repeat a force on a single line was considered blasphemy.",
+            "I noticed: the symbol for life appears below the symbol for knowledge, never beside it. The water follows the owl."
         ],
         rows: 3,
         cols: 3,
@@ -207,10 +207,10 @@ extension Level {
         subtitle: "The Solar Seal",
         lore: "The sun god Ra guards this chamber with four powerful symbols. The placement here is not a simple cycle — the Lion and the Eye hold fixed positions that reveal the structure only to those who reason carefully from what is known.",
         inscriptions: [
-            "The Eye opens the first row; the Lion stands beside it in the second column.",
-            "The Lion occupies the third position of the second row.",
-            "The Eye descends to the second column of the third row.",
-            "The Lion stands alone at the final corner of the seal."
+            "Ra's chamber: the Eye always faces outward — it opens, it never hides. I found it at the very edge of the inscription's first line.",
+            "The Lion never appears beside the Eye in Ra's texts. Power and sight were kept separate — too much of both at once was considered an omen.",
+            "Water flows to where the other symbols are absent. It fills the remaining space, as the Nile fills the delta.",
+            "Four forces, four sacred directions — each appears exactly once in every line of the inscription, whether you read it across or downward."
         ],
         rows: 4,
         cols: 4,
@@ -261,10 +261,10 @@ extension Level {
         subtitle: "The Judgment Seal",
         lore: "In the Hall of Two Truths, Anubis weighs the heart against the feather of Ma'at. The four symbols here follow no repeating pattern — each row is its own judgment. The fixed stones reveal corners of truth; the rest must be earned through deduction.",
         inscriptions: [
-            "The Lion stands at the far end of the first row.",
-            "The Eye steps forward to open the second row.",
-            "The Owl is found at the third position of the third row.",
-            "The Eye descends again to the second column of the last row."
+            "Anubis watches from the corners. The symbol of judgment holds an edge position in this inscription — I found it at the far end of the first line.",
+            "Cross-referencing with the Ra chamber: the Eye and the Lion swap roles here. Where Ra used the Eye at the opening, Anubis uses the Lion.",
+            "The Water symbol in this hall refers to the river of the dead, not the Nile. It is surrounded by symbols of power and knowledge — strength tempered by life.",
+            "No two identical symbols appear in any line, horizontal or vertical. Anubis permitted no repetition in the hall of judgment."
         ],
         rows: 4,
         cols: 4,
@@ -316,11 +316,11 @@ extension Level {
         subtitle: "The Wisdom Seal",
         lore: "Thoth, god of wisdom, devised this seal without repetition or cycle — five symbols woven in a pattern that requires careful reasoning at every step. The fixed stones are scattered across the grid; no two share a row or column with the same glyph.",
         inscriptions: [
-            "The Eye opens the first row; Water seals it from the right.",
-            "The Lion occupies the second position of the second row.",
-            "The Owl is found at the center of the third row.",
-            "The Owl appears again at the fourth position of the fourth row.",
-            "Water holds the second position of the last row; the Lion closes it."
+            "Thoth introduced the Sky last. In every inscription with all five symbols, the Sky mediates between the Eye and the Water — never beside either one.",
+            "Five symbols. Five sacred directions. Each appears exactly once per row and once per column. Thoth was a mathematician before he was a god.",
+            "The Water and Sky are always separated by at least one other symbol in Thoth's texts. The forty-two books say: the waters below and the heaven above must never touch directly.",
+            "The Owl appears in the second position of at least one line. Knowledge was always Thoth's second concern — wisdom came first.",
+            "I spent two days on this inscription. The Sky symbol at the known positions tells you where it cannot be in the remaining rows. Begin there."
         ],
         rows: 5,
         cols: 5,
@@ -377,11 +377,11 @@ extension Level {
         subtitle: "The Eternal Gate",
         lore: "Before the gates of the Field of Reeds stands the Final Seal — the greatest test devised by the gods. Only five stones are fixed. The rest must be drawn entirely from reason. No pattern will save you here; only patience, and the knowledge earned in every chamber before.",
         inscriptions: [
-            "The Lion closes the first row and opens the second — fixed at both.",
-            "Water rests at the third column of the third row.",
-            "The Sky descends to the second column of the fourth row.",
-            "The Sky appears once more — at the fourth position of the final row.",
-            "Begin with what is certain. Each truth reveals the next."
+            "Only five stones are certain. Champollion had the Rosetta Stone. I have these five anchors. It must be enough.",
+            "The Lion appears at the threshold of the second row and closes the first. Strength guards both entrance and exit — the inscription begins and ends with power.",
+            "When I was stuck, I stopped guessing and listed only what I was certain of. Each certainty eliminated a position. The chain of deduction is long but unbroken.",
+            "The Sky glyph confirmed by position in rows three and four. From the Sky, the Water follows — they are always separated by exactly two symbols in this seal.",
+            "The priests left a note carved in the margin of the stone itself — an arrow pointing inward. Begin at the center. The outermost symbols reveal themselves last."
         ],
         rows: 5,
         cols: 5,

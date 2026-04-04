@@ -1,795 +1,685 @@
 // JournalView.swift
 // EchoOfAges
 //
-// The Field Diary — the archaeologist's growing reference book.
-// Four tabs: Tablet | Codex | Chronicle | Method
+// The Field Diary — displayed as a physical book with flippable pages.
+// Swipe left/right to turn pages. All text uses a handwritten font.
 
 import SwiftUI
 
-// MARK: - Diary Tab
+// MARK: - Diary page type
 
-private enum DiaryTab: String, CaseIterable {
-    case tablet    = "Tablet"
-    case codex     = "Codex"
-    case chronicle = "Chronicle"
-    case method    = "Mechanics"
+private enum DiaryPage: Equatable {
+    case frontPage
+    case mapPage
+    case tabletStory
+    case tabletGrid
+    case civilizations
+    case codexGlyph(Glyph)
+    case greekAlphabet
+    case chronicle(Int)         // level id
+    case fieldNotes             // current puzzle's clues
+    case rosettaStone
+    case champollionMethod
+    case howToSolve
 }
 
-// MARK: - Journal View (Field Diary)
+// MARK: - Diary colors & font
+
+private extension Color {
+    static let paperCream  = Color(red: 0.93, green: 0.87, blue: 0.73)
+    static let paperDark   = Color(red: 0.88, green: 0.81, blue: 0.65)
+    static let inkSepia    = Color(red: 0.16, green: 0.10, blue: 0.04)
+    static let inkBlue     = Color(red: 0.12, green: 0.16, blue: 0.36)
+    static let inkRed      = Color(red: 0.58, green: 0.08, blue: 0.08)
+    static let ruledLine   = Color(red: 0.65, green: 0.55, blue: 0.40)
+    static let leatherBg   = Color(red: 0.13, green: 0.08, blue: 0.03)
+}
+
+private func handFont(_ size: CGFloat, bold: Bool = false) -> Font {
+    // Bradley Hand is a standard iOS system font
+    .custom(bold ? "BradleyHandITCTT-Bold" : "BradleyHandITCTT-Bold", size: size)
+}
+
+// MARK: - JournalView (The Book)
 
 struct JournalView: View {
     @EnvironmentObject var gameState: GameState
-    @State private var selectedTab: DiaryTab = .tablet
-    @State private var expandedEntryId: Int? = nil
+    @State private var currentPageIndex: Int = 0
+
+    private var pages: [DiaryPage] {
+        var list: [DiaryPage] = [.frontPage, .mapPage, .tabletStory, .tabletGrid, .civilizations]
+        // Codex: one page per known glyph
+        for glyph in gameState.codexGlyphs { list.append(.codexGlyph(glyph)) }
+        list.append(.greekAlphabet)
+        // Chronicle: one page per decoded level
+        for levelId in gameState.decodedMessages.keys.sorted() { list.append(.chronicle(levelId)) }
+        // Field notes for current puzzle
+        list.append(.fieldNotes)
+        // Reference pages
+        list.append(.rosettaStone)
+        list.append(.champollionMethod)
+        list.append(.howToSolve)
+        return list
+    }
 
     var body: some View {
         ZStack {
-            Color.stoneDark.ignoresSafeArea()
+            Color.leatherBg.ignoresSafeArea()
+
+            // Leather texture vignette
             RadialGradient(
-                colors: [.clear, Color.black.opacity(0.4)],
-                center: .center,
-                startRadius: 150,
-                endRadius: 450
+                colors: [Color(red: 0.25, green: 0.16, blue: 0.06).opacity(0.0), Color(red: 0.05, green: 0.02, blue: 0.00).opacity(0.8)],
+                center: .center, startRadius: 100, endRadius: 420
             )
             .ignoresSafeArea()
 
             VStack(spacing: 0) {
-                header
-                tabPicker
-                Divider().background(Color.goldDark.opacity(0.4))
-
-                ScrollView(showsIndicators: false) {
-                    VStack(spacing: 0) {
-                        switch selectedTab {
-                        case .tablet:    tabletContent
-                        case .codex:     codexContent
-                        case .chronicle: chronicleContent
-                        case .method:    methodContent
-                        }
-                    }
+                diaryTopBar
                     .padding(.horizontal, 16)
-                    .padding(.vertical, 20)
+                    .padding(.top, 12)
+                    .padding(.bottom, 8)
+
+                // Book pages
+                TabView(selection: $currentPageIndex) {
+                    ForEach(0..<pages.count, id: \.self) { index in
+                        BookPage(pageType: pages[index], pageNumber: index + 1, totalPages: pages.count)
+                            .tag(index)
+                            .environmentObject(gameState)
+                    }
                 }
+                .tabViewStyle(.page(indexDisplayMode: .never))
+
+                // Page navigation
+                pageNav
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 10)
             }
         }
         .onAppear {
             if let spotId = gameState.spotlightJournalId {
-                expandedEntryId = spotId
-                selectedTab = .chronicle
                 gameState.spotlightJournalId = nil
+                // Jump to the chronicle page for this level
+                if let idx = pages.firstIndex(of: .chronicle(spotId)) {
+                    currentPageIndex = idx
+                }
+            } else {
+                // Default: open to field notes
+                if let idx = pages.firstIndex(of: .fieldNotes) {
+                    currentPageIndex = idx
+                }
             }
         }
     }
 
-    // MARK: Header
-
-    private var header: some View {
+    private var diaryTopBar: some View {
         HStack {
             Button(action: { gameState.closeJournal() }) {
-                HStack(spacing: 6) {
+                HStack(spacing: 5) {
                     Image(systemName: "chevron.left")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.system(size: 13, weight: .semibold))
                     Text("Return")
-                        .font(EgyptFont.title(13))
+                        .font(handFont(15))
                 }
-                .foregroundStyle(Color.goldMid)
-                .padding(.vertical, 8)
-                .padding(.horizontal, 12)
+                .foregroundStyle(Color(red: 0.75, green: 0.60, blue: 0.35))
+                .padding(.vertical, 6).padding(.horizontal, 10)
                 .background(
-                    RoundedRectangle(cornerRadius: 7)
-                        .fill(Color.stoneMid.opacity(0.7))
-                        .overlay(RoundedRectangle(cornerRadius: 7)
-                            .stroke(Color.stoneLight.opacity(0.4), lineWidth: 0.7))
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(Color(red: 0.22, green: 0.14, blue: 0.06).opacity(0.9))
+                        .overlay(RoundedRectangle(cornerRadius: 6)
+                            .stroke(Color(red: 0.50, green: 0.38, blue: 0.18).opacity(0.5), lineWidth: 0.7))
                 )
             }
-
             Spacer()
-
-            VStack(spacing: 2) {
-                Image("diary")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(height: 32)
-                Text("FIELD DIARY")
-                    .font(EgyptFont.title(13))
-                    .foregroundStyle(Color.goldBright)
-                    .tracking(3)
-            }
-
+            // Diary title
+            Text("Field Diary")
+                .font(handFont(20, bold: true))
+                .foregroundStyle(Color(red: 0.75, green: 0.60, blue: 0.35))
             Spacer()
-            Color.clear.frame(width: 80, height: 36)
+            Color.clear.frame(width: 72, height: 30)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
     }
 
-    // MARK: Tab Picker
+    private var pageNav: some View {
+        HStack(spacing: 20) {
+            Button(action: {
+                if currentPageIndex > 0 {
+                    withAnimation(.easeInOut(duration: 0.25)) { currentPageIndex -= 1 }
+                    HapticFeedback.tap()
+                }
+            }) {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundStyle(currentPageIndex > 0
+                                     ? Color(red: 0.75, green: 0.60, blue: 0.35)
+                                     : Color(red: 0.35, green: 0.25, blue: 0.12))
+            }
 
-    private var tabPicker: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 0) {
-                ForEach(DiaryTab.allCases, id: \.self) { tab in
-                    Button(action: {
-                        withAnimation(.easeInOut(duration: 0.2)) { selectedTab = tab }
-                        HapticFeedback.tap()
-                    }) {
-                        VStack(spacing: 6) {
-                            Text(tab.rawValue.uppercased())
-                                .font(EgyptFont.title(12))
-                                .foregroundStyle(selectedTab == tab ? Color.goldBright : Color.stoneSurface)
-                                .tracking(2)
-                                .fixedSize()
-                            Rectangle()
-                                .fill(selectedTab == tab ? Color.goldBright : Color.clear)
-                                .frame(height: 2)
-                        }
-                        .padding(.horizontal, 18)
-                        .padding(.vertical, 10)
-                    }
+            Text("\(currentPageIndex + 1)  of  \(pages.count)")
+                .font(handFont(15))
+                .foregroundStyle(Color(red: 0.65, green: 0.50, blue: 0.28))
+
+            Button(action: {
+                if currentPageIndex < pages.count - 1 {
+                    withAnimation(.easeInOut(duration: 0.25)) { currentPageIndex += 1 }
+                    HapticFeedback.tap()
+                }
+            }) {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundStyle(currentPageIndex < pages.count - 1
+                                     ? Color(red: 0.75, green: 0.60, blue: 0.35)
+                                     : Color(red: 0.35, green: 0.25, blue: 0.12))
+            }
+        }
+    }
+}
+
+// MARK: - Book Page Wrapper
+
+private struct BookPage: View {
+    let pageType: DiaryPage
+    let pageNumber: Int
+    let totalPages: Int
+    @EnvironmentObject var gameState: GameState
+
+    var body: some View {
+        ZStack(alignment: .bottomTrailing) {
+            // Page background — aged paper
+            RoundedRectangle(cornerRadius: 4)
+                .fill(Color.paperCream)
+                .shadow(color: .black.opacity(0.45), radius: 8, x: 4, y: 4)
+
+            // Ruled lines
+            ruledLines
+
+            // Left binding shadow
+            HStack {
+                LinearGradient(
+                    colors: [Color.black.opacity(0.18), Color.black.opacity(0.0)],
+                    startPoint: .leading, endPoint: .trailing
+                )
+                .frame(width: 22)
+                Spacer()
+            }
+            .cornerRadius(4)
+
+            // Page content
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 0) {
+                    pageContent
+                        .padding(.leading, 32)
+                        .padding(.trailing, 20)
+                        .padding(.top, 22)
+                        .padding(.bottom, 36)
+                }
+            }
+
+            // Page number bottom-right
+            Text("\(pageNumber)")
+                .font(handFont(13))
+                .foregroundStyle(Color.ruledLine.opacity(0.7))
+                .padding(.trailing, 16)
+                .padding(.bottom, 10)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 6)
+    }
+
+    @ViewBuilder
+    private var ruledLines: some View {
+        GeometryReader { geo in
+            let lineSpacing: CGFloat = 28
+            let startY: CGFloat = 50
+            let lineCount = Int((geo.size.height - startY) / lineSpacing)
+            ZStack {
+                ForEach(0..<lineCount, id: \.self) { i in
+                    Rectangle()
+                        .fill(Color.ruledLine.opacity(0.18))
+                        .frame(height: 0.6)
+                        .frame(maxWidth: .infinity)
+                        .offset(y: startY + CGFloat(i) * lineSpacing - geo.size.height / 2)
                 }
             }
         }
-        .background(Color.stoneMid.opacity(0.3))
     }
 
-    // ═══════════════════════════════════════════════════
-    // MARK: - TABLET TAB
-    // ═══════════════════════════════════════════════════
-
-    private var tabletContent: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            tabletIntro
-            discoveryMap
-            tabletGrid
-            civilizationLegend
-            tabletDecodedMessage
+    @ViewBuilder
+    private var pageContent: some View {
+        switch pageType {
+        case .frontPage:       FrontPageContent()
+        case .mapPage:         MapPageContent()
+        case .tabletStory:     TabletStoryContent()
+        case .tabletGrid:      TabletGridContent()
+        case .civilizations:   CivilizationsContent()
+        case .codexGlyph(let g): CodexGlyphContent(glyph: g)
+        case .greekAlphabet:   GreekAlphabetContent()
+        case .chronicle(let id): ChronicleContent(levelId: id)
+        case .fieldNotes:      FieldNotesContent()
+        case .rosettaStone:    RosettaStoneContent()
+        case .champollionMethod: ChampollionContent()
+        case .howToSolve:      HowToSolveContent()
         }
     }
+}
 
-    private var discoveryMap: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("DISCOVERY SITE")
-                .font(EgyptFont.title(11))
-                .foregroundStyle(Color.stoneLight.opacity(0.6))
-                .tracking(3)
+// MARK: - Page helpers
 
+private struct HandTitle: View {
+    let text: String
+    var size: CGFloat = 22
+    var color: Color = .inkBlue
+    var body: some View {
+        Text(text)
+            .font(handFont(size, bold: true))
+            .foregroundStyle(color)
+    }
+}
+
+private struct HandBody: View {
+    let text: String
+    var size: CGFloat = 16
+    var color: Color = .inkSepia
+    var body: some View {
+        Text(text)
+            .font(handFont(size))
+            .foregroundStyle(color)
+            .lineSpacing(5)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+}
+
+private struct HandNote: View {
+    let text: String
+    var size: CGFloat = 14
+    var color: Color = Color.inkRed
+    var body: some View {
+        Text(text)
+            .font(handFont(size))
+            .foregroundStyle(color)
+            .lineSpacing(4)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+}
+
+private struct SectionRule: View {
+    var body: some View {
+        Rectangle()
+            .fill(Color.ruledLine.opacity(0.5))
+            .frame(height: 1)
+            .padding(.vertical, 10)
+    }
+}
+
+// MARK: - Page Contents
+
+private struct FrontPageContent: View {
+    var body: some View {
+        VStack(alignment: .center, spacing: 16) {
+            Spacer(minLength: 30)
+            Text("𓏠")
+                .font(.system(size: 48))
+                .foregroundStyle(Color.inkBlue.opacity(0.7))
+                .frame(maxWidth: .infinity, alignment: .center)
+            Spacer(minLength: 10)
+            Text("Field Diary")
+                .font(handFont(36, bold: true))
+                .foregroundStyle(Color.inkBlue)
+                .frame(maxWidth: .infinity, alignment: .center)
+            Text("Mandu Expedition")
+                .font(handFont(20))
+                .foregroundStyle(Color.inkSepia)
+                .frame(maxWidth: .infinity, alignment: .center)
+            Spacer(minLength: 20)
+            Rectangle()
+                .fill(Color.ruledLine.opacity(0.6))
+                .frame(width: 160, height: 1)
+                .frame(maxWidth: .infinity, alignment: .center)
+            Spacer(minLength: 12)
+            Text("Property of the Expedition Archaeologist")
+                .font(handFont(13))
+                .foregroundStyle(Color.inkSepia.opacity(0.7))
+                .frame(maxWidth: .infinity, alignment: .center)
+            Text("If found, do not open.")
+                .font(handFont(13))
+                .foregroundStyle(Color.inkRed.opacity(0.8))
+                .frame(maxWidth: .infinity, alignment: .center)
+            Spacer(minLength: 20)
+            Text("2024")
+                .font(handFont(18))
+                .foregroundStyle(Color.inkSepia.opacity(0.6))
+                .frame(maxWidth: .infinity, alignment: .center)
+            Spacer(minLength: 40)
+        }
+    }
+}
+
+private struct MapPageContent: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HandTitle(text: "Discovery Site")
+            HandNote(text: "The island. Mid-Atlantic. It's not on any chart I've checked — and I've checked all of them.", color: Color.inkRed)
+            SectionRule()
             Image("map")
                 .resizable()
                 .scaledToFit()
                 .frame(maxWidth: .infinity)
-                .clipShape(RoundedRectangle(cornerRadius: 10))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 10)
-                        .stroke(Color.goldDark.opacity(0.5), lineWidth: 1.2)
-                )
-                .shadow(color: Color.black.opacity(0.5), radius: 8, x: 0, y: 4)
-
-            Text("The island bearing the Tablet of Mandu lies at the convergence of ancient maritime routes — equidistant between South America and Africa. It appears on no modern navigational chart. The expedition team has withheld its exact coordinates pending further excavation.")
-                .font(EgyptFont.bodyItalic(13))
-                .foregroundStyle(Color.papyrus.opacity(0.6))
-                .lineSpacing(4)
-        }
-    }
-
-    private var tabletIntro: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("THE TABLET OF MANDU")
-                .font(EgyptFont.title(11))
-                .foregroundStyle(Color.stoneLight.opacity(0.6))
-                .tracking(3)
-            Text("Discovered in 2024 on an uncharted island in the mid-Atlantic — equidistant between South America, Africa, and Europe. The island appears on no modern chart and no ancient map.")
-                .font(EgyptFont.bodyItalic(14))
-                .foregroundStyle(Color.papyrus.opacity(0.7))
-                .lineSpacing(4)
-            Text("The tablet bears 30 symbols from six ancient civilizations that had no known contact with one another. It should not exist.")
-                .font(EgyptFont.bodyItalic(14))
-                .foregroundStyle(Color.papyrus.opacity(0.55))
-                .lineSpacing(4)
-            Text("Scattered around it: six partial tablets, each in a single script. Decipher them to read the main tablet.")
-                .font(EgyptFont.body(13))
-                .foregroundStyle(Color.goldMid.opacity(0.7))
-                .lineSpacing(3)
-                .padding(.top, 2)
-        }
-    }
-
-    private var tabletGrid: some View {
-        let slots = TabletSlot.all
-        let decoded = gameState.decodedTabletSlots
-        let civs = Civilization.all
-
-        return VStack(spacing: 3) {
-            ForEach(civs) { civ in
-                let row = slots.filter { $0.civilization == civ.id }
-                let isCivDone = decoded.contains(row.first?.id ?? -1)
-
-                HStack(spacing: 3) {
-                    // Civilization marker
-                    Text(civ.emblem)
-                        .font(.system(size: 16))
-                        .foregroundStyle(isCivDone ? civ.accentColor : Color.stoneLight.opacity(0.2))
-                        .frame(width: 26)
-
-                    ForEach(row) { slot in
-                        let isDecoded = decoded.contains(slot.id)
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 6)
-                                .fill(isDecoded
-                                      ? civ.accentColor.opacity(0.18)
-                                      : Color.stoneDark.opacity(0.7))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 6)
-                                        .stroke(isDecoded ? civ.accentColor.opacity(0.7) : Color.stoneLight.opacity(0.15),
-                                                lineWidth: isDecoded ? 1 : 0.5)
-                                )
-                            if isDecoded {
-                                VStack(spacing: 1) {
-                                    Text(slot.character)
-                                        .font(.system(size: 18))
-                                        .foregroundStyle(civ.accentColor)
-                                    Text(slot.decoded)
-                                        .font(EgyptFont.body(8))
-                                        .foregroundStyle(Color.papyrus.opacity(0.7))
-                                        .lineLimit(1)
-                                }
-                            } else {
-                                Text("?")
-                                    .font(EgyptFont.titleBold(16))
-                                    .foregroundStyle(Color.stoneLight.opacity(0.2))
-                            }
-                        }
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 52)
-                    }
-                }
-            }
-        }
-        .padding(14)
-        .background(
-            RoundedRectangle(cornerRadius: 14)
-                .fill(Color.stoneMid.opacity(0.3))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 14)
-                        .stroke(Color.goldDark.opacity(0.4), lineWidth: 1)
-                )
-        )
-    }
-
-    private var civilizationLegend: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("CIVILIZATIONS")
-                .font(EgyptFont.title(10))
-                .foregroundStyle(Color.stoneLight.opacity(0.5))
-                .tracking(3)
-
-            ForEach(Civilization.all) { civ in
-                let isDone = gameState.completedCivilizations.contains(civ.id)
-                HStack(spacing: 10) {
-                    Circle()
-                        .fill(isDone ? civ.accentColor : Color.stoneLight.opacity(0.2))
-                        .frame(width: 8, height: 8)
-                    Text(civ.emblem)
-                        .font(.system(size: 14))
-                        .foregroundStyle(isDone ? civ.accentColor : Color.stoneLight.opacity(0.3))
-                    Text(civ.name)
-                        .font(EgyptFont.body(13))
-                        .foregroundStyle(isDone ? Color.papyrus : Color.stoneLight.opacity(0.4))
-                    Spacer()
-                    if isDone {
-                        Text("Deciphered")
-                            .font(EgyptFont.bodyItalic(12))
-                            .foregroundStyle(civ.accentColor.opacity(0.8))
-                    } else if civ.isUnlocked {
-                        Text("In progress")
-                            .font(EgyptFont.bodyItalic(12))
-                            .foregroundStyle(Color.goldDark.opacity(0.6))
-                    } else {
-                        Text("Locked")
-                            .font(EgyptFont.bodyItalic(12))
-                            .foregroundStyle(Color.stoneLight.opacity(0.3))
-                    }
-                }
-            }
-        }
-        .padding(14)
-        .background(
-            RoundedRectangle(cornerRadius: 10)
-                .fill(Color.stoneDark.opacity(0.5))
-                .overlay(RoundedRectangle(cornerRadius: 10)
-                    .stroke(Color.stoneLight.opacity(0.15), lineWidth: 0.5))
-        )
-    }
-
-    @ViewBuilder
-    private var tabletDecodedMessage: some View {
-        let decodedCount = gameState.decodedTabletSlots.count
-        let total = TabletSlot.all.count
-
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("DECODED MESSAGE")
-                    .font(EgyptFont.title(10))
-                    .foregroundStyle(Color.stoneLight.opacity(0.5))
-                    .tracking(3)
-                Spacer()
-                Text("\(decodedCount) / \(total) symbols")
-                    .font(EgyptFont.body(12))
-                    .foregroundStyle(Color.stoneSurface)
-            }
-
-            if decodedCount == 0 {
-                Text("No symbols decoded yet. Decipher the Egyptian partial tablets to reveal the first line.")
-                    .font(EgyptFont.bodyItalic(15))
-                    .foregroundStyle(Color.stoneLight.opacity(0.4))
-                    .lineSpacing(4)
-            } else {
-                // Show each civilization's decoded line
-                ForEach(Civilization.all) { civ in
-                    if gameState.completedCivilizations.contains(civ.id) {
-                        VStack(alignment: .leading, spacing: 6) {
-                            HStack(spacing: 6) {
-                                Text(civ.emblem)
-                                    .font(.system(size: 13))
-                                    .foregroundStyle(civ.accentColor)
-                                Text(civ.name.uppercased())
-                                    .font(EgyptFont.title(10))
-                                    .foregroundStyle(civ.accentColor.opacity(0.8))
-                                    .tracking(2)
-                            }
-                            Text(civ.tabletLine)
-                                .font(EgyptFont.bodyItalic(15))
-                                .foregroundStyle(Color.papyrus)
-                                .lineSpacing(4)
-                        }
-                        .padding(12)
-                        .background(
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(civ.accentColor.opacity(0.08))
-                                .overlay(RoundedRectangle(cornerRadius: 8)
-                                    .stroke(civ.accentColor.opacity(0.3), lineWidth: 0.7))
-                        )
-                    }
-                }
-
-                if gameState.isTabletFullyDecoded {
-                    VStack(spacing: 10) {
-                        ornamentalRule
-                        Text("THE COMPLETE MESSAGE")
-                            .font(EgyptFont.title(11))
-                            .foregroundStyle(Color.goldBright)
-                            .tracking(3)
-                        Text(TabletSlot.fullMessage)
-                            .font(EgyptFont.bodyItalic(17))
-                            .foregroundStyle(Color.papyrus)
-                            .lineSpacing(7)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                        ornamentalRule
-                    }
-                    .padding(16)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(Color(red: 0.22, green: 0.16, blue: 0.06).opacity(0.8))
-                            .overlay(RoundedRectangle(cornerRadius: 12)
-                                .stroke(Color.goldBright.opacity(0.5), lineWidth: 1.2))
-                    )
-                }
-            }
-        }
-    }
-
-    // ═══════════════════════════════════════════════════
-    // MARK: - CODEX TAB
-    // ═══════════════════════════════════════════════════
-
-    private var codexContent: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            sectionHeader("THE CODEX", subtitle: "Symbols encountered and recorded during this expedition.")
-
-            ForEach(gameState.codexGlyphs) { glyph in
-                codexCard(glyph, isKnown: true)
-            }
-
-            let undiscovered = Glyph.allCases.filter { !gameState.discoveredGlyphs.contains($0) }
-            if !undiscovered.isEmpty {
-                sectionHeader("UNKNOWN SYMBOLS", subtitle: nil)
-                ForEach(undiscovered) { glyph in
-                    codexCard(glyph, isKnown: false)
-                }
-            }
-
-            if gameState.discoveredGlyphs.isEmpty {
-                emptyCodexPrompt
-            }
-
-            greekAlphabetSection
-        }
-    }
-
-    @ViewBuilder
-    private func codexCard(_ glyph: Glyph, isKnown: Bool) -> some View {
-        HStack(alignment: .top, spacing: 14) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(isKnown
-                          ? LinearGradient(colors: [Color.stoneMid, Color(red: 0.18, green: 0.13, blue: 0.08)],
-                                           startPoint: .top, endPoint: .bottom)
-                          : LinearGradient(colors: [Color.stoneDark, Color.stoneDark],
-                                           startPoint: .top, endPoint: .bottom))
-                    .overlay(RoundedRectangle(cornerRadius: 10)
-                        .stroke(isKnown ? Color.goldDark.opacity(0.6) : Color.stoneLight.opacity(0.2), lineWidth: 1))
-                Text(isKnown ? glyph.rawValue : "𓎟")
-                    .font(.system(size: 32))
-                    .foregroundStyle(isKnown ? Color.goldBright : Color.stoneLight.opacity(0.3))
-            }
-            .frame(width: 58, height: 58)
-
-            VStack(alignment: .leading, spacing: 4) {
-                if isKnown {
-                    Text(glyph.displayName.uppercased())
-                        .font(EgyptFont.titleBold(14))
-                        .foregroundStyle(Color.goldBright)
-                        .tracking(1)
-                    Text(glyph.meaning)
-                        .font(EgyptFont.bodyItalic(13))
-                        .foregroundStyle(Color.goldMid.opacity(0.8))
-                    Spacer(minLength: 4)
-                    Text(glyph.discoveryNote)
-                        .font(EgyptFont.body(13))
-                        .foregroundStyle(Color.papyrus.opacity(0.75))
-                        .lineSpacing(3)
-                } else {
-                    Text("UNKNOWN SYMBOL")
-                        .font(EgyptFont.titleBold(13))
-                        .foregroundStyle(Color.stoneLight.opacity(0.5))
-                        .tracking(1)
-                    Text("Encountered in Chamber \(glyph.introducedInLevel)")
-                        .font(EgyptFont.bodyItalic(13))
-                        .foregroundStyle(Color.stoneLight.opacity(0.4))
-                    Text("Decipher the partial tablet to identify this glyph.")
-                        .font(EgyptFont.body(13))
-                        .foregroundStyle(Color.stoneLight.opacity(0.35))
-                        .lineSpacing(3)
-                }
-            }
-        }
-        .padding(14)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(isKnown ? Color.stoneMid.opacity(0.35) : Color.stoneDark.opacity(0.5))
-                .overlay(RoundedRectangle(cornerRadius: 12)
-                    .stroke(isKnown ? Color.goldDark.opacity(0.3) : Color.stoneLight.opacity(0.1), lineWidth: 0.7))
-        )
-        .shadow(color: .black.opacity(0.3), radius: 4, x: 0, y: 2)
-    }
-
-    private var emptyCodexPrompt: some View {
-        VStack(spacing: 12) {
-            Text("𓎟").font(.system(size: 44)).foregroundStyle(Color.stoneLight.opacity(0.3))
-            Text("No symbols recorded yet.\nDecipher the first partial tablet to begin your codex.")
-                .font(EgyptFont.bodyItalic(15))
-                .foregroundStyle(Color.stoneLight.opacity(0.5))
-                .multilineTextAlignment(.center)
-                .lineSpacing(4)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 32)
-    }
-
-    private var greekAlphabetSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            VStack(alignment: .leading, spacing: 6) {
-                sectionHeader("GREEK ALPHABET REFERENCE", subtitle: nil)
-                Text("The Rosetta Stone was decoded because scholars already knew Greek. This reference serves the same purpose — a known script to cross-reference against the Tablet of Mandu.")
-                    .font(EgyptFont.bodyItalic(13))
-                    .foregroundStyle(Color.papyrus.opacity(0.55))
-                    .lineSpacing(3)
-            }
-
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: 4), spacing: 6) {
-                ForEach(GreekLetter.alphabet) { letter in
-                    VStack(spacing: 2) {
-                        HStack(spacing: 4) {
-                            Text(letter.upper)
-                                .font(.system(size: 18, weight: .medium))
-                                .foregroundStyle(Color.goldMid)
-                            Text(letter.lower)
-                                .font(.system(size: 14))
-                                .foregroundStyle(Color.goldDark.opacity(0.8))
-                        }
-                        Text(letter.name)
-                            .font(EgyptFont.body(9))
-                            .foregroundStyle(Color.papyrus.opacity(0.6))
-                        Text("/" + letter.sound + "/")
-                            .font(EgyptFont.bodyItalic(9))
-                            .foregroundStyle(Color.stoneLight.opacity(0.5))
-                    }
-                    .padding(.vertical, 8)
-                    .frame(maxWidth: .infinity)
-                    .background(
-                        RoundedRectangle(cornerRadius: 6)
-                            .fill(Color.stoneMid.opacity(0.3))
-                            .overlay(RoundedRectangle(cornerRadius: 6)
-                                .stroke(Color.goldDark.opacity(0.2), lineWidth: 0.5))
-                    )
-                }
-            }
-        }
-        .padding(14)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color.stoneDark.opacity(0.5))
-                .overlay(RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color.stoneLight.opacity(0.2), lineWidth: 0.7))
-        )
-    }
-
-    // ═══════════════════════════════════════════════════
-    // MARK: - CHRONICLE TAB
-    // ═══════════════════════════════════════════════════
-
-    private var chronicleContent: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            sectionHeader("THE CHRONICLE", subtitle: "Each partial tablet deciphered adds a fragment to the Tree of Life message. Together, they mirror the message on the Tablet of Mandu.")
-            treeOfLifePanel
-
-            HStack {
-                Rectangle()
-                    .fill(LinearGradient(colors: [.clear, .goldDark.opacity(0.35), .clear], startPoint: .leading, endPoint: .trailing))
-                    .frame(height: 0.8)
-                Text("𓊹").font(.system(size: 12)).foregroundStyle(Color.goldDark.opacity(0.5)).padding(.horizontal, 8)
-                Rectangle()
-                    .fill(LinearGradient(colors: [.clear, .goldDark.opacity(0.35), .clear], startPoint: .leading, endPoint: .trailing))
-                    .frame(height: 0.8)
-            }
-
-            ForEach(Array(gameState.chronicleMessages.enumerated()), id: \.offset) { _, entry in
-                chronicleEntry(level: entry.level, message: entry.message)
-            }
-        }
-    }
-
-    private var treeOfLifePanel: some View {
-        let decoded = gameState.chronicleMessages.compactMap(\.message)
-        let remaining = Level.allLevels.count - decoded.count
-        let combined = decoded.joined(separator: "\n\n")
-
-        return VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 10) {
-                Text("𓇋").font(.system(size: 22)).foregroundStyle(Color.goldBright)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("THE TREE OF LIFE").font(EgyptFont.titleBold(13)).foregroundStyle(Color.goldBright).tracking(2)
-                    Text(decoded.isEmpty ? "Message not yet begun"
-                         : remaining == 0 ? "Complete — all fragments deciphered"
-                         : "\(decoded.count) of \(Level.allLevels.count) fragments deciphered")
-                        .font(EgyptFont.bodyItalic(12))
-                        .foregroundStyle(decoded.isEmpty ? Color.stoneLight.opacity(0.5) : Color.goldMid.opacity(0.8))
-                }
-                Spacer()
-            }
-
-            if decoded.isEmpty {
-                Text("Decipher the first partial tablet to reveal the opening of the ancient message.")
-                    .font(EgyptFont.bodyItalic(15))
-                    .foregroundStyle(Color.stoneLight.opacity(0.45))
-                    .lineSpacing(4)
-            } else {
-                Text(combined)
-                    .font(EgyptFont.bodyItalic(16))
-                    .foregroundStyle(Color.papyrus)
-                    .lineSpacing(7)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                HStack(spacing: 6) {
-                    ForEach(0..<Level.allLevels.count, id: \.self) { i in
-                        Circle()
-                            .fill(i < decoded.count ? Color.goldBright : Color.stoneLight.opacity(0.3))
-                            .frame(width: 6, height: 6)
-                    }
-                    if remaining > 0 {
-                        Text("· \(remaining) fragment\(remaining == 1 ? "" : "s") remaining")
-                            .font(EgyptFont.body(12))
-                            .foregroundStyle(Color.stoneLight.opacity(0.5))
-                    } else {
-                        Text("𓊹 Complete").font(EgyptFont.bodyItalic(12)).foregroundStyle(Color.goldDark.opacity(0.8))
-                    }
-                }
-                .padding(.top, 4)
-            }
-        }
-        .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(decoded.isEmpty
-                      ? AnyShapeStyle(Color.stoneDark.opacity(0.5))
-                      : AnyShapeStyle(LinearGradient(
-                            colors: [Color(red: 0.22, green: 0.16, blue: 0.07), Color.stoneMid.opacity(0.6)],
-                            startPoint: .top, endPoint: .bottom)))
-                .overlay(RoundedRectangle(cornerRadius: 12)
-                    .stroke(decoded.isEmpty ? Color.stoneLight.opacity(0.15) : Color.goldDark.opacity(0.6), lineWidth: decoded.isEmpty ? 0.5 : 1.2))
-        )
-        .shadow(color: decoded.isEmpty ? .clear : Color.goldDark.opacity(0.2), radius: 8)
-    }
-
-    @ViewBuilder
-    private func chronicleEntry(level: Level, message: String?) -> some View {
-        let isDeciphered = message != nil
-        let isExpanded = expandedEntryId == level.id
-
-        VStack(spacing: 0) {
-            Button(action: {
-                guard isDeciphered else { return }
-                withAnimation(.easeInOut(duration: 0.28)) {
-                    expandedEntryId = isExpanded ? nil : level.id
-                }
-                HapticFeedback.tap()
-            }) {
-                HStack(spacing: 14) {
-                    Text(isDeciphered ? level.journalEntry.artifact : "𓎟")
-                        .font(.system(size: 28))
-                        .foregroundStyle(isDeciphered ? Color.goldBright : Color.stoneLight.opacity(0.3))
-                        .frame(width: 40)
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(isDeciphered ? level.journalEntry.title : "Undeciphered Partial Tablet")
-                            .font(EgyptFont.titleBold(15))
-                            .foregroundStyle(isDeciphered ? Color.goldBright : Color.stoneLight.opacity(0.5))
-                        Text(isDeciphered ? "\(level.title)  ·  Partial Tablet \(level.romanNumeral)"
-                                         : "Complete Chamber \(level.romanNumeral) to decode")
-                            .font(EgyptFont.bodyItalic(13))
-                            .foregroundStyle(isDeciphered ? Color.papyrus.opacity(0.7) : Color.stoneLight.opacity(0.4))
-                    }
-                    Spacer()
-                    if isDeciphered {
-                        Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(Color.goldDark)
-                    } else {
-                        Image(systemName: "lock.fill")
-                            .font(.system(size: 13))
-                            .foregroundStyle(Color.stoneLight.opacity(0.3))
-                    }
-                }
-                .padding(.vertical, 14).padding(.horizontal, 16)
-            }
-
-            if isDeciphered && isExpanded, let msg = message {
-                Divider().background(Color.goldDark.opacity(0.3)).padding(.horizontal, 16)
-                VStack(alignment: .leading, spacing: 14) {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Label("Decoded Inscription", systemImage: "scroll")
-                            .font(EgyptFont.title(12)).foregroundStyle(Color.goldDark).tracking(1)
-                        Text(msg)
-                            .font(EgyptFont.bodyItalic(16)).foregroundStyle(Color.papyrus).lineSpacing(5)
-                    }
-                    .padding(14)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(RoundedRectangle(cornerRadius: 8).fill(Color.stoneDark.opacity(0.6))
-                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.goldDark.opacity(0.3), lineWidth: 0.7)))
-
-                    VStack(alignment: .leading, spacing: 6) {
-                        Label("Field Notes", systemImage: "pencil")
-                            .font(EgyptFont.title(12)).foregroundStyle(Color.stoneLight.opacity(0.7)).tracking(1)
-                        Text(level.journalEntry.body)
-                            .font(EgyptFont.body(14)).foregroundStyle(Color.papyrus.opacity(0.75)).lineSpacing(4)
-                    }
-                }
-                .padding(.vertical, 14).padding(.horizontal, 16)
-                .transition(.move(edge: .top).combined(with: .opacity))
-            }
-        }
-        .background(
-            RoundedRectangle(cornerRadius: 10)
-                .fill(isDeciphered
-                      ? LinearGradient(colors: [Color.stoneMid, Color(red: 0.20, green: 0.15, blue: 0.09)],
-                                       startPoint: .top, endPoint: .bottom)
-                      : LinearGradient(colors: [Color.stoneDark, Color.stoneDark],
-                                       startPoint: .top, endPoint: .bottom))
-                .overlay(RoundedRectangle(cornerRadius: 10)
-                    .stroke(isDeciphered ? Color.goldDark.opacity(0.5) : Color.stoneLight.opacity(0.15), lineWidth: isDeciphered ? 1 : 0.5))
-        )
-        .shadow(color: .black.opacity(0.35), radius: 4, x: 0, y: 3)
-    }
-
-    // ═══════════════════════════════════════════════════
-    // MARK: - METHOD TAB
-    // ═══════════════════════════════════════════════════
-
-    private var methodContent: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            sectionHeader("THE ARCHAEOLOGIST'S MECHANICS", subtitle: "How ancient scripts were deciphered — and how to decipher the partial tablets.")
-
-            methodCard(
-                icon: "𓇳",
-                title: "The Rosetta Stone, 1799",
-                body: "French soldiers in Egypt discovered a black granite slab bearing the same royal decree in three scripts: formal hieroglyphs at the top, everyday Egyptian script (Demotic) in the middle, and Ancient Greek at the bottom.\n\nScholars already knew Greek. That was the key. By matching Greek words to their hieroglyph equivalents, they found the door."
-            )
-
-            methodCard(
-                icon: "Φ",
-                title: "Champollion's Breakthrough, 1822",
-                body: "Jean-François Champollion spent years cross-referencing the Rosetta Stone. His three-step method:\n\n1. Find anchor points — symbols you already know.\n2. Find cartouches — oval frames around royal names. Names are spelled phonetically, so you learn sounds from them.\n3. Use determinatives — context symbols at the end of words that tell you the category of meaning (person, water, land).\n\nEach certain symbol revealed two more. The cipher cascaded open."
-            )
-
-            methodCard(
-                icon: "𓊹",
-                title: "How to Decipher the Partial Tablets",
-                body: "The partial tablets work the same way.\n\nFixed stones (the darker cells) are your anchor points — the known symbols. Begin there. Each position you fill with certainty constrains the remaining cells.\n\nThe rule each inscription follows: no symbol appears twice in any row or column. This was the Egyptian grammatical law — each sacred concept appears exactly once in each line of thought.\n\nWhen you're stuck, use Field Notes for positional clues. Use Known Glyphs in the diary to reference symbols you've already learned. Each partial tablet teaches you symbols that unlock the next."
-            )
-
-            methodCard(
-                icon: "𓎟",
-                title: "The Tablet of Mandu — What We Don't Know",
-                body: "The six partial tablets surrounding the main tablet appear to be teaching tools — as if someone wanted any explorer who found them to have everything needed to decode the central inscription.\n\nWho carved them? No civilization has a record of the island. No expedition reached all six cultures. The carbon dating places the tablet before any of the civilizations whose scripts appear on it.\n\nScholars call it the Tablet of Mandu. No one knows what Mandu means. No one has found the language it comes from.\n\nNot yet."
-            )
-        }
-    }
-
-    private func methodCard(icon: String, title: String, body: String) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 10) {
-                Text(icon)
-                    .font(.system(size: 22))
-                    .foregroundStyle(Color.goldMid)
-                    .frame(width: 32)
-                Text(title)
-                    .font(EgyptFont.titleBold(15))
-                    .foregroundStyle(Color.goldBright)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            Text(body)
-                .font(EgyptFont.body(14))
-                .foregroundStyle(Color.papyrus.opacity(0.8))
-                .lineSpacing(5)
-        }
-        .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color.stoneMid.opacity(0.35))
-                .overlay(RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color.goldDark.opacity(0.3), lineWidth: 0.8))
-        )
-        .shadow(color: .black.opacity(0.3), radius: 4, x: 0, y: 2)
-    }
-
-    // ═══════════════════════════════════════════════════
-    // MARK: - Shared Components
-    // ═══════════════════════════════════════════════════
-
-    private func sectionHeader(_ title: String, subtitle: String?) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(title)
-                .font(EgyptFont.title(11))
-                .foregroundStyle(Color.stoneLight.opacity(0.6))
-                .tracking(3)
-            if let sub = subtitle {
-                Text(sub)
-                    .font(EgyptFont.bodyItalic(14))
-                    .foregroundStyle(Color.papyrus.opacity(0.6))
-                    .lineSpacing(3)
-            }
-        }
-        .padding(.bottom, 2)
-    }
-
-    private var ornamentalRule: some View {
-        HStack {
-            Rectangle()
-                .fill(LinearGradient(colors: [.clear, .goldDark, .clear], startPoint: .leading, endPoint: .trailing))
-                .frame(height: 0.8)
-            Text("𓊹").font(.system(size: 14)).foregroundStyle(Color.goldDark).padding(.horizontal, 8)
-            Rectangle()
-                .fill(LinearGradient(colors: [.clear, .goldDark, .clear], startPoint: .leading, endPoint: .trailing))
-                .frame(height: 0.8)
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+                .overlay(RoundedRectangle(cornerRadius: 6)
+                    .stroke(Color.inkSepia.opacity(0.4), lineWidth: 1))
+                .shadow(color: .black.opacity(0.3), radius: 4, x: 2, y: 2)
+            SectionRule()
+            HandBody(text: "Equidistant between South America and Africa. Whatever trade route brought these objects here, we don't know it.")
+            Spacer(minLength: 8)
+            HandNote(text: "Coordinates withheld pending further excavation. The team agreed.", color: Color.inkRed.opacity(0.7))
         }
     }
 }
+
+private struct TabletStoryContent: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HandTitle(text: "The Tablet of Mandu")
+            HandBody(text: "Found it on the third day. Half-buried under two feet of black volcanic sand. The stone is unlike anything in our geological surveys — dense, dark, almost glassy.")
+            SectionRule()
+            HandBody(text: "30 symbols. I counted them four times. They come from six different writing systems — Egyptian hieroglyphs, Norse runes, Sumerian cuneiform, Maya glyphs, Celtic ogham, ancient Chinese oracle script.")
+            Spacer(minLength: 8)
+            HandBody(text: "No civilization could have traveled to meet all the others. The carbon dating came back — the tablet predates every script that appears on it.")
+            Spacer(minLength: 10)
+            HandNote(text: "It should not exist.", color: Color.inkRed)
+            SectionRule()
+            HandBody(text: "Around the main tablet: six smaller tablets, each in a single script. Teaching tools, I think. As if someone wanted whoever found these to be able to decode the main inscription.")
+            Spacer(minLength: 8)
+            HandBody(text: "The team named it the Tablet of Mandu. Nobody knows what Mandu means. We found no language it comes from.")
+            Spacer(minLength: 8)
+            HandNote(text: "Not yet.", color: Color.inkSepia.opacity(0.6))
+        }
+    }
+}
+
+private struct TabletGridContent: View {
+    @EnvironmentObject var gameState: GameState
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HandTitle(text: "The Tablet — Symbol Grid")
+            HandNote(text: "6 rows, 5 symbols each. Symbols light up as each civilization's partial tablets are deciphered.", color: Color.inkSepia.opacity(0.7))
+            SectionRule()
+
+            let slots = TabletSlot.all
+            let decoded = gameState.decodedTabletSlots
+
+            VStack(spacing: 4) {
+                ForEach(Civilization.all) { civ in
+                    let row = slots.filter { $0.civilization == civ.id }
+                    let isCivDone = gameState.completedCivilizations.contains(civ.id)
+
+                    HStack(spacing: 4) {
+                        Text(civ.emblem)
+                            .font(.system(size: 14))
+                            .foregroundStyle(isCivDone ? civ.accentColor : Color.inkSepia.opacity(0.25))
+                            .frame(width: 22)
+
+                        ForEach(row) { slot in
+                            let isDecoded = decoded.contains(slot.id)
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 5)
+                                    .fill(isDecoded ? civ.accentColor.opacity(0.15) : Color.paperDark.opacity(0.7))
+                                    .overlay(RoundedRectangle(cornerRadius: 5)
+                                        .stroke(isDecoded ? civ.accentColor.opacity(0.6) : Color.inkSepia.opacity(0.18), lineWidth: isDecoded ? 1 : 0.5))
+                                if isDecoded {
+                                    VStack(spacing: 1) {
+                                        Text(slot.character).font(.system(size: 17)).foregroundStyle(civ.accentColor)
+                                        Text(slot.decoded).font(handFont(9)).foregroundStyle(Color.inkSepia.opacity(0.7)).lineLimit(1)
+                                    }
+                                } else {
+                                    Text("?").font(handFont(16, bold: true)).foregroundStyle(Color.inkSepia.opacity(0.18))
+                                }
+                            }
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 46)
+                        }
+                    }
+                }
+            }
+
+            SectionRule()
+            let count = gameState.decodedTabletSlots.count
+            HandNote(text: "\(count) of 30 symbols decoded.", color: count == 30 ? Color.inkBlue : Color.inkSepia.opacity(0.6))
+        }
+    }
+}
+
+private struct CivilizationsContent: View {
+    @EnvironmentObject var gameState: GameState
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HandTitle(text: "The Six Civilizations")
+            HandBody(text: "Each partial tablet uses one script. Decipher all five puzzles from a civilization to read their row on the main tablet.")
+            SectionRule()
+
+            ForEach(Civilization.all) { civ in
+                let isDone = gameState.completedCivilizations.contains(civ.id)
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 8) {
+                        Text(civ.emblem).font(.system(size: 18)).foregroundStyle(isDone ? civ.accentColor : Color.inkSepia.opacity(0.35))
+                        HandTitle(text: civ.name, size: 16, color: isDone ? Color.inkBlue : Color.inkSepia.opacity(0.5))
+                        Spacer()
+                        if isDone {
+                            Text("✓ deciphered").font(handFont(12)).foregroundStyle(civ.accentColor)
+                        } else if civ.isUnlocked {
+                            Text("in progress").font(handFont(12)).foregroundStyle(Color.inkRed.opacity(0.7))
+                        } else {
+                            Text("locked").font(handFont(12)).foregroundStyle(Color.inkSepia.opacity(0.35))
+                        }
+                    }
+                    HandNote(text: "\(civ.scriptName)  ·  \(civ.era)  ·  \(civ.region)", size: 12, color: Color.inkSepia.opacity(isDone ? 0.65 : 0.35))
+                }
+                .padding(.vertical, 4)
+                if civ.id != .chinese {
+                    Rectangle().fill(Color.ruledLine.opacity(0.25)).frame(height: 0.5)
+                }
+            }
+        }
+    }
+}
+
+private struct CodexGlyphContent: View {
+    let glyph: Glyph
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HandTitle(text: "Codex Entry")
+            HStack(spacing: 16) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color.paperDark)
+                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.inkSepia.opacity(0.3), lineWidth: 1))
+                    Text(glyph.rawValue).font(.system(size: 52)).foregroundStyle(Color.inkBlue)
+                }
+                .frame(width: 80, height: 80)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    HandTitle(text: glyph.displayName, size: 20, color: .inkBlue)
+                    HandNote(text: glyph.meaning, size: 14, color: Color.inkSepia.opacity(0.75))
+                    HandNote(text: "Sound: /\(glyph.glyphTransliteration)/", size: 13, color: Color.inkSepia.opacity(0.55))
+                }
+            }
+            SectionRule()
+            HandTitle(text: "Field Notes", size: 16)
+            HandBody(text: glyph.discoveryNote)
+        }
+    }
+}
+
+private extension Glyph {
+    var glyphTransliteration: String {
+        switch self {
+        case .eye:   return "ḥr"
+        case .owl:   return "m"
+        case .water: return "n"
+        case .lion:  return "rw"
+        case .sky:   return "pt"
+        }
+    }
+}
+
+private struct GreekAlphabetContent: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HandTitle(text: "Greek Alphabet")
+            HandBody(text: "The Rosetta Stone was cracked because scholars knew Greek. I'm keeping this reference here — same reason.")
+            HandNote(text: "Cross-reference anything you can't identify.", color: Color.inkRed.opacity(0.7))
+            SectionRule()
+
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: 4), spacing: 6) {
+                ForEach(GreekLetter.alphabet) { letter in
+                    VStack(spacing: 2) {
+                        HStack(spacing: 3) {
+                            Text(letter.upper).font(.system(size: 16, weight: .medium)).foregroundStyle(Color.inkBlue)
+                            Text(letter.lower).font(.system(size: 13)).foregroundStyle(Color.inkSepia.opacity(0.8))
+                        }
+                        Text(letter.name).font(handFont(10)).foregroundStyle(Color.inkSepia.opacity(0.65))
+                        Text("/\(letter.sound)/").font(handFont(10)).foregroundStyle(Color.inkSepia.opacity(0.45))
+                    }
+                    .padding(.vertical, 6)
+                    .frame(maxWidth: .infinity)
+                    .background(RoundedRectangle(cornerRadius: 5).fill(Color.paperDark.opacity(0.6))
+                        .overlay(RoundedRectangle(cornerRadius: 5).stroke(Color.ruledLine.opacity(0.4), lineWidth: 0.5)))
+                }
+            }
+        }
+    }
+}
+
+private struct ChronicleContent: View {
+    let levelId: Int
+    @EnvironmentObject var gameState: GameState
+
+    var body: some View {
+        let level = Level.allLevels.first(where: { $0.id == levelId })
+        let message = gameState.decodedMessages[levelId]
+
+        VStack(alignment: .leading, spacing: 14) {
+            if let level = level {
+                HandTitle(text: "Decoded — \(level.title)")
+                HandNote(text: "Partial Tablet \(level.romanNumeral)  ·  Egyptian Hieroglyphics", color: Color.inkSepia.opacity(0.6))
+                SectionRule()
+                if let msg = message {
+                    HandBody(text: msg)
+                }
+                SectionRule()
+                HandTitle(text: "Scholar's Notes", size: 16)
+                HandBody(text: level.journalEntry.body, size: 15)
+            }
+        }
+    }
+}
+
+private struct FieldNotesContent: View {
+    @EnvironmentObject var gameState: GameState
+
+    var body: some View {
+        let level = gameState.currentLevel
+
+        VStack(alignment: .leading, spacing: 14) {
+            HandTitle(text: "Field Notes")
+            HandNote(text: "\(level.title)  ·  Chamber \(level.romanNumeral)", color: Color.inkSepia.opacity(0.6))
+            SectionRule()
+            HandBody(text: level.lore, size: 15)
+            SectionRule()
+
+            ForEach(Array(level.inscriptions.enumerated()), id: \.offset) { i, note in
+                HStack(alignment: .top, spacing: 10) {
+                    Text("—")
+                        .font(handFont(15))
+                        .foregroundStyle(Color.inkRed.opacity(0.7))
+                    HandBody(text: note)
+                }
+                if i < level.inscriptions.count - 1 {
+                    Spacer(minLength: 4)
+                }
+            }
+        }
+    }
+}
+
+private struct RosettaStoneContent: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HandTitle(text: "The Rosetta Stone, 1799")
+            HandNote(text: "French soldiers found it near Rosetta, Egypt. We found our equivalent in the Atlantic.", color: Color.inkRed.opacity(0.7))
+            SectionRule()
+            HandBody(text: "The Rosetta Stone carried the same royal decree in three scripts — formal hieroglyphs at the top, everyday Egyptian (Demotic) in the middle, Ancient Greek at the bottom.")
+            Spacer(minLength: 6)
+            HandBody(text: "Scholars already knew Greek. That was the key. By matching Greek words to their hieroglyph equivalents, they found their first anchor points.")
+            SectionRule()
+            HandNote(text: "The partial tablets around the Tablet of Mandu are our Rosetta Stones. Each one is written in a single, pure script. Decipher them first. Then apply what you learn to the main tablet.", color: Color.inkBlue.opacity(0.85))
+        }
+    }
+}
+
+private struct ChampollionContent: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HandTitle(text: "Champollion's Method, 1822")
+            HandBody(text: "Jean-François Champollion spent years on the Rosetta Stone before his breakthrough. His method:")
+            SectionRule()
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(alignment: .top, spacing: 8) {
+                    Text("1.")
+                        .font(handFont(15, bold: true))
+                        .foregroundStyle(Color.inkBlue)
+                        .frame(width: 22, alignment: .leading)
+                    HandBody(text: "Find anchor points — symbols you already know. Build outward from certainty, never from guesswork.")
+                }
+                HStack(alignment: .top, spacing: 8) {
+                    Text("2.")
+                        .font(handFont(15, bold: true))
+                        .foregroundStyle(Color.inkBlue)
+                        .frame(width: 22, alignment: .leading)
+                    HandBody(text: "Find the cartouches — oval frames around royal names. Names are phonetic. From one name, you learn multiple sounds.")
+                }
+                HStack(alignment: .top, spacing: 8) {
+                    Text("3.")
+                        .font(handFont(15, bold: true))
+                        .foregroundStyle(Color.inkBlue)
+                        .frame(width: 22, alignment: .leading)
+                    HandBody(text: "Use determinatives — the context symbols at the end of words. They tell you the category of meaning without spelling it out.")
+                }
+            }
+            SectionRule()
+            HandNote(text: "Each certain symbol revealed two more. The cipher cascaded open.", color: Color.inkRed.opacity(0.8))
+        }
+    }
+}
+
+private struct HowToSolveContent: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HandTitle(text: "How to Read the Partial Tablets")
+            HandBody(text: "The partial tablets follow one grammatical rule the Egyptians held sacred: no sacred symbol may appear twice in any line of an inscription — horizontal or vertical.")
+            SectionRule()
+            HandBody(text: "The darker cells are fixed — carved stone, readable without effort. These are your anchor points. Begin there.")
+            Spacer(minLength: 4)
+            HandBody(text: "From each anchor, ask: what can go in the cells that share its row? Its column? The answers eliminate positions until only one remains.")
+            SectionRule()
+            HandNote(text: "When stuck: don't guess. List only what is certain. Each truth reveals the next. This is how Champollion did it. It is the only way.", color: Color.inkBlue.opacity(0.85))
+            Spacer(minLength: 8)
+            HandNote(text: "Use the Known Glyphs panel in the puzzle screen to reference your codex without leaving the inscription.", color: Color.inkSepia.opacity(0.6))
+        }
+    }
+}
+
+// MARK: - Preview
 
 #Preview {
     JournalView()
         .environmentObject({
             let gs = GameState()
-            gs.unlockedJournalEntries = [1, 2, 3, 4, 5]
-            gs.discoveredGlyphs = [.eye, .owl, .water, .lion, .sky]
-            gs.decodedMessages = Level.allLevels.reduce(into: [:]) { $0[$1.id] = $1.decodedMessage }
+            gs.unlockedJournalEntries = [1, 2]
+            gs.discoveredGlyphs = [.eye, .owl, .water, .lion]
+            gs.decodedMessages = [1: Level.level1.decodedMessage, 2: Level.level2.decodedMessage]
             return gs
         }())
 }
