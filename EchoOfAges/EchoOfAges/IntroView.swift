@@ -1,12 +1,24 @@
 // IntroView.swift
 // EchoOfAges
 //
-// Star Wars-style opening crawl with map image and full backstory.
-// Text scrolls slowly upward from below the screen.
+// Two-phase opening sequence:
+//   Phase 1 — Discovery reveal: map image fades in on a dark background,
+//              held for a few seconds so the player can study it.
+//   Phase 2 — Star Wars crawl: map fades out, gold text scrolls slowly upward.
+//
+// egypt_sound.mp3 plays throughout and fades out when the intro ends.
 
 import SwiftUI
+import AVFoundation
 
-// MARK: - Preference key for measuring crawl content height
+// MARK: - Intro phases
+
+private enum IntroPhase {
+    case mapReveal   // map is showing
+    case crawl       // text scrolling
+}
+
+// MARK: - Crawl height preference key
 
 private struct CrawlHeightKey: PreferenceKey {
     static var defaultValue: CGFloat = 0
@@ -15,255 +27,226 @@ private struct CrawlHeightKey: PreferenceKey {
     }
 }
 
-// MARK: - Intro View
+// MARK: - IntroView
 
 struct IntroView: View {
     @EnvironmentObject var gameState: GameState
 
-    @State private var crawlOffset: CGFloat = 0
-    @State private var contentHeight: CGFloat = 0
-    @State private var animationStarted = false
-    @State private var skipOpacity: Double = 0
+    // Phase
+    @State private var phase: IntroPhase = .mapReveal
 
-    // Crawl speed — points per second. Lower = slower.
-    private let crawlSpeed: CGFloat = 48
+    // Map-reveal layer
+    @State private var mapOpacity:      Double = 0
+    @State private var mapLabelOpacity: Double = 0
+
+    // Crawl layer
+    @State private var crawlOpacity:    Double = 0
+    @State private var crawlOffset:     CGFloat = 0
+    @State private var contentHeight:   CGFloat = 0
+    @State private var crawlStarted:    Bool    = false
+
+    // UI chrome
+    @State private var skipOpacity:     Double = 0
+
+    // Audio
+    @State private var audioPlayer: AVAudioPlayer?
+
+    private let crawlSpeed: CGFloat = 46   // points per second
+
+    // MARK: Body
 
     var body: some View {
-        GeometryReader { geo in
-            ZStack {
+        ZStack {
+            Color.black.ignoresSafeArea()
 
-                // Deep space / stone background
-                Color.black.ignoresSafeArea()
-                RadialGradient(
-                    colors: [
-                        Color(red: 0.10, green: 0.07, blue: 0.02).opacity(0.8),
-                        Color.black
-                    ],
-                    center: .center,
-                    startRadius: 100,
-                    endRadius: 500
-                )
-                .ignoresSafeArea()
+            // Warm amber undertone — feels like torchlight on stone
+            RadialGradient(
+                colors: [Color(red: 0.12, green: 0.07, blue: 0.02).opacity(0.85), Color.black],
+                center: .center, startRadius: 80, endRadius: 500
+            )
+            .ignoresSafeArea()
 
-                // ── Crawl content ─────────────────────────────────────────────
-                crawlContent
-                    .background(
-                        GeometryReader { tg in
-                            Color.clear
-                                .preference(key: CrawlHeightKey.self, value: tg.size.height)
-                        }
-                    )
-                    .offset(y: crawlOffset)
+            // ── Phase 1: Map reveal ───────────────────────────────────────────
+            if phase == .mapReveal {
+                mapRevealLayer
+            }
 
-                // ── Fade masks — hides text appearing/disappearing at edges ───
-                VStack(spacing: 0) {
-                    LinearGradient(
-                        colors: [.black, .clear],
-                        startPoint: .top, endPoint: .bottom
-                    )
-                    .frame(height: 100)
-                    Spacer()
-                    LinearGradient(
-                        colors: [.clear, .black],
-                        startPoint: .top, endPoint: .bottom
-                    )
+            // ── Phase 2: Text crawl ───────────────────────────────────────────
+            if phase == .crawl {
+                crawlLayer
+            }
+
+            // ── Fade masks (always on top of content) ─────────────────────────
+            VStack(spacing: 0) {
+                LinearGradient(colors: [.black, .clear],
+                               startPoint: .top, endPoint: .bottom)
+                    .frame(height: 110)
+                Spacer()
+                LinearGradient(colors: [.clear, .black],
+                               startPoint: .top, endPoint: .bottom)
                     .frame(height: 160)
-                }
-                .ignoresSafeArea()
-                .allowsHitTesting(false)
+            }
+            .ignoresSafeArea()
+            .allowsHitTesting(false)
 
-                // ── Skip button ───────────────────────────────────────────────
-                VStack {
+            // ── Skip button ───────────────────────────────────────────────────
+            VStack {
+                Spacer()
+                HStack {
                     Spacer()
-                    HStack {
-                        Spacer()
-                        Button(action: { skipIntro() }) {
-                            HStack(spacing: 6) {
-                                Text("Skip")
-                                    .font(EgyptFont.body(18))
-                                Image(systemName: "forward.fill")
-                                    .font(.system(size: 14))
-                            }
-                            .foregroundStyle(Color.goldMid)
-                            .padding(.horizontal, 22)
-                            .padding(.vertical, 12)
-                            .background(
-                                Capsule()
-                                    .fill(Color.black.opacity(0.6))
-                                    .overlay(Capsule()
-                                        .stroke(Color.goldDark.opacity(0.5), lineWidth: 1))
-                            )
+                    Button(action: { endIntro() }) {
+                        HStack(spacing: 6) {
+                            Text("Skip")
+                                .font(EgyptFont.body(18))
+                            Image(systemName: "forward.fill")
+                                .font(.system(size: 14))
                         }
-                        .padding(.trailing, 28)
-                        .padding(.bottom, 32)
+                        .foregroundStyle(Color.goldMid)
+                        .padding(.horizontal, 22)
+                        .padding(.vertical, 12)
+                        .background(
+                            Capsule()
+                                .fill(Color.black.opacity(0.65))
+                                .overlay(Capsule()
+                                    .stroke(Color.goldDark.opacity(0.55), lineWidth: 1))
+                        )
                     }
+                    .padding(.trailing, 28)
+                    .padding(.bottom, 36)
                 }
-                .opacity(skipOpacity)
             }
-        }
-        // Measure content height and start animation
-        .onPreferenceChange(CrawlHeightKey.self) { height in
-            guard height > 0, !animationStarted else { return }
-            contentHeight = height
-            startCrawl()
-        }
-        .onAppear {
-            // Show skip button after a short delay
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                withAnimation(.easeIn(duration: 1.0)) { skipOpacity = 1 }
-            }
+            .opacity(skipOpacity)
         }
         .ignoresSafeArea()
+        .onAppear { startIntro() }
     }
 
-    // MARK: Crawl Content
+    // MARK: Map reveal layer
+
+    private var mapRevealLayer: some View {
+        VStack(spacing: 20) {
+            Spacer()
+
+            // Map image — large, centred
+            Image("map")
+                .resizable()
+                .scaledToFit()
+                .frame(maxWidth: 480)
+                .shadow(color: Color.goldDark.opacity(0.5), radius: 28, x: 0, y: 10)
+                .opacity(mapOpacity)
+
+            // Location label
+            VStack(spacing: 6) {
+                Text("· DISCOVERY SITE ·")
+                    .font(EgyptFont.title(14))
+                    .foregroundStyle(Color.goldDark)
+                    .tracking(5)
+                Text("Mid-Atlantic Ridge  —  2024")
+                    .font(EgyptFont.bodyItalic(16))
+                    .foregroundStyle(Color.papyrus.opacity(0.65))
+            }
+            .opacity(mapLabelOpacity)
+
+            Spacer()
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    // MARK: Crawl layer
+
+    private var crawlLayer: some View {
+        crawlContent
+            .background(
+                GeometryReader { tg in
+                    Color.clear
+                        .preference(key: CrawlHeightKey.self, value: tg.size.height)
+                }
+            )
+            .offset(y: crawlOffset)
+            .opacity(crawlOpacity)
+            .onPreferenceChange(CrawlHeightKey.self) { height in
+                guard height > 0, !crawlStarted else { return }
+                contentHeight = height
+                beginCrawl()
+            }
+    }
+
+    // MARK: Crawl text content
 
     private var crawlContent: some View {
         VStack(spacing: 0) {
 
-            // ── Opening glyph row ─────────────────────────────────────────────
             Text("𓊹  ·  𓂀  ·  𓊹")
-                .font(.system(size: 28))
-                .foregroundStyle(Color.goldMid.opacity(0.6))
+                .font(.system(size: 26))
+                .foregroundStyle(Color.goldMid.opacity(0.55))
                 .tracking(8)
-                .padding(.bottom, 40)
+                .padding(.bottom, 44)
 
-            // ── Map image ─────────────────────────────────────────────────────
-            Image("map")
-                .resizable()
-                .scaledToFit()
-                .frame(maxWidth: 400)
-                .opacity(0.90)
-                .shadow(color: Color.goldDark.opacity(0.4), radius: 20, x: 0, y: 8)
-                .padding(.bottom, 36)
-
-            crawlLabel("DISCOVERY SITE")
-                .padding(.bottom, 48)
-
-            // ── Title ─────────────────────────────────────────────────────────
+            // Title card
             Text("THE TABLET")
-                .font(EgyptFont.titleBold(38))
+                .font(EgyptFont.titleBold(40))
                 .foregroundStyle(Color.goldBright)
                 .tracking(8)
-
             Text("OF MANDU")
-                .font(EgyptFont.titleBold(38))
+                .font(EgyptFont.titleBold(40))
                 .foregroundStyle(Color.goldBright)
                 .tracking(8)
-                .padding(.bottom, 64)
+                .padding(.bottom, 70)
 
-            // ── Act I ─────────────────────────────────────────────────────────
-            crawlParagraph("""
-Summer, 2024.
+            crawlParagraph("Summer, 2024.\n\nA research vessel mapping the\nMid-Atlantic Ridge makes an\nextraordinary discovery.")
 
-A research vessel mapping the
-Mid-Atlantic Ridge makes an
-extraordinary discovery.
-""")
-
-            crawlParagraph("""
-On a remote volcanic island —
-uncharted, unnamed, and unreachable
-by ordinary means —
-buried beneath centuries of
-ash and ocean-stone...
-""")
+            crawlParagraph("On a remote volcanic island —\nuncharted, unnamed, and unreachable\nby ordinary means —\nburied beneath centuries of\nash and ocean-stone...")
 
             crawlEmphasis("...a tablet.")
 
-            crawlParagraph("""
-Carved from a single slab of
-black obsidian, it bears thirty
-symbols drawn from six of
-humanity's oldest civilizations.
-""")
+            crawlParagraph("Carved from a single slab of\nblack obsidian, it bears thirty\nsymbols drawn from six of\nhumanity's oldest civilizations.")
 
             crawlEmphasis("Egyptian.  Norse.  Sumerian.")
             crawlEmphasis("Mayan.  Celtic.  Chinese.")
 
-            crawlParagraph("""
-No single culture could have
-created it alone.
-""")
+            crawlParagraph("No single culture could have\ncreated it alone.")
 
-            // ── Act II ────────────────────────────────────────────────────────
-            divider.padding(.vertical, 32)
+            separatorGlyphs
 
-            crawlParagraph("""
-Lead archaeologist Dr. Elena Mandu —
-for whom the tablet is now named —
-recognized fragments of each
-ancient script immediately.
+            crawlParagraph("Lead archaeologist Dr. Elena Mandu —\nfor whom the tablet is now named —\nrecognized fragments of each\nancient script immediately.\n\nBut the tablet was incomplete.")
 
-But the tablet was incomplete.
-""")
-
-            crawlParagraph("""
-The symbols are arranged in a
-sacred pattern. A puzzle.
-Without the key, the full
-message cannot be read.
-""")
+            crawlParagraph("The symbols are arranged in a\nsacred pattern. A puzzle.\nWithout the key, the full\nmessage cannot be read.")
 
             crawlEmphasis("But the key still exists.")
 
-            crawlParagraph("""
-Across six ancient sites, five
-partial tablets survive from
-each civilization.
+            crawlParagraph("Across six ancient sites, five\npartial tablets survive from\neach civilization.\n\nTogether, they hold the answer.")
 
-Together, they hold the answer.
-""")
-
-            // ── Act III ───────────────────────────────────────────────────────
-            divider.padding(.vertical, 32)
+            separatorGlyphs
 
             crawlEmphasis("Your mission:")
 
-            crawlParagraph("""
-Decipher the partial tablets,
-one inscription at a time.
+            crawlParagraph("Decipher the partial tablets,\none inscription at a time.\n\nEach solved puzzle adds known\nglyphs to your codex and brings\nthe Tablet of Mandu closer to\nrevealing its hidden truth.")
 
-Each solved puzzle adds known
-glyphs to your codex and brings
-the Tablet of Mandu closer to
-revealing its hidden truth.
-""")
-
-            crawlParagraph("""
-The ancients placed these symbols
-here for a reason.
-
-They were waiting for someone
-with the patience to listen.
-""")
+            crawlParagraph("The ancients placed these symbols\nhere for a reason.\n\nThey were waiting for someone\nwith the patience to listen.")
 
             crawlEmphasis("Begin with the Egyptian Chamber.")
 
             crawlEmphasis("The tablets await.")
 
-            // ── Closing glyph row ─────────────────────────────────────────────
             Text("𓅱  𓆑  𓏏  𓈖  𓊪")
-                .font(.system(size: 24))
+                .font(.system(size: 22))
                 .foregroundStyle(Color.goldMid.opacity(0.4))
                 .tracking(10)
                 .padding(.top, 80)
-                .padding(.bottom, 120)
+                .padding(.bottom, 130)
         }
         .multilineTextAlignment(.center)
-        .padding(.horizontal, 40)
-        .frame(maxWidth: 560)
+        .padding(.horizontal, 44)
+        .frame(maxWidth: 580)
         .frame(maxWidth: .infinity)
     }
-
-    // MARK: Crawl text helpers
 
     private func crawlParagraph(_ text: String) -> some View {
         Text(text)
             .font(EgyptFont.body(22))
             .foregroundStyle(Color(red: 0.88, green: 0.82, blue: 0.60))
-            .lineSpacing(10)
-            .padding(.bottom, 36)
+            .lineSpacing(9)
+            .padding(.bottom, 38)
     }
 
     private func crawlEmphasis(_ text: String) -> some View {
@@ -271,51 +254,116 @@ with the patience to listen.
             .font(EgyptFont.titleBold(24))
             .foregroundStyle(Color.goldBright)
             .tracking(2)
-            .padding(.bottom, 36)
+            .padding(.bottom, 38)
     }
 
-    private func crawlLabel(_ text: String) -> some View {
-        Text(text)
-            .font(EgyptFont.title(13))
-            .foregroundStyle(Color.goldDark)
-            .tracking(5)
-    }
-
-    private var divider: some View {
+    private var separatorGlyphs: some View {
         Text("· · · · ·")
             .font(EgyptFont.title(16))
             .foregroundStyle(Color.goldDark.opacity(0.5))
             .tracking(8)
+            .padding(.vertical, 34)
     }
 
-    // MARK: Animation
+    // MARK: Sequencing
 
-    private func startCrawl() {
-        guard !animationStarted else { return }
-        animationStarted = true
+    private func startIntro() {
+        playAudio()
 
-        // Start text just below screen bottom
+        // Show skip after a moment
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            withAnimation(.easeIn(duration: 1.0)) { skipOpacity = 1 }
+        }
+
+        // Phase 1: fade in map
+        withAnimation(.easeIn(duration: 1.8)) { mapOpacity = 1 }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+            withAnimation(.easeIn(duration: 1.2)) { mapLabelOpacity = 1 }
+        }
+
+        // After 5.5 s, fade out map and start crawl
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5.5) {
+            withAnimation(.easeOut(duration: 1.2)) { mapOpacity = 0; mapLabelOpacity = 0 }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                phase = .crawl
+                withAnimation(.easeIn(duration: 0.8)) { crawlOpacity = 1 }
+            }
+        }
+    }
+
+    private func beginCrawl() {
+        guard !crawlStarted else { return }
+        crawlStarted = true
+
         let screenH = UIScreen.main.bounds.height
-        crawlOffset = screenH
+        crawlOffset = screenH   // start below screen (no animation)
 
         let totalDistance = screenH + contentHeight
         let duration = Double(totalDistance) / Double(crawlSpeed)
 
         DispatchQueue.main.async {
             withAnimation(.linear(duration: duration)) {
-                self.crawlOffset = -(self.contentHeight + 80)
+                self.crawlOffset = -(self.contentHeight + 100)
             }
         }
 
-        // Auto-finish when crawl ends
+        // Auto-end when crawl finishes
         DispatchQueue.main.asyncAfter(deadline: .now() + duration) {
-            skipIntro()
+            endIntro()
         }
     }
 
-    private func skipIntro() {
-        withAnimation(.easeIn(duration: 0.7)) {
+    private func endIntro() {
+        fadeOutAudio()
+        withAnimation(.easeIn(duration: 0.8)) {
+            mapOpacity    = 0
+            crawlOpacity  = 0
+            skipOpacity   = 0
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
             gameState.finishIntro()
+        }
+    }
+
+    // MARK: Audio
+
+    private func playAudio() {
+        guard let url = Bundle.main.url(forResource: "egypt_sound", withExtension: "mp3") else {
+            return
+        }
+        do {
+            audioPlayer = try AVAudioPlayer(contentsOf: url)
+            audioPlayer?.numberOfLoops = -1   // loop until intro ends
+            audioPlayer?.volume = 0.0
+            audioPlayer?.play()
+            // Fade in over 2 seconds
+            fadeAudioIn()
+        } catch { }
+    }
+
+    private func fadeAudioIn(targetVolume: Float = 0.70, steps: Int = 20) {
+        let stepTime = 2.0 / Double(steps)
+        let stepVolume = targetVolume / Float(steps)
+        for i in 0..<steps {
+            DispatchQueue.main.asyncAfter(deadline: .now() + stepTime * Double(i)) {
+                audioPlayer?.volume = stepVolume * Float(i + 1)
+            }
+        }
+    }
+
+    private func fadeOutAudio(duration: Double = 1.5) {
+        guard let player = audioPlayer else { return }
+        let steps = 20
+        let stepTime = duration / Double(steps)
+        let startVolume = player.volume
+        for i in 0..<steps {
+            DispatchQueue.main.asyncAfter(deadline: .now() + stepTime * Double(i)) {
+                audioPlayer?.volume = startVolume * (1.0 - Float(i + 1) / Float(steps))
+            }
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + duration) {
+            audioPlayer?.stop()
+            audioPlayer = nil
         }
     }
 }
