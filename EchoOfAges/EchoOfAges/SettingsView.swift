@@ -110,10 +110,10 @@ struct SettingsView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Show on Launch")
                             .font(EgyptFont.titleBold(17))
-                            .foregroundStyle(Color.goldBright)
+                            .foregroundStyle(Color(red: 0.16, green: 0.10, blue: 0.04))
                         Text("Play the opening story each time the app starts.")
                             .font(EgyptFont.body(14))
-                            .foregroundStyle(Color.papyrus.opacity(0.7))
+                            .foregroundStyle(Color(red: 0.30, green: 0.20, blue: 0.08))
                     }
                     Spacer()
                     Toggle("", isOn: $gameState.showIntroOnLaunch)
@@ -140,12 +140,12 @@ struct SettingsView: View {
                         Text("Watch Introduction Again")
                             .font(EgyptFont.title(16))
                     }
-                    .foregroundStyle(Color.goldMid)
+                    .foregroundStyle(Color.goldDark)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
                     .background(
                         RoundedRectangle(cornerRadius: 8)
-                            .fill(Color.stoneDark.opacity(0.6))
+                            .fill(Color(red: 0.88, green: 0.81, blue: 0.65))
                             .overlay(RoundedRectangle(cornerRadius: 8)
                                 .stroke(Color.goldDark.opacity(0.5), lineWidth: 1))
                     )
@@ -164,7 +164,7 @@ struct SettingsView: View {
 
                 Text("Erasing a civilization's progress removes all solved puzzles, decoded messages, and codex glyphs for that culture. Use this if you want to replay a civilization from the beginning.")
                     .font(EgyptFont.bodyItalic(14))
-                    .foregroundStyle(Color.papyrus.opacity(0.65))
+                    .foregroundStyle(Color(red: 0.30, green: 0.20, blue: 0.08))
                     .lineSpacing(4)
 
                 settingsDivider
@@ -218,16 +218,18 @@ struct SettingsView: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text(civ.name)
                     .font(EgyptFont.titleBold(16))
-                    .foregroundStyle(civ.isUnlocked ? Color.goldBright : Color.stoneSurface)
+                    .foregroundStyle(civ.isUnlocked
+                        ? Color(red: 0.16, green: 0.10, blue: 0.04)
+                        : Color(red: 0.45, green: 0.35, blue: 0.20))
 
                 if civ.isUnlocked {
                     Text("\(solvedCount) of \(total) tablets solved")
                         .font(EgyptFont.body(13))
-                        .foregroundStyle(Color.papyrus.opacity(0.6))
+                        .foregroundStyle(Color(red: 0.35, green: 0.25, blue: 0.10))
                 } else {
                     Text("Coming Soon")
                         .font(EgyptFont.bodyItalic(13))
-                        .foregroundStyle(Color.stoneSurface.opacity(0.5))
+                        .foregroundStyle(Color(red: 0.50, green: 0.40, blue: 0.25))
                 }
             }
 
@@ -251,11 +253,11 @@ struct SettingsView: View {
             } else if civ.isUnlocked {
                 Text("No progress")
                     .font(EgyptFont.body(13))
-                    .foregroundStyle(Color.stoneSurface.opacity(0.45))
+                    .foregroundStyle(Color(red: 0.50, green: 0.40, blue: 0.25))
             } else {
                 Image(systemName: "lock.fill")
                     .font(.system(size: 14))
-                    .foregroundStyle(Color.stoneSurface.opacity(0.3))
+                    .foregroundStyle(Color(red: 0.50, green: 0.40, blue: 0.25).opacity(0.5))
             }
         }
         .padding(.vertical, 4)
@@ -285,12 +287,14 @@ struct SettingsView: View {
         .padding(20)
         .background(
             RoundedRectangle(cornerRadius: 14)
-                .fill(Color.stoneMid.opacity(0.45))
+                // Same aged-paper cream used for diary pages
+                .fill(Color(red: 0.93, green: 0.87, blue: 0.73))
                 .overlay(
                     RoundedRectangle(cornerRadius: 14)
-                        .stroke(Color.goldDark.opacity(0.3), lineWidth: 1)
+                        .stroke(Color(red: 0.65, green: 0.55, blue: 0.40).opacity(0.6), lineWidth: 1)
                 )
         )
+        .shadow(color: .black.opacity(0.15), radius: 6, x: 0, y: 3)
     }
 
     private func sectionHeader(icon: String, title: String) -> some View {
@@ -306,7 +310,7 @@ struct SettingsView: View {
 
     private var settingsDivider: some View {
         Rectangle()
-            .fill(Color.goldDark.opacity(0.2))
-            .frame(height: 0.7)
+            .fill(Color(red: 0.65, green: 0.55, blue: 0.40).opacity(0.45))
+            .frame(height: 0.8)
     }
 }
