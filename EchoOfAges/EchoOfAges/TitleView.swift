@@ -166,7 +166,7 @@ struct TitleView: View {
         .padding(.vertical, 12)
         .background(
             RoundedRectangle(cornerRadius: 16)
-                .fill(Color.stoneMid.opacity(0.65))
+                .fill(Color.white)
                 .overlay(
                     RoundedRectangle(cornerRadius: 16)
                         .stroke(Color.goldDark.opacity(0.45), lineWidth: 1)
@@ -201,7 +201,7 @@ struct TitleView: View {
                 }
                 Text(label)
                     .font(EgyptFont.body(18))
-                    .foregroundStyle(Color.stoneSurface)
+                    .foregroundStyle(Color.stoneDark)
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
             }
