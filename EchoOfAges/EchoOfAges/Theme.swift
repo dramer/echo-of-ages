@@ -69,30 +69,31 @@ struct ToastView: View {
     let message: String
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            Text("𓂀")               // Eye of Horus — fits the archaeological theme
-                .font(.system(size: 20))
+        VStack(spacing: 16) {
+            Text("𓂀")               // Eye of Horus
+                .font(.system(size: 38))
                 .foregroundStyle(Color.goldBright)
-                .padding(.top, 1)
+
             Text(message)
-                .font(EgyptFont.bodyItalic(15))
+                .font(EgyptFont.bodyItalic(22))
                 .foregroundStyle(Color.papyrus)
-                .multilineTextAlignment(.leading)
-                .lineSpacing(4)
+                .multilineTextAlignment(.center)
+                .lineSpacing(7)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(.horizontal, 18)
-        .padding(.vertical, 14)
+        .padding(.horizontal, 32)
+        .padding(.vertical, 28)
+        .frame(maxWidth: 560)
         .background(
-            RoundedRectangle(cornerRadius: 14)
+            RoundedRectangle(cornerRadius: 20)
                 .fill(Color.stoneMid)
                 .overlay(
-                    RoundedRectangle(cornerRadius: 14)
-                        .stroke(Color.goldDark.opacity(0.75), lineWidth: 1)
+                    RoundedRectangle(cornerRadius: 20)
+                        .stroke(Color.goldDark.opacity(0.85), lineWidth: 1.5)
                 )
         )
-        .shadow(color: .black.opacity(0.55), radius: 12, x: 0, y: 5)
-        .padding(.horizontal, 24)
+        .shadow(color: .black.opacity(0.65), radius: 24, x: 0, y: 8)
+        .padding(.horizontal, 28)
     }
 }
 

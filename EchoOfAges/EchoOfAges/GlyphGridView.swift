@@ -33,7 +33,7 @@ struct GameView: View {
 
     var body: some View {
         GeometryReader { geo in
-            ZStack(alignment: .bottom) {
+            ZStack {
 
                 // ── Main layout (portrait or landscape) ──────────────────────
                 if geo.size.width > geo.size.height {
@@ -42,13 +42,17 @@ struct GameView: View {
                     portraitLayout(geo: geo)
                 }
 
-                // ── Toast overlay ────────────────────────────────────────────
+                // ── Toast overlay — centred on screen ────────────────────────
                 if toastVisible {
+                    Color.black.opacity(0.45)
+                        .ignoresSafeArea()
+                        .transition(.opacity)
+                        .zIndex(9)
+
                     ToastView(message: toastMessage)
-                        .padding(.bottom, 26)
                         .transition(
                             .asymmetric(
-                                insertion: .move(edge: .bottom).combined(with: .opacity),
+                                insertion: .scale(scale: 0.88).combined(with: .opacity),
                                 removal:   .opacity
                             )
                         )
