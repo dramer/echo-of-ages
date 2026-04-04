@@ -118,7 +118,7 @@ struct SettingsView: View {
                     Spacer()
                     Toggle("", isOn: $gameState.showIntroOnLaunch)
                         .labelsHidden()
-                        .tint(Color.goldMid)
+                        .toggleStyle(GreenRedToggleStyle())
                         .onChange(of: gameState.showIntroOnLaunch) { _, _ in
                             gameState.saveSettings()
                         }
@@ -312,5 +312,28 @@ struct SettingsView: View {
         Rectangle()
             .fill(Color(red: 0.65, green: 0.55, blue: 0.40).opacity(0.45))
             .frame(height: 0.8)
+    }
+}
+
+// MARK: - Green / Red Toggle Style
+
+private struct GreenRedToggleStyle: ToggleStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        let isOn = configuration.isOn
+        RoundedRectangle(cornerRadius: 16)
+            .fill(isOn ? Color(red: 0.18, green: 0.60, blue: 0.22) : Color(red: 0.75, green: 0.15, blue: 0.12))
+            .frame(width: 56, height: 32)
+            .overlay(
+                Circle()
+                    .fill(Color.white)
+                    .shadow(color: .black.opacity(0.25), radius: 3, x: 0, y: 1)
+                    .frame(width: 26, height: 26)
+                    .offset(x: isOn ? 12 : -12)
+                    .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isOn)
+            )
+            .onTapGesture {
+                HapticFeedback.tap()
+                configuration.isOn.toggle()
+            }
     }
 }
