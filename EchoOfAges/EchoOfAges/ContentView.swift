@@ -12,6 +12,10 @@ struct ContentView: View {
 
             Group {
                 switch gameState.currentScreen {
+                case .intro:
+                    IntroView()
+                        .transition(.opacity)
+
                 case .title:
                     TitleView()
                         .transition(.opacity)
@@ -34,6 +38,10 @@ struct ContentView: View {
                 case .gameComplete:
                     GameCompleteView()
                         .transition(.scale(scale: 0.9).combined(with: .opacity))
+
+                case .settings:
+                    SettingsView()
+                        .transition(.move(edge: .trailing).combined(with: .opacity))
                 }
             }
             .animation(.easeInOut(duration: 0.38), value: gameState.currentScreen)

@@ -7,11 +7,13 @@ import Combine
 // MARK: - Screen
 
 enum GameScreen: Equatable {
+    case intro
     case title
     case game
     case journal
     case levelComplete
     case gameComplete
+    case settings
 }
 
 // MARK: - GameState
@@ -44,6 +46,9 @@ final class GameState: ObservableObject {
 
     // The message shown on the level-complete screen
     @Published var pendingDecodedMessage: String = ""
+
+    // Settings
+    @Published var showIntroOnLaunch: Bool = true
 
     var currentLevel: Level { Level.allLevels[currentLevelIndex] }
 
@@ -81,11 +86,21 @@ final class GameState: ObservableObject {
         Civilization.all.filter(\.isUnlocked).allSatisfy { completedCivilizations.contains($0.id) }
     }
 
+    // Whether the intro has ever been completed
+    var hasSeenIntro: Bool {
+        UserDefaults.standard.bool(forKey: "EOA_hasSeenIntro")
+    }
+
     // MARK: Init
 
     init() {
         loadProgress()
         resetGrid(for: Level.allLevels[0])
+
+        // Show intro on first ever launch, or if the player has it turned on
+        if !hasSeenIntro || showIntroOnLaunch {
+            currentScreen = .intro
+        }
     }
 
     // MARK: Navigation
@@ -112,6 +127,29 @@ final class GameState: ObservableObject {
 
     func closeJournal() {
         currentScreen = previousScreen
+    }
+
+    func openSettings() {
+        previousScreen = currentScreen
+        currentScreen = .settings
+    }
+
+    func closeSettings() {
+        currentScreen = previousScreen
+    }
+
+    func playIntro() {
+        previousScreen = currentScreen
+        currentScreen = .intro
+    }
+
+    func finishIntro() {
+        markIntroSeen()
+        currentScreen = .title
+    }
+
+    func markIntroSeen() {
+        UserDefaults.standard.set(true, forKey: "EOA_hasSeenIntro")
     }
 
     func advanceToNextLevel() {
@@ -260,6 +298,29 @@ final class GameState: ObservableObject {
         }
     }
 
+    // MARK: Reset Civilization
+
+    /// Wipes all solved levels and discovered glyphs for a given civilization.
+    func resetCivilization(_ civId: CivilizationID) {
+        let civLevels = Level.allLevels.filter { $0.civilization == civId }
+
+        for level in civLevels {
+            unlockedJournalEntries.remove(level.journalEntry.id)
+            decodedMessages.removeValue(forKey: level.id)
+        }
+
+        // Remove glyphs that were introduced exclusively by this civilization's levels
+        let civGlyphs = Set(civLevels.flatMap { $0.availableGlyphs })
+        let otherGlyphs = Set(Level.allLevels
+            .filter { $0.civilization != civId }
+            .flatMap { $0.availableGlyphs })
+        let exclusiveGlyphs = civGlyphs.subtracting(otherGlyphs)
+        discoveredGlyphs.removeAll { exclusiveGlyphs.contains($0) }
+
+        saveProgress()
+        HapticFeedback.heavy()
+    }
+
     // MARK: Progress Persistence
 
     private func saveProgress() {
@@ -267,6 +328,7 @@ final class GameState: ObservableObject {
         UserDefaults.standard.set(discoveredGlyphs.map(\.rawValue), forKey: "EOA_codex")
         let messagesDict = decodedMessages.reduce(into: [String: String]()) { $0["\($1.key)"] = $1.value }
         UserDefaults.standard.set(messagesDict, forKey: "EOA_chronicle")
+        UserDefaults.standard.set(showIntroOnLaunch, forKey: "EOA_showIntro")
     }
 
     private func loadProgress() {
@@ -280,9 +342,20 @@ final class GameState: ObservableObject {
         decodedMessages = messagesDict.reduce(into: [Int: String]()) {
             if let id = Int($1.key) { $0[id] = $1.value }
         }
+
+        // Default showIntroOnLaunch to true only on first ever run
+        if UserDefaults.standard.object(forKey: "EOA_showIntro") == nil {
+            showIntroOnLaunch = true
+        } else {
+            showIntroOnLaunch = UserDefaults.standard.bool(forKey: "EOA_showIntro")
+        }
     }
 
     var hasProgress: Bool {
         !unlockedJournalEntries.isEmpty
+    }
+
+    func saveSettings() {
+        UserDefaults.standard.set(showIntroOnLaunch, forKey: "EOA_showIntro")
     }
 }

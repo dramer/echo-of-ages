@@ -11,6 +11,24 @@ struct TitleView: View {
     var body: some View {
         ZStack {
             background
+
+            // Settings gear — top right corner
+            VStack {
+                HStack {
+                    Spacer()
+                    Button(action: {
+                        HapticFeedback.tap()
+                        gameState.openSettings()
+                    }) {
+                        Image(systemName: "gearshape.fill")
+                            .font(.system(size: 22))
+                            .foregroundStyle(Color.stoneSurface.opacity(0.7))
+                            .padding(16)
+                    }
+                }
+                Spacer()
+            }
+
             VStack(spacing: 0) {
                 Spacer()
                 glyphDecoration
