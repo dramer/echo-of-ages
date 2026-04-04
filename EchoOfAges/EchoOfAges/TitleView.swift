@@ -73,16 +73,16 @@ struct TitleView: View {
 
     private func decorativeGlyph(_ symbol: String) -> some View {
         Text(symbol)
-            .font(.system(size: 32))
+            .font(.system(size: 44))
             .foregroundStyle(Color.goldMid.opacity(0.75))
             .shadow(color: Color.goldDark.opacity(glowPulse ? 0.5 : 0.2), radius: 6, x: 0, y: 0)
     }
 
     private var decorativeDivider: some View {
         Text("·")
-            .font(EgyptFont.title(18))
+            .font(EgyptFont.title(24))
             .foregroundStyle(Color.goldDark.opacity(0.5))
-            .padding(.horizontal, 6)
+            .padding(.horizontal, 8)
     }
 
     // MARK: Title Block
@@ -99,17 +99,17 @@ struct TitleView: View {
             Spacer(minLength: 18)
 
             Text("An Ancient Hieroglyph Deduction Puzzle")
-                .font(EgyptFont.bodyItalic(16))
+                .font(EgyptFont.bodyItalic(22))
                 .foregroundStyle(Color.papyrus.opacity(0.70))
                 .multilineTextAlignment(.center)
 
             Spacer(minLength: 18)
 
             Text("\"In the beginning was the Word,\nand the Word was carved in stone.\"")
-                .font(EgyptFont.bodyItalic(15))
+                .font(EgyptFont.bodyItalic(20))
                 .foregroundStyle(Color.papyrus.opacity(0.50))
                 .multilineTextAlignment(.center)
-                .lineSpacing(4)
+                .lineSpacing(6)
         }
         .opacity(appeared ? 1 : 0)
         .offset(y: appeared ? 0 : 20)
@@ -192,18 +192,18 @@ struct TitleView: View {
                     Image(asset)
                         .resizable()
                         .scaledToFit()
-                        .frame(height: 56)
+                        .frame(height: 70)
                 } else {
                     Image(systemName: fallback)
-                        .font(.system(size: 32))
+                        .font(.system(size: 40))
                         .foregroundStyle(Color.goldMid)
-                        .frame(height: 56)
+                        .frame(height: 70)
                 }
                 Text(label)
-                    .font(EgyptFont.body(13))
+                    .font(EgyptFont.body(18))
                     .foregroundStyle(Color.stoneSurface)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.8)
+                    .minimumScaleFactor(0.75)
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 4)
@@ -214,9 +214,9 @@ struct TitleView: View {
 
     private var footerHieroglyphs: some View {
         Text("𓅱 𓆑 𓏏 𓈖 𓊪")
-            .font(.system(size: 18))
+            .font(.system(size: 26))
             .foregroundStyle(Color.stoneLight.opacity(0.4))
-            .tracking(8)
+            .tracking(10)
             .opacity(appeared ? 1 : 0)
             .animation(.easeIn(duration: 1.0).delay(0.5), value: appeared)
     }
