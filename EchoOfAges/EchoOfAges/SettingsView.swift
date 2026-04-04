@@ -73,12 +73,12 @@ struct SettingsView: View {
                     Text("Back")
                         .font(EgyptFont.body(17))
                 }
-                .foregroundStyle(Color.goldMid)
+                .foregroundStyle(Color.goldDark)
             }
             Spacer()
             Text("Settings")
                 .font(EgyptFont.titleBold(20))
-                .foregroundStyle(Color.goldBright)
+                .foregroundStyle(Color.stoneDark)
                 .tracking(2)
             Spacer()
             // Balance spacer
@@ -87,10 +87,10 @@ struct SettingsView: View {
         .padding(.horizontal, 20)
         .padding(.vertical, 14)
         .background(
-            Color.stoneMid.opacity(0.5)
+            Color.white
                 .overlay(
                     Rectangle()
-                        .fill(Color.goldDark.opacity(0.25))
+                        .fill(Color.goldDark.opacity(0.35))
                         .frame(height: 0.8),
                     alignment: .bottom
                 )
