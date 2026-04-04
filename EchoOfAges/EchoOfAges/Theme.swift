@@ -63,6 +63,39 @@ enum HapticFeedback {
     }
 }
 
+// MARK: - Toast
+
+struct ToastView: View {
+    let message: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Text("𓂀")               // Eye of Horus — fits the archaeological theme
+                .font(.system(size: 20))
+                .foregroundStyle(Color.goldBright)
+                .padding(.top, 1)
+            Text(message)
+                .font(EgyptFont.bodyItalic(15))
+                .foregroundStyle(Color.papyrus)
+                .multilineTextAlignment(.leading)
+                .lineSpacing(4)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.horizontal, 18)
+        .padding(.vertical, 14)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(Color.stoneMid)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .stroke(Color.goldDark.opacity(0.75), lineWidth: 1)
+                )
+        )
+        .shadow(color: .black.opacity(0.55), radius: 12, x: 0, y: 5)
+        .padding(.horizontal, 24)
+    }
+}
+
 struct StoneButton: View {
     let title: String
     let icon: String

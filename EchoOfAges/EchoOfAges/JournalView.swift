@@ -36,8 +36,9 @@ private extension Color {
 }
 
 private func handFont(_ size: CGFloat, bold: Bool = false) -> Font {
-    // Bradley Hand is a standard iOS system font
-    .custom(bold ? "BradleyHandITCTT-Bold" : "BradleyHandITCTT-Bold", size: size)
+    // Scale up on iPad so text is comfortable to read without zooming
+    let scale: CGFloat = UIDevice.current.userInterfaceIdiom == .pad ? 1.5 : 1.0
+    return .custom("BradleyHandITCTT-Bold", size: size * scale)
 }
 
 // MARK: - JournalView (The Book)
@@ -182,6 +183,8 @@ private struct BookPage: View {
     let totalPages: Int
     @EnvironmentObject var gameState: GameState
 
+    private var isPad: Bool { UIDevice.current.userInterfaceIdiom == .pad }
+
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
             // Page background — aged paper
@@ -198,7 +201,7 @@ private struct BookPage: View {
                     colors: [Color.black.opacity(0.18), Color.black.opacity(0.0)],
                     startPoint: .leading, endPoint: .trailing
                 )
-                .frame(width: 22)
+                .frame(width: isPad ? 32 : 22)
                 Spacer()
             }
             .cornerRadius(4)
@@ -207,10 +210,10 @@ private struct BookPage: View {
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 0) {
                     pageContent
-                        .padding(.leading, 32)
-                        .padding(.trailing, 20)
-                        .padding(.top, 22)
-                        .padding(.bottom, 36)
+                        .padding(.leading, isPad ? 48 : 32)
+                        .padding(.trailing, isPad ? 32 : 20)
+                        .padding(.top, isPad ? 32 : 22)
+                        .padding(.bottom, isPad ? 52 : 36)
                 }
             }
 
@@ -218,11 +221,11 @@ private struct BookPage: View {
             Text("\(pageNumber)")
                 .font(handFont(13))
                 .foregroundStyle(Color.ruledLine.opacity(0.7))
-                .padding(.trailing, 16)
-                .padding(.bottom, 10)
+                .padding(.trailing, isPad ? 24 : 16)
+                .padding(.bottom, isPad ? 14 : 10)
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 6)
+        .padding(.horizontal, isPad ? 20 : 14)
+        .padding(.vertical, isPad ? 10 : 6)
     }
 
     @ViewBuilder
