@@ -26,6 +26,7 @@ struct SettingsView: View {
                     VStack(spacing: 28) {
                         introSection
                         civilizationsSection
+                        versionSection
                         Spacer(minLength: 40)
                     }
                     .padding(.horizontal, 24)
@@ -272,6 +273,56 @@ struct SettingsView: View {
         }
         UserDefaults.standard.removeObject(forKey: "EOA_hasSeenIntro")
         HapticFeedback.heavy()
+    }
+
+    // MARK: Version Section
+
+    private var versionSection: some View {
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—"
+        let build   = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion")            as? String ?? "—"
+
+        return settingsCard {
+            VStack(alignment: .leading, spacing: 16) {
+
+                sectionHeader(icon: "info.circle", title: "About")
+
+                HStack {
+                    Text("Echo of Ages")
+                        .font(EgyptFont.titleBold(17))
+                        .foregroundStyle(Color(red: 0.16, green: 0.10, blue: 0.04))
+                    Spacer()
+                }
+
+                settingsDivider
+
+                HStack {
+                    Text("Version")
+                        .font(EgyptFont.body(16))
+                        .foregroundStyle(Color(red: 0.30, green: 0.20, blue: 0.08))
+                    Spacer()
+                    Text(version)
+                        .font(EgyptFont.bodySemiBold(16))
+                        .foregroundStyle(Color(red: 0.16, green: 0.10, blue: 0.04))
+                }
+
+                HStack {
+                    Text("Build")
+                        .font(EgyptFont.body(16))
+                        .foregroundStyle(Color(red: 0.30, green: 0.20, blue: 0.08))
+                    Spacer()
+                    Text(build)
+                        .font(EgyptFont.bodySemiBold(16))
+                        .foregroundStyle(Color(red: 0.16, green: 0.10, blue: 0.04))
+                }
+
+                settingsDivider
+
+                Text("An Ancient Hieroglyph Deduction Puzzle")
+                    .font(EgyptFont.bodyItalic(14))
+                    .foregroundStyle(Color(red: 0.40, green: 0.28, blue: 0.12))
+                    .frame(maxWidth: .infinity, alignment: .center)
+            }
+        }
     }
 
     // MARK: Helpers
