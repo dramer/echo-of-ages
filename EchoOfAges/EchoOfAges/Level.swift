@@ -4,6 +4,12 @@
 // Latin-square puzzle: each glyph appears exactly once per row and column.
 // Fixed cells are pre-placed and cannot be changed. Player fills the rest.
 // Completing a puzzle deciphers a message that contributes to the Tree of Life narrative.
+//
+// Puzzle variants (all based on the Latin square):
+//   .standard       — no repeat per row or column (L1, L4)
+//   .noAdjacent     — framed as "no touching same glyph" (L2)
+//   .hiddenRegions  — adds invisible 2×2 chamber constraint (L3, Sudoku-like)
+//   .pureDeduction  — minimal fixed cells, all logic (L5)
 
 import Foundation
 
@@ -73,6 +79,51 @@ struct GridPosition: Hashable, Equatable {
     let col: Int
 }
 
+// MARK: - Puzzle Variant
+//
+// Each variant shares the same Latin-square foundation (unique per row/col) but
+// adds a different constraint — and a different way of thinking about the puzzle.
+//
+//  .standard       L1, L4  — Scan rows and columns. Classic.
+//  .noAdjacent     L2      — Scan neighbors. No symbol touches a twin.
+//  .hiddenRegions  L3      — Scan hidden chambers. Regions not shown on-screen.
+//  .pureDeduction  L5      — Only five anchors. All else follows from logic alone.
+
+enum PuzzleVariant {
+    case standard
+    case noAdjacent
+    case hiddenRegions([[GridPosition]])   // regions stored but not rendered
+    case pureDeduction
+
+    /// One-line rule shown below the level subtitle in the game view.
+    var ruleDescription: String {
+        switch self {
+        case .standard:
+            return "Each symbol appears once per row and column"
+        case .noAdjacent:
+            return "No symbol may touch the same symbol on any side"
+        case .hiddenRegions:
+            return "Row, column, and hidden chamber each hold every symbol once"
+        case .pureDeduction:
+            return "Five anchors remain — all else must be deduced"
+        }
+    }
+
+    /// Hint text shown after 8 seconds of idle on the game screen.
+    var idleHint: String {
+        switch self {
+        case .standard:
+            return "Tap any empty cell, then choose a glyph from the palette. Each glyph must appear exactly once in every row and every column — no repeats."
+        case .noAdjacent:
+            return "Remember — no symbol may sit directly beside the same symbol. Before placing a glyph, check the four cells around it: left, right, above, below."
+        case .hiddenRegions:
+            return "This tablet is divided into four hidden chambers. Each chamber, like each row and column, must contain every symbol exactly once. Can you sense where the invisible boundaries fall?"
+        case .pureDeduction:
+            return "Only five stones are fixed. Start there — mark what each row and column still needs, then follow the chain of certainty outward, one step at a time."
+        }
+    }
+}
+
 // MARK: - Journal Entry
 
 struct JournalEntry: Identifiable {
@@ -100,6 +151,7 @@ struct Level: Identifiable {
     let journalEntry: JournalEntry
     let decodedMessage: String          // The message revealed when the inscription is solved
     let newGlyphs: [Glyph]             // Glyphs introduced for the first time in this level
+    let variant: PuzzleVariant         // Which rule governs this puzzle
 
     func isFixed(_ position: GridPosition) -> Bool {
         fixedPositions.contains(position)
@@ -131,7 +183,7 @@ struct Level: Identifiable {
 //
 // Solutions are verified Latin squares (no cyclic-shift patterns).
 // Fixed cells are placed off-diagonal to vary the visual starting point.
-// Inscriptions give specific positional clues, not just rule restatements.
+// Inscriptions describe BOTH positional clues AND the variant rule in narrative form.
 // decodedMessage is the narrative text revealed upon solving each inscription.
 //
 // Verification key: E=eye O=owl W=water L=lion S=sky
@@ -140,7 +192,8 @@ extension Level {
     static let allLevels: [Level] = [level1, level2, level3, level4, level5]
 
     // ─────────────────────────────────────────────────
-    // LEVEL 1 · 3×3 · Glyphs: eye, owl, water
+    // LEVEL 1 · 3×3 · Variant: Standard (Row & Column Rule)
+    // Glyphs: eye, owl, water
     //
     // Solution:       Col→  0    1    2
     //   Row 0:              O    W    E
@@ -148,6 +201,8 @@ extension Level {
     //   Row 2:              E    O    W
     //
     // Fixed: (0,0)=O  (0,2)=E  (2,1)=O   ← top-left, top-right, bottom-center
+    //
+    // Rule: Each symbol appears exactly once in every row and every column.
     // ─────────────────────────────────────────────────
     static let level1 = Level(
         id: 1,
@@ -186,11 +241,13 @@ extension Level {
             artifact: "𓏠"
         ),
         decodedMessage: "In the age before memory, three forces shaped the world: the Eye that sees all truth, the Owl that guards all knowledge, the Water that gives all life. From these three, the first root of the great Tree was born beneath the earth, unseen, patient, waiting.",
-        newGlyphs: [.eye, .owl, .water]
+        newGlyphs: [.eye, .owl, .water],
+        variant: .standard
     )
 
     // ─────────────────────────────────────────────────
-    // LEVEL 2 · 4×4 · Glyphs: eye, owl, water, lion
+    // LEVEL 2 · 4×4 · Variant: No Adjacent (Neighbor Rule)
+    // Glyphs: eye, owl, water, lion
     //
     // Solution:       Col→  0    1    2    3
     //   Row 0:              E    L    O    W
@@ -198,19 +255,23 @@ extension Level {
     //   Row 2:              L    E    W    O
     //   Row 3:              W    O    E    L
     //
-    // Fixed: (0,0)=E  (1,2)=L  (2,1)=E  (3,3)=L   ← two glyphs, off-diagonal
+    // Fixed: (0,0)=E  (1,2)=L  (2,1)=E  (3,3)=L
+    //
+    // Rule: No symbol may appear directly beside the same symbol — not left,
+    //       right, above, or below. (Equivalent to Latin square, but teaches
+    //       players to reason by scanning neighbors rather than whole rows/cols.)
     // ─────────────────────────────────────────────────
     static let level2 = Level(
         id: 2,
         civilization: .egyptian,
         title: "Chamber of Ra",
         subtitle: "The Solar Seal",
-        lore: "The sun god Ra guards this chamber with four powerful symbols. The placement here is not a simple cycle — the Lion and the Eye hold fixed positions that reveal the structure only to those who reason carefully from what is known.",
+        lore: "The sun god Ra guards this chamber with four powerful symbols. Each glyph stands alone — no symbol may stand directly beside another of the same kind. Read each cell's neighbors carefully, and the arrangement will reveal itself.",
         inscriptions: [
-            "Ra's chamber: the Eye always faces outward — it opens, it never hides. I found it at the very edge of the inscription's first line.",
-            "The Lion never appears beside the Eye in Ra's texts. Power and sight were kept separate — too much of both at once was considered an omen.",
-            "Water flows to where the other symbols are absent. It fills the remaining space, as the Nile fills the delta.",
-            "Four forces, four sacred directions — each appears exactly once in every line of the inscription, whether you read it across or downward."
+            "The Eye holds the first position, far left of the opening row. The cell immediately to its right and the cell directly below it cannot be the Eye — Ra's law of separation forbids it.",
+            "In Ra's temple, each symbol is surrounded on all four sides by different symbols. The Lion at the fixed position in row two — look at every cell that borders it. None may be the Lion.",
+            "Think of each glyph as a sentinel who cannot stand beside a twin. When you are uncertain about a cell, look at its four neighbors. If you can name three of them, the fourth reveals itself.",
+            "Four sacred forces, each an island unto itself. No symbol touches another of its own kind, left nor right, above nor below. Follow any glyph across the stone — it is always surrounded by difference."
         ],
         rows: 4,
         cols: 4,
@@ -236,15 +297,17 @@ extension Level {
         journalEntry: JournalEntry(
             id: 2,
             title: "The Solar Hymn",
-            body: "Ra's four sacred symbols do not simply rotate — they interlock like the teeth of a great celestial wheel. The Eye sees across rows; the Lion holds corners; the Owl glides between them; Water fills the remaining voids. To understand their arrangement is to read the mind of the sun god himself.",
+            body: "Ra's four sacred symbols do not simply rotate — they interlock like the teeth of a great celestial wheel. No symbol stands beside a mirror of itself. The Eye sees its own kind and turns away. The Lion guards its solitude. Water flows to the spaces between. To read Ra's inscription is to understand separation: every force is most powerful when it stands alone, surrounded by what it is not.",
             artifact: "𓇳"
         ),
         decodedMessage: "Ra looked upon the first roots and raised a fourth power: the Lion of Strength, to protect what grows. Four forces now balanced the world — sight, wisdom, life, and strength. The trunk of the Tree rose toward the heavens, and Ra called it good.",
-        newGlyphs: [.lion]
+        newGlyphs: [.lion],
+        variant: .noAdjacent
     )
 
     // ─────────────────────────────────────────────────
-    // LEVEL 3 · 4×4 · Glyphs: eye, owl, water, lion
+    // LEVEL 3 · 4×4 · Variant: Hidden Regions (Chamber Rule)
+    // Glyphs: eye, owl, water, lion
     //
     // Solution:       Col→  0    1    2    3
     //   Row 0:              W    O    E    L
@@ -252,19 +315,28 @@ extension Level {
     //   Row 2:              L    W    O    E
     //   Row 3:              O    E    L    W
     //
-    // Fixed: (0,3)=L  (1,0)=E  (2,2)=O  (3,1)=E   ← corners and crosses
+    // Fixed: (0,3)=L  (1,0)=E  (2,2)=O  (3,1)=E
+    //
+    // Hidden regions (standard 2×2 quadrants — not shown to player):
+    //   TL: (0,0)(0,1)(1,0)(1,1) → W,O,E,L ✓
+    //   TR: (0,2)(0,3)(1,2)(1,3) → E,L,W,O ✓
+    //   BL: (2,0)(2,1)(3,0)(3,1) → L,W,O,E ✓
+    //   BR: (2,2)(2,3)(3,2)(3,3) → O,E,L,W ✓
+    //
+    // Rule: Each row, each column, and each hidden chamber must contain
+    //       every symbol exactly once. The chamber boundaries are not shown.
     // ─────────────────────────────────────────────────
     static let level3 = Level(
         id: 3,
         civilization: .egyptian,
         title: "Hall of Anubis",
         subtitle: "The Judgment Seal",
-        lore: "In the Hall of Two Truths, Anubis weighs the heart against the feather of Ma'at. The four symbols here follow no repeating pattern — each row is its own judgment. The fixed stones reveal corners of truth; the rest must be earned through deduction.",
+        lore: "In the Hall of Two Truths, Anubis has divided the stone into four hidden chambers of judgment. Their walls are invisible — but they are real. Each chamber, like each row and each column, must hold all four symbols in perfect balance.",
         inscriptions: [
-            "Anubis watches from the corners. The symbol of judgment holds an edge position in this inscription — I found it at the far end of the first line.",
-            "Cross-referencing with the Ra chamber: the Eye and the Lion swap roles here. Where Ra used the Eye at the opening, Anubis uses the Lion.",
-            "The Water symbol in this hall refers to the river of the dead, not the Nile. It is surrounded by symbols of power and knowledge — strength tempered by life.",
-            "No two identical symbols appear in any line, horizontal or vertical. Anubis permitted no repetition in the hall of judgment."
+            "Anubis divided this hall into four hidden chambers. I cannot see the walls, but each quadrant of the stone must hold all four symbols — one of each, no more, no less.",
+            "Three laws govern this tablet at once: no symbol repeats in any row, no symbol repeats in any column, and no symbol repeats within any hidden chamber. All three laws must be satisfied together.",
+            "I found the hidden boundaries by reasoning from contradiction. When the row and column laws alone could not resolve a cell, an invisible chamber wall explained the restriction. The chambers make themselves known.",
+            "Begin at the fixed stones in the corners of the tablet. Ask which hidden chamber each stone belongs to — the quadrant corners are also the chamber corners. From that one certainty, the rest follows."
         ],
         rows: 4,
         cols: 4,
@@ -290,15 +362,30 @@ extension Level {
         journalEntry: JournalEntry(
             id: 3,
             title: "The Weighing of the Heart",
-            body: "Anubis places the heart upon the golden scales. Opposite rests the Feather of Ma'at — truth itself. If the heart is light, unclouded by sin, the soul passes onward to Aaru. If heavy with wrongdoing, the Devourer waits. The seal mirrors this judgment: every position must be earned, every symbol placed with intention — not guessed, not assumed.",
+            body: "Anubis places the heart upon the golden scales. Opposite rests the Feather of Ma'at — truth itself. If the heart is light, unclouded by sin, the soul passes onward to Aaru. If heavy with wrongdoing, the Devourer waits. The seal mirrors this judgment: every position must be earned, every symbol placed with intention — not guessed, not assumed. Row, column, and hidden chamber all demand the same answer.",
             artifact: "𓂋"
         ),
         decodedMessage: "Anubis weighed each soul who sought the Tree. Only those who balanced Eye and Lion, Water and Owl — each in its proper place, none repeated, none omitted — could pass beneath its branches. Order is the first law of the living. It is also the last law of the dead.",
-        newGlyphs: []
+        newGlyphs: [],
+        variant: .hiddenRegions([
+            // Top-left chamber
+            [GridPosition(row:0,col:0), GridPosition(row:0,col:1),
+             GridPosition(row:1,col:0), GridPosition(row:1,col:1)],
+            // Top-right chamber
+            [GridPosition(row:0,col:2), GridPosition(row:0,col:3),
+             GridPosition(row:1,col:2), GridPosition(row:1,col:3)],
+            // Bottom-left chamber
+            [GridPosition(row:2,col:0), GridPosition(row:2,col:1),
+             GridPosition(row:3,col:0), GridPosition(row:3,col:1)],
+            // Bottom-right chamber
+            [GridPosition(row:2,col:2), GridPosition(row:2,col:3),
+             GridPosition(row:3,col:2), GridPosition(row:3,col:3)]
+        ])
     )
 
     // ─────────────────────────────────────────────────
-    // LEVEL 4 · 5×5 · Glyphs: eye, owl, water, lion, sky
+    // LEVEL 4 · 5×5 · Variant: Standard (Row & Column Rule, five symbols)
+    // Glyphs: eye, owl, water, lion, sky
     //
     // Solution:       Col→  0    1    2    3    4
     //   Row 0:              E    O    L    S    W
@@ -355,11 +442,13 @@ extension Level {
             artifact: "𓆓"
         ),
         decodedMessage: "Thoth inscribed a fifth force in his sacred books: the Sky, the vault of eternity above all things. Five forces, five directions, five chambers of truth. The branches of the Tree now reached from earth to heaven. And Thoth wrote in the margin: all things in their proper place is the first law of the universe, and also the last.",
-        newGlyphs: [.sky]
+        newGlyphs: [.sky],
+        variant: .standard
     )
 
     // ─────────────────────────────────────────────────
-    // LEVEL 5 · 5×5 · Glyphs: eye, owl, water, lion, sky
+    // LEVEL 5 · 5×5 · Variant: Pure Deduction (Minimal Clues)
+    // Glyphs: eye, owl, water, lion, sky
     //
     // Solution:       Col→  0    1    2    3    4
     //   Row 0:              S    W    E    O    L
@@ -414,6 +503,7 @@ extension Level {
             artifact: "𓇋"
         ),
         decodedMessage: "You have heard the echo of ages. The Tree of Life stands at the center of all worlds — its roots in the waters of creation, its trunk the strength of lions, its branches the owl's wisdom spread wide, its leaves ten thousand eyes watching eternity, its fruit the sky itself: infinite, undying, and patient. Plant one truth each day. Let no symbol stand twice in the same place. This is how the world was made, and how it shall endure.",
-        newGlyphs: []
+        newGlyphs: [],
+        variant: .pureDeduction
     )
 }

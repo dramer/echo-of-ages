@@ -10,11 +10,18 @@ import SwiftUI
 
 private enum DiaryPage: Equatable {
     case frontPage
-    case drMandu             // Dr. Elena Mandu biography
+    case drMandu             // Dr. Elena Mandu biography + Egyptian Latin Square
     case mapPage
     case tabletStory
     case tabletGrid
     case civilizations
+    // One puzzle-type page per civilization (in expedition order)
+    case egyptPuzzle         // Egyptian  — Latin Square
+    case mesopotamiaPuzzle   // Mesopotamia — Cipher
+    case greecePuzzle        // Greece — Logic Grid
+    case chinaPuzzle         // China — Spatial Assembly (Tangram)
+    case norsePuzzle         // Norse — Pathfinding
+    case mesoamericanPuzzle  // Mesoamerican — Pattern / Rhythm
     case codexGlyph(Glyph)
     case greekAlphabet
     case chronicle(Int)         // level id
@@ -49,7 +56,11 @@ struct JournalView: View {
     @State private var currentPageIndex: Int = 0
 
     private var pages: [DiaryPage] {
-        var list: [DiaryPage] = [.frontPage, .drMandu, .mapPage, .tabletStory, .tabletGrid, .civilizations]
+        var list: [DiaryPage] = [
+            .frontPage, .drMandu, .mapPage, .tabletStory, .tabletGrid, .civilizations,
+            .egyptPuzzle, .mesopotamiaPuzzle, .greecePuzzle,
+            .chinaPuzzle, .norsePuzzle, .mesoamericanPuzzle
+        ]
         // Codex: one page per known glyph
         for glyph in gameState.codexGlyphs { list.append(.codexGlyph(glyph)) }
         list.append(.greekAlphabet)
@@ -248,19 +259,25 @@ private struct BookPage: View {
     @ViewBuilder
     private var pageContent: some View {
         switch pageType {
-        case .frontPage:       FrontPageContent()
-        case .drMandu:         DrManduContent()
-        case .mapPage:         MapPageContent()
-        case .tabletStory:     TabletStoryContent()
-        case .tabletGrid:      TabletGridContent()
-        case .civilizations:   CivilizationsContent()
-        case .codexGlyph(let g): CodexGlyphContent(glyph: g)
-        case .greekAlphabet:   GreekAlphabetContent()
-        case .chronicle(let id): ChronicleContent(levelId: id)
-        case .fieldNotes:      FieldNotesContent()
-        case .rosettaStone:    RosettaStoneContent()
-        case .champollionMethod: ChampollionContent()
-        case .howToSolve:      HowToSolveContent()
+        case .frontPage:           FrontPageContent()
+        case .drMandu:             DrManduContent()
+        case .mapPage:             MapPageContent()
+        case .tabletStory:         TabletStoryContent()
+        case .tabletGrid:          TabletGridContent()
+        case .civilizations:       CivilizationsContent()
+        case .egyptPuzzle:         EgyptPuzzleContent()
+        case .mesopotamiaPuzzle:   MesopotamiaPuzzleContent()
+        case .greecePuzzle:        GreecePuzzleContent()
+        case .chinaPuzzle:         ChinaPuzzleContent()
+        case .norsePuzzle:         NorsePuzzleContent()
+        case .mesoamericanPuzzle:  MesoamericanPuzzleContent()
+        case .codexGlyph(let g):   CodexGlyphContent(glyph: g)
+        case .greekAlphabet:       GreekAlphabetContent()
+        case .chronicle(let id):   ChronicleContent(levelId: id)
+        case .fieldNotes:          FieldNotesContent()
+        case .rosettaStone:        RosettaStoneContent()
+        case .champollionMethod:   ChampollionContent()
+        case .howToSolve:          HowToSolveContent()
         }
     }
 }
@@ -767,8 +784,222 @@ private struct DrManduContent: View {
             Spacer(minLength: 14)
 
             HandNote(text: "— Dr. Elena Mandu, interview with Nature, September 2024", size: 12, color: Color.inkSepia.opacity(0.55))
+
+            Spacer(minLength: 18)
+            SectionRule()
+
+            HandTitle(text: "Breaking the Egyptian Code", size: 17, color: .inkBlue)
+                .padding(.bottom, 6)
+
+            HandBody(text: "After three days with the Egyptian partial tablets, I finally understood the rule. It is, at its heart, a Latin square — a grid in which every symbol appears exactly once in every row and exactly once in every column.")
+
+            Spacer(minLength: 10)
+
+            HandBody(text: "No symbol may repeat on any horizontal line. No symbol may repeat on any vertical line. The fixed stones give you the anchor points. Everything else follows by elimination.")
+
+            Spacer(minLength: 10)
+
+            // Example image
+            Image("latin_square")
+                .resizable()
+                .scaledToFit()
+                .frame(maxWidth: 260)
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+                .overlay(RoundedRectangle(cornerRadius: 6)
+                    .stroke(Color.inkSepia.opacity(0.35), lineWidth: 1))
+                .shadow(color: .black.opacity(0.15), radius: 4, x: 2, y: 2)
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.vertical, 6)
+
+            Spacer(minLength: 10)
+
+            HandNote(text: "The 3×3 example above shows the simplest form. The larger tablets use 4 or 5 symbols — same rule, more deduction required.", color: Color.inkSepia.opacity(0.7))
+
+            Spacer(minLength: 10)
+
+            HandNote(text: "Variants complicate it further: one tablet forbids identical symbols from touching on any side; another hides invisible chamber boundaries that must also be respected. But the Latin square is always the foundation.", color: Color.inkRed.opacity(0.75))
         }
     }
+}
+
+// MARK: - Egypt Puzzle Page
+
+private struct EgyptPuzzleContent: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            puzzlePageHeader(emblem: "𓂀", civ: "Egypt", puzzle: "Latin Square",
+                             tagline: "Order · Balance · The Sacred Grid")
+            SectionRule()
+            HandBody(text: "The Egyptian tablets are arranged as Latin squares. Every row must contain each symbol exactly once. Every column must contain each symbol exactly once. The ancient scribes considered any repetition a form of spiritual disorder.")
+            Spacer(minLength: 10)
+            HandBody(text: "Begin from the fixed stones — the pre-carved anchors. From each anchor, ask what is still possible in its row and in its column. Every certainty eliminates options. Follow the chain until no empty cell remains.")
+            SectionRule()
+            HandTitle(text: "The Five Variants", size: 16, color: .inkBlue)
+                .padding(.bottom, 4)
+            variantRow(num: "I",   rule: "Row & Column Rule",     desc: "The pure Latin square. One of each, everywhere.")
+            variantRow(num: "II",  rule: "No Adjacent Rule",      desc: "No symbol may touch a copy of itself on any side.")
+            variantRow(num: "III", rule: "Hidden Chambers Rule",  desc: "Invisible regions each demand one of every symbol.")
+            variantRow(num: "IV",  rule: "Five Forces",           desc: "Five symbols, five directions — larger grid.")
+            variantRow(num: "V",   rule: "Pure Deduction",        desc: "Only five anchors. All else follows from reason alone.")
+            SectionRule()
+            HandNote(text: "Solve all five tablets to decode Egypt's row on the Tablet of Mandu.", color: Color.inkBlue.opacity(0.8))
+        }
+    }
+
+    private func variantRow(num: String, rule: String, desc: String) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Text(num)
+                .font(handFont(13, bold: true))
+                .foregroundStyle(Color.inkBlue.opacity(0.7))
+                .frame(width: 22, alignment: .leading)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(rule)
+                    .font(handFont(13, bold: true))
+                    .foregroundStyle(Color.inkSepia)
+                Text(desc)
+                    .font(handFont(12))
+                    .foregroundStyle(Color.inkSepia.opacity(0.65))
+            }
+        }
+        .padding(.bottom, 4)
+    }
+}
+
+// MARK: - Mesopotamia Puzzle Page
+
+private struct MesopotamiaPuzzleContent: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            puzzlePageHeader(emblem: "𒀭", civ: "Mesopotamia", puzzle: "Cipher",
+                             tagline: "Decryption · Substitution · The Hidden Key")
+            SectionRule()
+            HandBody(text: "The Mesopotamian cuneiform tablets speak in code. Where the Egyptian tablets arrange symbols in balanced grids, these tablets conceal their message through substitution — each position in the inscription encodes a symbol according to a hidden key.")
+            Spacer(minLength: 10)
+            HandBody(text: "The key itself must be discovered from within the tablet. Certain positions are pre-revealed as anchor points. From these knowns, the cipher's logic can be reconstructed, one symbol at a time.")
+            SectionRule()
+            HandTitle(text: "Dr. Mandu's Notes", size: 16, color: .inkBlue)
+                .padding(.bottom, 4)
+            HandNote(text: "Cuneiform is the world's oldest writing system — wedge shapes pressed into wet clay with a reed stylus. The Mesopotamians were the first people to write down laws, contracts, and stories. It follows that their puzzle would be about encoding and decoding messages.", color: Color.inkSepia.opacity(0.75))
+            Spacer(minLength: 8)
+            HandNote(text: "This is not about arrangement. It is about substitution and revelation. Find the pattern in what is already shown. The cipher will cascade open from there.", color: Color.inkRed.opacity(0.75))
+            SectionRule()
+            HandNote(text: "Coming in the next phase of the Mandu Expedition.", color: Color.inkSepia.opacity(0.45))
+        }
+    }
+}
+
+// MARK: - Greece Puzzle Page
+
+private struct GreecePuzzleContent: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            puzzlePageHeader(emblem: "Ω", civ: "Greece", puzzle: "Logic Grid",
+                             tagline: "Reason · Deduction · The Philosophical Method")
+            SectionRule()
+            HandBody(text: "The Greek tablets do not show you the symbols directly. Instead, they present a series of logical clues — statements that rule out possibilities, one by one. You must deduce which symbol belongs in which position using only the power of reason.")
+            Spacer(minLength: 10)
+            HandBody(text: "No guessing. No trial and error. The Greek method demands that every placement be proven from what is already known. Aristotle called it the syllogism. The ancients carved it in stone.")
+            SectionRule()
+            HandTitle(text: "Dr. Mandu's Notes", size: 16, color: .inkBlue)
+                .padding(.bottom, 4)
+            HandNote(text: "Greek philosophy gave us formal logic — the idea that truth can be derived step by step from premises. This tablet embodies that tradition. Each clue is a premise. Each deduction is a conclusion. The final arrangement is the proof.", color: Color.inkSepia.opacity(0.75))
+            Spacer(minLength: 8)
+            HandNote(text: "Unlike the Egyptian grid, there is no spatial pattern to fall back on. You must reason your way through entirely.", color: Color.inkRed.opacity(0.75))
+            SectionRule()
+            HandNote(text: "Coming in the next phase of the Mandu Expedition.", color: Color.inkSepia.opacity(0.45))
+        }
+    }
+}
+
+// MARK: - China Puzzle Page
+
+private struct ChinaPuzzleContent: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            puzzlePageHeader(emblem: "甲", civ: "China", puzzle: "Spatial Assembly",
+                             tagline: "Shape · Fit · The Tangram Tradition")
+            SectionRule()
+            HandBody(text: "The Chinese oracle bone tablets present a spatial puzzle. Individual glyph-shaped tiles must be assembled into the correct final configuration — each piece fitting exactly against the next, no gaps, no overlaps, nothing wasted.")
+            Spacer(minLength: 10)
+            HandBody(text: "The Tangram is China's ancient geometric puzzle: seven pieces, one perfect shape. This tablet uses the same principle. You are given the pieces. You must find the arrangement. The whole reveals itself from the parts.")
+            SectionRule()
+            HandTitle(text: "Dr. Mandu's Notes", size: 16, color: .inkBlue)
+                .padding(.bottom, 4)
+            HandNote(text: "Oracle bone script was used for divination — questions scratched into bone or shell, heated until they cracked, and the cracks were read as answers. The ancient Chinese were asking the universe for answers. This tablet asks us the same thing, differently.", color: Color.inkSepia.opacity(0.75))
+            Spacer(minLength: 8)
+            HandNote(text: "Spatial reasoning. Pattern visualization. See the final shape in your mind before you begin placing pieces.", color: Color.inkRed.opacity(0.75))
+            SectionRule()
+            HandNote(text: "Coming in the next phase of the Mandu Expedition.", color: Color.inkSepia.opacity(0.45))
+        }
+    }
+}
+
+// MARK: - Norse Puzzle Page
+
+private struct NorsePuzzleContent: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            puzzlePageHeader(emblem: "ᚱ", civ: "Norse", puzzle: "Pathfinding",
+                             tagline: "Navigation · Survival · The Runic Way")
+            SectionRule()
+            HandBody(text: "The Norse runestone tablets are pathfinding puzzles. You must trace a route through the stone that visits each symbol in the correct sequence, never crossing your own path, navigating from start to finish by instinct and memory.")
+            Spacer(minLength: 10)
+            HandBody(text: "The Vikings navigated by stars, ocean currents, bird flight, and the color of the sea. They did not need maps. They read the world itself. This tablet tests the same skill — reading a hidden path through a field of runes.")
+            SectionRule()
+            HandTitle(text: "Dr. Mandu's Notes", size: 16, color: .inkBlue)
+                .padding(.bottom, 4)
+            HandNote(text: "Each rune is more than a letter — it is a force. Isa is ice. Kenaz is fire. Uruz is the wild ox. Placing them in sequence is not spelling — it is invocation. The path through the runestone is a ritual as much as a puzzle.", color: Color.inkSepia.opacity(0.75))
+            Spacer(minLength: 8)
+            HandNote(text: "Do not try to plan the entire route at once. Follow the force of the runes. The path will make itself known.", color: Color.inkRed.opacity(0.75))
+            SectionRule()
+            HandNote(text: "Coming in the next phase of the Mandu Expedition.", color: Color.inkSepia.opacity(0.45))
+        }
+    }
+}
+
+// MARK: - Mesoamerican Puzzle Page
+
+private struct MesoamericanPuzzleContent: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            puzzlePageHeader(emblem: "𝋠", civ: "Mesoamerica", puzzle: "Pattern & Rhythm",
+                             tagline: "Cycle · Calendar · The Interlocking Wheels")
+            SectionRule()
+            HandBody(text: "The Maya calendar tablets are pattern puzzles. Symbols repeat in precise, interlocking cycles — the 260-day Tzolk'in turning inside the 365-day Haab', producing a great cycle that repeats once every 52 years. Identify the rhythm and you can fill every gap.")
+            Spacer(minLength: 10)
+            HandBody(text: "The ancients left deliberate blanks in the sequence. They are tests. Once you feel the pulse of the cycle — once the rhythm becomes intuitive — the missing symbols announce themselves.")
+            SectionRule()
+            HandTitle(text: "Dr. Mandu's Notes", size: 16, color: .inkBlue)
+                .padding(.bottom, 4)
+            HandNote(text: "The Maya Calendar is one of the most accurate astronomical systems ever devised, developed without telescopes, without calculators, from centuries of patient sky-watching. Their puzzle encodes that same patience: you must feel the beat before you can complete the measure.", color: Color.inkSepia.opacity(0.75))
+            Spacer(minLength: 8)
+            HandNote(text: "This is not logic in the Greek sense, and not balance in the Egyptian sense. It is rhythm. Trust what you feel repeating.", color: Color.inkRed.opacity(0.75))
+            SectionRule()
+            HandNote(text: "Coming in the next phase of the Mandu Expedition.", color: Color.inkSepia.opacity(0.45))
+        }
+    }
+}
+
+// MARK: - Shared puzzle-page header helper
+
+private func puzzlePageHeader(emblem: String, civ: String, puzzle: String, tagline: String) -> some View {
+    VStack(alignment: .center, spacing: 6) {
+        Text(emblem)
+            .font(.system(size: 38))
+            .foregroundStyle(Color.inkBlue.opacity(0.65))
+            .frame(maxWidth: .infinity, alignment: .center)
+        HandTitle(text: civ, size: 26, color: .inkBlue)
+            .frame(maxWidth: .infinity, alignment: .center)
+        Text("Puzzle Type:  \(puzzle)")
+            .font(handFont(15, bold: true))
+            .foregroundStyle(Color.inkRed.opacity(0.85))
+            .frame(maxWidth: .infinity, alignment: .center)
+        Text(tagline)
+            .font(handFont(12))
+            .foregroundStyle(Color.inkSepia.opacity(0.6))
+            .frame(maxWidth: .infinity, alignment: .center)
+    }
+    .padding(.bottom, 4)
 }
 
 // MARK: - Preview

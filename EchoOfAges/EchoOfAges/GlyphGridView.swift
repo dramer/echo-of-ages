@@ -87,7 +87,7 @@ struct GameView: View {
     @ViewBuilder
     private func portraitLayout(geo: GeometryProxy) -> some View {
         let barH:       CGFloat = 84
-        let titleH:     CGFloat = 52
+        let titleH:     CGFloat = 70   // title + subtitle + rule description line
         let paletteH:   CGFloat = 78
         let spacing:    CGFloat = 8 * 4
         let safeBottom: CGFloat = 16
@@ -233,6 +233,15 @@ struct GameView: View {
                 .font(EgyptFont.bodyItalic(14))
                 .foregroundStyle(Color.papyrus.opacity(0.75))
                 .lineLimit(1)
+            // Rule description — changes per puzzle variant
+            Text(gameState.currentLevel.variant.ruleDescription)
+                .font(EgyptFont.body(12))
+                .foregroundStyle(Color.goldDark.opacity(0.85))
+                .lineLimit(2)
+                .minimumScaleFactor(0.8)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 8)
+                .padding(.top, 1)
         }
         .multilineTextAlignment(.center)
         .padding(.vertical, 2)
@@ -309,13 +318,7 @@ struct GameView: View {
     }
 
     private var idleHintText: String {
-        let idx = gameState.currentLevelIndex
-        if idx == 0 {
-            return "Tap any empty cell, then choose a glyph from the palette below. Each glyph must appear exactly once in every row and column — no repeats anywhere."
-        } else {
-            let prev = Level.allLevels[idx - 1]
-            return "You solved the \(prev.title) tablet — each glyph appeared once per row and column. This inscription follows the same sacred rule, but the arrangement is completely different. Study the fixed symbols first for your opening clues."
-        }
+        gameState.currentLevel.variant.idleHint
     }
 
     // MARK: Background
