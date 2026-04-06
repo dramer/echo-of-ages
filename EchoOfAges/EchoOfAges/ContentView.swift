@@ -42,6 +42,17 @@ struct ContentView: View {
                 case .settings:
                     SettingsView()
                         .transition(.move(edge: .trailing).combined(with: .opacity))
+
+                case .debug:
+                    DebugView()
+                        .transition(.move(edge: .trailing).combined(with: .opacity))
+
+                case .norseGame:
+                    PathGameView()
+                        .transition(.asymmetric(
+                            insertion: .move(edge: .trailing).combined(with: .opacity),
+                            removal: .opacity
+                        ))
                 }
             }
             .animation(.easeInOut(duration: 0.38), value: gameState.currentScreen)

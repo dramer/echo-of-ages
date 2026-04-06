@@ -14,6 +14,8 @@ enum GameScreen: Equatable {
     case levelComplete
     case gameComplete
     case settings
+    case debug
+    case norseGame
 }
 
 // MARK: - GameState
@@ -136,6 +138,44 @@ final class GameState: ObservableObject {
 
     func closeSettings() {
         currentScreen = previousScreen
+    }
+
+    func openDebug() {
+        previousScreen = currentScreen
+        currentScreen = .debug
+    }
+
+    func closeDebug() {
+        currentScreen = previousScreen
+    }
+
+    /// Jump directly to any level, bypassing unlock requirements. Debug only.
+    func debugJumpToLevel(_ level: Level) {
+        guard let idx = Level.allLevels.firstIndex(where: { $0.id == level.id }) else { return }
+        loadLevel(idx)
+        currentScreen = .game
+    }
+
+    /// Mark a level solved instantly. Debug only.
+    func debugSolveLevel(_ level: Level) {
+        guard let idx = Level.allLevels.firstIndex(where: { $0.id == level.id }) else { return }
+        loadLevel(idx)
+        // Fill the grid with the solution then trigger completion
+        playerGrid = level.solution.map { $0.map { Optional($0) } }
+        checkSolutionPublic()
+    }
+
+    /// Public wrapper so DebugView can trigger a solution check.
+    func checkSolutionPublic() {
+        let level = currentLevel
+        for row in 0..<level.rows {
+            for col in 0..<level.cols {
+                if playerGrid[row][col] == nil { return }
+            }
+        }
+        if level.isSolved(playerGrid) {
+            handleLevelComplete()
+        }
     }
 
     func playIntro() {
@@ -298,6 +338,137 @@ final class GameState: ObservableObject {
         }
     }
 
+    // MARK: Norse Pathfinding State
+
+    @Published var norseCurrentLevelIndex: Int = 0
+    @Published var norsePath: [GridPosition] = []
+    @Published var norseErrorCells: Set<GridPosition> = []
+    @Published var norseIsAnimatingCompletion: Bool = false
+    @Published var norseUnlockedLevels: Set<Int> = []
+
+    var norseCurrentLevel: PathLevel { PathLevel.allLevels[norseCurrentLevelIndex] }
+
+    var norseHasProgress: Bool { !norseUnlockedLevels.isEmpty }
+
+    // MARK: Norse Navigation
+
+    func startNorseGame() {
+        let next = min(norseUnlockedLevels.count, PathLevel.allLevels.count - 1)
+        loadNorseLevel(next)
+        currentScreen = .norseGame
+    }
+
+    func closeNorseGame() {
+        currentScreen = .title
+    }
+
+    func loadNorseLevel(_ index: Int) {
+        norseCurrentLevelIndex = max(0, min(index, PathLevel.allLevels.count - 1))
+        norsePath = []
+        norseErrorCells = []
+    }
+
+    func resetNorsePath() {
+        norsePath = []
+        norseErrorCells = []
+        HapticFeedback.heavy()
+    }
+
+    // MARK: Norse Cell Interaction
+
+    func tapNorseCell(at position: GridPosition) {
+        let level = norseCurrentLevel
+        guard !norseIsAnimatingCompletion else { return }
+
+        // Can't tap while errors are flashing
+        guard norseErrorCells.isEmpty else { return }
+
+        if norsePath.isEmpty {
+            // First tap must be the start cell
+            guard position == level.startPosition else {
+                HapticFeedback.error()
+                return
+            }
+            norsePath.append(position)
+            HapticFeedback.tap()
+            return
+        }
+
+        let pathEnd = norsePath.last!
+
+        // Tapping the current end backtracks one step
+        if position == pathEnd {
+            norsePath.removeLast()
+            HapticFeedback.tap()
+            return
+        }
+
+        // Must be adjacent to the current path end
+        guard norseIsAdjacent(position, pathEnd) else {
+            HapticFeedback.error()
+            return
+        }
+
+        // Can't revisit a cell already in the path
+        guard !norsePath.contains(position) else {
+            HapticFeedback.error()
+            return
+        }
+
+        norsePath.append(position)
+        HapticFeedback.tap()
+
+        // Auto-verify once the path covers every cell
+        if norsePath.count == level.totalCells {
+            if level.isSolved(norsePath) {
+                handleNorseLevelComplete()
+            } else {
+                // Wrong path — flash all cells red then reset
+                norseErrorCells = Set(norsePath)
+                HapticFeedback.error()
+                Task {
+                    try? await Task.sleep(nanoseconds: 1_500_000_000)
+                    norseErrorCells = []
+                    norsePath = []
+                }
+            }
+        }
+    }
+
+    private func norseIsAdjacent(_ a: GridPosition, _ b: GridPosition) -> Bool {
+        let dr = abs(a.row - b.row)
+        let dc = abs(a.col - b.col)
+        return (dr == 1 && dc == 0) || (dr == 0 && dc == 1)
+    }
+
+    // MARK: Norse Completion
+
+    private func handleNorseLevelComplete() {
+        norseIsAnimatingCompletion = true
+        HapticFeedback.success()
+        norseUnlockedLevels.insert(norseCurrentLevel.id)
+        saveProgress()
+
+        Task {
+            try? await Task.sleep(nanoseconds: 2_200_000_000)
+            norseIsAnimatingCompletion = false
+            let next = norseCurrentLevelIndex + 1
+            if next < PathLevel.allLevels.count {
+                loadNorseLevel(next)
+            } else {
+                currentScreen = .title
+            }
+        }
+    }
+
+    // MARK: Norse Debug
+
+    func debugJumpToNorseLevel(_ level: PathLevel) {
+        guard let idx = PathLevel.allLevels.firstIndex(where: { $0.id == level.id }) else { return }
+        loadNorseLevel(idx)
+        currentScreen = .norseGame
+    }
+
     // MARK: Reset Civilization
 
     /// Wipes all solved levels and discovered glyphs for a given civilization.
@@ -329,6 +500,7 @@ final class GameState: ObservableObject {
         let messagesDict = decodedMessages.reduce(into: [String: String]()) { $0["\($1.key)"] = $1.value }
         UserDefaults.standard.set(messagesDict, forKey: "EOA_chronicle")
         UserDefaults.standard.set(showIntroOnLaunch, forKey: "EOA_showIntro")
+        UserDefaults.standard.set(Array(norseUnlockedLevels), forKey: "EOA_norseUnlocked")
     }
 
     private func loadProgress() {
@@ -342,6 +514,9 @@ final class GameState: ObservableObject {
         decodedMessages = messagesDict.reduce(into: [Int: String]()) {
             if let id = Int($1.key) { $0[id] = $1.value }
         }
+
+        let norseIds = UserDefaults.standard.array(forKey: "EOA_norseUnlocked") as? [Int] ?? []
+        norseUnlockedLevels = Set(norseIds)
 
         // Default showIntroOnLaunch to true only on first ever run
         if UserDefaults.standard.object(forKey: "EOA_showIntro") == nil {

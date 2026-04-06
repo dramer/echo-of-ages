@@ -27,6 +27,9 @@ struct SettingsView: View {
                         introSection
                         civilizationsSection
                         versionSection
+                        #if DEBUG
+                        debugSection
+                        #endif
                         Spacer(minLength: 40)
                     }
                     .padding(.horizontal, 24)
@@ -324,6 +327,46 @@ struct SettingsView: View {
             }
         }
     }
+
+    // MARK: Debug Section (only compiled in DEBUG builds)
+
+    #if DEBUG
+    private var debugSection: some View {
+        settingsCard {
+            VStack(alignment: .leading, spacing: 16) {
+                sectionHeader(icon: "ladybug.fill", title: "Developer")
+
+                Text("Jump to any puzzle, mark levels solved, and test all civilizations — including ones not yet unlocked.")
+                    .font(EgyptFont.bodyItalic(14))
+                    .foregroundStyle(Color(red: 0.30, green: 0.20, blue: 0.08))
+                    .lineSpacing(4)
+
+                settingsDivider
+
+                Button(action: {
+                    HapticFeedback.tap()
+                    gameState.openDebug()
+                }) {
+                    HStack(spacing: 10) {
+                        Image(systemName: "slider.horizontal.3")
+                            .font(.system(size: 20))
+                        Text("Open Puzzle Debug Panel")
+                            .font(EgyptFont.title(16))
+                    }
+                    .foregroundStyle(Color(red: 0.10, green: 0.35, blue: 0.60))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(Color(red: 0.10, green: 0.28, blue: 0.55).opacity(0.12))
+                            .overlay(RoundedRectangle(cornerRadius: 8)
+                                .stroke(Color(red: 0.10, green: 0.35, blue: 0.60).opacity(0.5), lineWidth: 1))
+                    )
+                }
+            }
+        }
+    }
+    #endif
 
     // MARK: Helpers
 
