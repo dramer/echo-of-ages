@@ -1,5 +1,9 @@
 // TitleView.swift
-// EchoOfAges — landing / main menu screen
+// EchoOfAges — main landing / menu screen
+//
+// Everything fades in gently — no sliding or floating animations.
+// The splash screen has already done the dramatic reveal;
+// the landing page simply appears, ready for the player.
 
 import SwiftUI
 
@@ -31,7 +35,7 @@ struct TitleView: View {
             withAnimation(.easeInOut(duration: 2.2).repeatForever(autoreverses: true)) {
                 glowPulse = true
             }
-            withAnimation(.easeOut(duration: 0.8)) {
+            withAnimation(.easeOut(duration: 0.6)) {
                 appeared = true
             }
         }
@@ -55,7 +59,7 @@ struct TitleView: View {
         }
     }
 
-    // MARK: Banner
+    // MARK: Banner — fades in, no sliding
 
     private var bannerImage: some View {
         Image("banner")
@@ -63,13 +67,13 @@ struct TitleView: View {
             .scaledToFit()
             .frame(maxWidth: .infinity)
             .padding(.horizontal, -24)
-            .shadow(color: Color.stoneDark.opacity(glowPulse ? 0.25 : 0.10), radius: 12, x: 0, y: 4)
+            .shadow(color: Color.stoneDark.opacity(glowPulse ? 0.25 : 0.10),
+                    radius: 12, x: 0, y: 4)
             .opacity(appeared ? 1 : 0)
-            .offset(y: appeared ? 0 : -12)
-            .animation(.spring(response: 0.65, dampingFraction: 0.78), value: appeared)
+            .animation(.easeOut(duration: 0.5), value: appeared)
     }
 
-    // MARK: Glyph Decoration
+    // MARK: Glyph Row — fades in, no sliding
 
     private var glyphDecoration: some View {
         HStack(spacing: 0) {
@@ -84,14 +88,15 @@ struct TitleView: View {
             decorativeGlyph("𓇯")
         }
         .opacity(appeared ? 1 : 0)
-        .animation(.easeIn(duration: 0.9).delay(0.1), value: appeared)
+        .animation(.easeOut(duration: 0.6).delay(0.05), value: appeared)
     }
 
     private func decorativeGlyph(_ symbol: String) -> some View {
         Text(symbol)
             .font(.system(size: 50))
             .foregroundStyle(Color.stoneDark.opacity(0.82))
-            .shadow(color: Color.stoneDark.opacity(glowPulse ? 0.25 : 0.08), radius: 4, x: 0, y: 1)
+            .shadow(color: Color.stoneDark.opacity(glowPulse ? 0.22 : 0.06),
+                    radius: 4, x: 0, y: 1)
     }
 
     private var decorativeDivider: some View {
@@ -101,7 +106,7 @@ struct TitleView: View {
             .padding(.horizontal, 8)
     }
 
-    // MARK: Text Block
+    // MARK: Text — fades in
 
     private var textBlock: some View {
         VStack(spacing: 16) {
@@ -117,11 +122,10 @@ struct TitleView: View {
                 .lineSpacing(7)
         }
         .opacity(appeared ? 1 : 0)
-        .offset(y: appeared ? 0 : 14)
-        .animation(.easeOut(duration: 0.7).delay(0.15), value: appeared)
+        .animation(.easeOut(duration: 0.6).delay(0.10), value: appeared)
     }
 
-    // MARK: Image Buttons
+    // MARK: Buttons — fade in
 
     private var imageButtons: some View {
         HStack(spacing: 8) {
@@ -145,8 +149,7 @@ struct TitleView: View {
             }
         }
         .opacity(appeared ? 1 : 0)
-        .offset(y: appeared ? 0 : 14)
-        .animation(.easeOut(duration: 0.7).delay(0.25), value: appeared)
+        .animation(.easeOut(duration: 0.6).delay(0.15), value: appeared)
     }
 
     private func landingButton(
@@ -177,7 +180,7 @@ struct TitleView: View {
             .foregroundStyle(Color(red: 0.30, green: 0.20, blue: 0.06).opacity(0.28))
             .tracking(10)
             .opacity(appeared ? 1 : 0)
-            .animation(.easeIn(duration: 1.0).delay(0.5), value: appeared)
+            .animation(.easeOut(duration: 0.6).delay(0.20), value: appeared)
     }
 }
 

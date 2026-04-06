@@ -1,29 +1,30 @@
 // SplashView.swift
 // EchoOfAges
 //
-// Full-screen splash shown once per app launch.
-// Background matches the diary page colour exactly.
-// The banner appears at the top, then rows of hieroglyphs rise from the
-// bottom of the screen and settle into a stone-tablet formation.
-// After the animation completes the view calls onFinished() and fades out.
+// App launch splash screen.
+//
+// Animation sequence:
+//   1. Diary-page background appears instantly.
+//   2. The banner starts at the vertical centre of the screen and slides UP
+//      to its resting position near the top — as if being lifted into place.
+//   3. Simultaneously, a block of hieroglyphs rises from below the screen
+//      and settles in the lower half — two opposing movements that "open"
+//      the scene from the centre outward.
+//   4. A short hold, then onFinished() is called and the view fades away.
 
 import SwiftUI
 
 struct SplashView: View {
     let onFinished: () -> Void
 
-    // Banner fade-in
-    @State private var bannerVisible = false
-    // Each tablet row gets its own flag so they stagger independently
-    @State private var rowVisible: [Bool] = Array(repeating: false, count: 5)
+    @State private var bannerUp    = false   // drives banner sliding upward
+    @State private var glyphsUp    = false   // drives glyph block rising
 
-    // Five rows × six hieroglyphs — chosen for visual variety
+    // Three rows of hieroglyphs that form the stone tablet panel
     private let tabletRows: [[String]] = [
         ["𓂀", "𓅓", "𓈖", "𓃭", "𓇯", "𓀭"],
         ["𓆑", "𓏏", "𓊪", "𓅱", "𓁷", "𓃒"],
         ["𓋴", "𓂋", "𓈗", "𓇋", "𓆼", "𓂧"],
-        ["𓌀", "𓅆", "𓏛", "𓄿", "𓃀", "𓏤"],
-        ["𓏭", "𓅐", "𓍿", "𓊃", "𓇌", "𓈀"],
     ]
 
     var body: some View {
@@ -31,26 +32,36 @@ struct SplashView: View {
             background
 
             VStack(spacing: 0) {
-                // ── Banner at the top ──────────────────────────────────
-                Spacer(minLength: 10)
+                Spacer(minLength: 12)
 
+                // ── Banner: starts in the middle, moves UP ────────────
                 Image("banner")
                     .resizable()
                     .scaledToFit()
                     .frame(maxWidth: .infinity)
                     .padding(.horizontal, -24)
-                    .shadow(color: Color(red: 0.20, green: 0.12, blue: 0.02).opacity(0.20),
+                    .shadow(color: Color(red: 0.20, green: 0.12, blue: 0.02).opacity(0.22),
                             radius: 14, x: 0, y: 5)
-                    .opacity(bannerVisible ? 1 : 0)
-                    .animation(.easeOut(duration: 0.80), value: bannerVisible)
+                    // Large positive offset = banner starts near screen centre;
+                    // animates to 0 = its natural top position
+                    .offset(y: bannerUp ? 0 : 220)
+                    .opacity(bannerUp ? 1 : 0)
+                    .animation(
+                        .spring(response: 0.70, dampingFraction: 0.76),
+                        value: bannerUp
+                    )
 
-                // ── Flexible space between banner and tablet ───────────
-                Spacer()
+                Spacer()   // pushes the glyph block to the lower half
 
-                // ── Stone tablet: rows rise from the bottom ────────────
-                glyphTablet
+                // ── Glyph tablet: rises from below the screen ─────────
+                glyphPanel
+                    .offset(y: glyphsUp ? 0 : 520)
+                    .animation(
+                        .spring(response: 0.78, dampingFraction: 0.80).delay(0.05),
+                        value: glyphsUp
+                    )
 
-                Spacer(minLength: 60)
+                Spacer(minLength: 64)
             }
             .padding(.horizontal, 24)
         }
@@ -60,25 +71,15 @@ struct SplashView: View {
     // MARK: Animation sequence
 
     private func beginSequence() {
-        // 1. Banner fades in immediately
-        bannerVisible = true
+        // Both movements start at the same moment — the banner lifts upward
+        // while the glyphs rise from below, creating an "opening" reveal.
+        bannerUp = true
+        glyphsUp = true
 
-        // 2. Tablet rows rise one by one from the bottom.
-        //    Row 4 (lowest) fires first → rows stack upward.
-        let rowCount = tabletRows.count
-        for i in 0..<rowCount {
-            let rowFromBottom = rowCount - 1 - i   // 4, 3, 2, 1, 0
-            let delay = 0.55 + Double(rowFromBottom) * 0.13
-            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
-                withAnimation(.spring(response: 0.58, dampingFraction: 0.78)) {
-                    rowVisible[i] = true
-                }
-            }
-        }
-
-        // 3. Hold briefly after the top row settles, then hand off
-        let holdDelay = 0.55 + Double(rowCount - 1) * 0.13 + 0.58 + 0.90
-        DispatchQueue.main.asyncAfter(deadline: .now() + holdDelay) {
+        // Hold after animations settle (spring response 0.78 + delay 0.05 = ~0.83s
+        // to start settling; springs decay over ~3× response = ~2.4s total).
+        // We wait 2.6s then give a 0.7s hold before handing off.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.3) {
             onFinished()
         }
     }
@@ -88,26 +89,23 @@ struct SplashView: View {
     private var background: some View {
         ZStack {
             Color(red: 0.93, green: 0.87, blue: 0.73).ignoresSafeArea()
-            // Warm candlelight glow
             RadialGradient(
-                colors: [Color(red: 0.98, green: 0.94, blue: 0.80).opacity(0.60), .clear],
+                colors: [Color(red: 0.98, green: 0.94, blue: 0.80).opacity(0.55), .clear],
                 center: .center, startRadius: 40, endRadius: 380
             )
             .ignoresSafeArea()
-            // Aged-edge vignette
             RadialGradient(
-                colors: [.clear, Color(red: 0.35, green: 0.22, blue: 0.08).opacity(0.45)],
+                colors: [.clear, Color(red: 0.35, green: 0.22, blue: 0.08).opacity(0.42)],
                 center: .center, startRadius: 260, endRadius: 680
             )
             .ignoresSafeArea()
         }
     }
 
-    // MARK: Glyph Tablet
+    // MARK: Glyph Panel
 
-    private var glyphTablet: some View {
+    private var glyphPanel: some View {
         ZStack {
-            // Stone tablet backing
             RoundedRectangle(cornerRadius: 14)
                 .fill(Color(red: 0.80, green: 0.71, blue: 0.52))
                 .overlay(
@@ -116,30 +114,24 @@ struct SplashView: View {
                                 lineWidth: 1.8)
                 )
 
-            // Rows of glyphs — each rises into the tablet from beneath
-            VStack(spacing: 6) {
-                ForEach(0..<tabletRows.count, id: \.self) { idx in
+            VStack(spacing: 8) {
+                ForEach(tabletRows, id: \.self) { row in
                     HStack(spacing: 0) {
-                        ForEach(tabletRows[idx], id: \.self) { glyph in
+                        ForEach(row, id: \.self) { glyph in
                             Text(glyph)
-                                .font(.system(size: 30))
+                                .font(.system(size: 32))
                                 .foregroundStyle(
-                                    Color(red: 0.16, green: 0.10, blue: 0.04).opacity(0.80)
+                                    Color(red: 0.16, green: 0.10, blue: 0.04).opacity(0.78)
                                 )
                                 .frame(maxWidth: .infinity)
                         }
                     }
-                    // Start each row far below; animate up when its flag fires
-                    .offset(y: rowVisible[idx] ? 0 : 280)
-                    .opacity(rowVisible[idx] ? 1 : 0)
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 14)
+            .padding(.horizontal, 18)
+            .padding(.vertical, 16)
         }
-        // Clip so rows only appear once they enter the tablet from the bottom
-        .clipShape(RoundedRectangle(cornerRadius: 14))
-        .shadow(color: Color(red: 0.20, green: 0.12, blue: 0.02).opacity(0.28),
+        .shadow(color: Color(red: 0.20, green: 0.12, blue: 0.02).opacity(0.26),
                 radius: 8, x: 0, y: 4)
     }
 }
