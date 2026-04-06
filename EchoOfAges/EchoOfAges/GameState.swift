@@ -330,7 +330,7 @@ final class GameState: ObservableObject {
             isAnimatingCompletion = false
             if currentLevelIndex < Level.allLevels.count - 1 {
                 currentScreen = .levelComplete
-            } else if allUnlockedCivsComplete {
+            } else if allSixCivsComplete {
                 currentScreen = .manduTablet
             } else {
                 currentScreen = .gameComplete
@@ -545,11 +545,7 @@ final class GameState: ObservableObject {
 
     func closeSumerianGame() {
         sumerianPendingComplete = false
-        if allUnlockedCivsComplete {
-            currentScreen = .manduTablet
-        } else {
-            currentScreen = .title
-        }
+        currentScreen = allSixCivsComplete ? .manduTablet : .title
     }
 
     func loadSumerianLevel(_ index: Int) {
@@ -683,13 +679,35 @@ final class GameState: ObservableObject {
     }
 
     /// True when at least one civilization is fully solved.
-    var manduAccessible: Bool { !civilizationsCompletedForMandu.isEmpty }
-
-    /// True when every currently unlocked civilization is fully solved.
-    var allUnlockedCivsComplete: Bool {
-        let ids = Civilization.all.filter(\.isUnlocked).map(\.id)
-        return !ids.isEmpty && ids.allSatisfy { civilizationsCompletedForMandu.contains($0) }
+    /// Which civilizations the player has dynamically unlocked based on tier progression.
+    /// Tier 1: Egyptian (always). Tier 2: Norse + Sumerian (after Egypt done).
+    /// Tier 3: Maya + Celtic (after Norse AND Sumerian done). Tier 4: Chinese (after Maya OR Celtic done).
+    var dynamicallyUnlockedCivIds: Set<CivilizationID> {
+        let implemented = Set(Civilization.all.filter(\.isUnlocked).map(\.id))
+        let done = civilizationsCompletedForMandu
+        var unlocked = Set<CivilizationID>()
+        if implemented.contains(.egyptian) { unlocked.insert(.egyptian) }
+        if done.contains(.egyptian) {
+            for id: CivilizationID in [.norse, .sumerian] where implemented.contains(id) { unlocked.insert(id) }
+        }
+        if done.contains(.norse) && done.contains(.sumerian) {
+            for id: CivilizationID in [.maya, .celtic] where implemented.contains(id) { unlocked.insert(id) }
+        }
+        if done.contains(.maya) || done.contains(.celtic) {
+            if implemented.contains(.chinese) { unlocked.insert(.chinese) }
+        }
+        return unlocked
     }
+
+    /// True when all six implemented civilizations are fully solved — the tablet permanently holds symbols.
+    var allSixCivsComplete: Bool {
+        let ids = Civilization.all.filter(\.isUnlocked).map(\.id)
+        guard ids.count == 6 else { return false }
+        return ids.allSatisfy { civilizationsCompletedForMandu.contains($0) }
+    }
+
+    /// Legacy alias — kept for any call sites that used this name.
+    var allUnlockedCivsComplete: Bool { allSixCivsComplete }
 
     /// True when every slot in the tablet has the correct symbol placed.
     var isManduComplete: Bool {
@@ -703,6 +721,8 @@ final class GameState: ObservableObject {
     // MARK: Mandu Navigation
 
     func openManduTablet() {
+        // Symbols fall off every time the tablet is opened — they only hold when all six are done.
+        if !allSixCivsComplete { manduPlayerGrid = [:] }
         previousScreen = currentScreen
         currentScreen = .manduTablet
     }
@@ -772,8 +792,14 @@ final class GameState: ObservableObject {
         UserDefaults.standard.set(messagesDict, forKey: "EOA_chronicle")
         UserDefaults.standard.set(showIntroOnLaunch, forKey: "EOA_showIntro")
         UserDefaults.standard.set(Array(norseUnlockedLevels), forKey: "EOA_norseUnlocked")
-        let manduDict = manduPlayerGrid.reduce(into: [String: String]()) { $0["\($1.key)"] = $1.value }
-        UserDefaults.standard.set(manduDict, forKey: "EOA_manduGrid")
+        // Only persist the Mandu grid when all six civilizations are complete.
+        // Until then symbols fall off — clearing here ensures a fresh slate on next open.
+        if allSixCivsComplete {
+            let manduDict = manduPlayerGrid.reduce(into: [String: String]()) { $0["\($1.key)"] = $1.value }
+            UserDefaults.standard.set(manduDict, forKey: "EOA_manduGrid")
+        } else {
+            UserDefaults.standard.removeObject(forKey: "EOA_manduGrid")
+        }
     }
 
     private func loadProgress() {

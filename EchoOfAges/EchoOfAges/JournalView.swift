@@ -480,16 +480,22 @@ private struct TabletGridContent: View {
             let count = gameState.decodedTabletSlots.count
             HandNote(text: "\(count) of 30 symbols decoded.", color: count == 30 ? Color.inkBlue : Color.inkSepia.opacity(0.6))
 
-            if gameState.manduAccessible {
-                SectionRule()
-                HandNote(text: "The stone can be read.", color: Color.inkBlue.opacity(0.8))
-                Spacer(minLength: 6)
-                Button {
-                    gameState.openManduTablet()
-                } label: {
+            SectionRule()
+            if gameState.allSixCivsComplete {
+                HandNote(text: "All six civilizations deciphered. The stone holds its secrets forever.", color: Color.inkBlue.opacity(0.9))
+            } else {
+                HandNote(
+                    text: "The stone is always open. Place the symbols you have learned — but they fall away each time you close it. They hold only when all six civilizations are complete.",
+                    color: Color.inkSepia.opacity(0.70)
+                )
+            }
+            Spacer(minLength: 8)
+            Button {
+                gameState.openManduTablet()
+            } label: {
                     HStack {
                         Spacer()
-                        Text("Open the Stone")
+                        Text(gameState.allSixCivsComplete ? "Read the Stone" : "Open the Stone")
                             .font(handFont(16, bold: true))
                             .foregroundStyle(Color.paperCream)
                             .padding(.horizontal, 20)
@@ -503,10 +509,6 @@ private struct TabletGridContent: View {
                         Spacer()
                     }
                 }
-            } else {
-                SectionRule()
-                HandNote(text: "Solve every civilization's puzzles to place symbols on the stone.", color: Color.inkSepia.opacity(0.55))
-            }
         }
     }
 }
@@ -514,28 +516,46 @@ private struct TabletGridContent: View {
 private struct CivilizationsContent: View {
     @EnvironmentObject var gameState: GameState
 
+    private func tierLabel(for id: CivilizationID) -> String {
+        switch id {
+        case .egyptian:          return "Tier I — Always available"
+        case .norse, .sumerian:  return "Tier II — Unlocks after Egypt"
+        case .maya, .celtic:     return "Tier III — Unlocks after Norse & Sumerian"
+        case .chinese:           return "Tier IV — Unlocks after Maya or Celtic"
+        }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HandTitle(text: "The Six Civilizations")
-            HandBody(text: "Each partial tablet uses one script. Decipher all five puzzles from a civilization to read their row on the main tablet.")
+            HandBody(text: "Each civilization has five partial tablets written in its own script. Decipher all five to unlock that civilization's row on the Tablet of Mandu.")
+            SectionRule()
+            HandNote(text: "New civilizations unlock as you progress. Complete Egypt first, then Norse and Sumerian open together. Master those and Maya & Celtic appear. Finally: Chinese.", color: Color.inkSepia.opacity(0.65))
             SectionRule()
 
             ForEach(Civilization.all) { civ in
-                let isDone = gameState.completedCivilizations.contains(civ.id)
+                let isDone  = gameState.civilizationsCompletedForMandu.contains(civ.id)
+                let isOpen  = gameState.dynamicallyUnlockedCivIds.contains(civ.id)
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 8) {
-                        Text(civ.emblem).font(.system(size: 18)).foregroundStyle(isDone ? civ.accentColor : Color.inkSepia.opacity(0.35))
-                        HandTitle(text: civ.name, size: 16, color: isDone ? Color.inkBlue : Color.inkSepia.opacity(0.5))
+                        Text(civ.emblem)
+                            .font(.system(size: 18))
+                            .foregroundStyle(isDone ? civ.accentColor : isOpen ? Color.inkSepia.opacity(0.65) : Color.inkSepia.opacity(0.22))
+                        HandTitle(text: civ.name, size: 16,
+                                  color: isDone ? Color.inkBlue : isOpen ? Color.inkSepia.opacity(0.75) : Color.inkSepia.opacity(0.35))
                         Spacer()
                         if isDone {
-                            Text("✓ deciphered").font(handFont(12)).foregroundStyle(civ.accentColor)
-                        } else if civ.isUnlocked {
+                            Text("✓ complete").font(handFont(12)).foregroundStyle(civ.accentColor)
+                        } else if isOpen {
                             Text("in progress").font(handFont(12)).foregroundStyle(Color.inkRed.opacity(0.7))
                         } else {
-                            Text("locked").font(handFont(12)).foregroundStyle(Color.inkSepia.opacity(0.35))
+                            Text("🔒 locked").font(handFont(12)).foregroundStyle(Color.inkSepia.opacity(0.30))
                         }
                     }
-                    HandNote(text: "\(civ.scriptName)  ·  \(civ.era)  ·  \(civ.region)", size: 12, color: Color.inkSepia.opacity(isDone ? 0.65 : 0.35))
+                    HandNote(text: civ.scriptName + "  ·  " + civ.era, size: 12,
+                             color: Color.inkSepia.opacity(isDone ? 0.65 : isOpen ? 0.50 : 0.25))
+                    HandNote(text: tierLabel(for: civ.id), size: 11,
+                             color: isDone ? civ.accentColor.opacity(0.55) : isOpen ? Color.inkSepia.opacity(0.45) : Color.inkSepia.opacity(0.22))
                 }
                 .padding(.vertical, 4)
                 if civ.id != .chinese {

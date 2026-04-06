@@ -65,25 +65,30 @@ struct ManduTabletView: View {
     // MARK: - Context Banner
 
     private var contextBannerContent: (icon: String, message: String, isWarning: Bool) {
-        if gameState.isManduComplete {
+        let completedCount = gameState.civilizationsCompletedForMandu.count
+        if gameState.isManduComplete && gameState.allSixCivsComplete {
             return (
                 icon: "sparkles",
                 message: "The stone is complete. Tap \"Read the Stone\" to reveal the final message.",
                 isWarning: false
             )
-        } else if gameState.allUnlockedCivsComplete {
+        } else if gameState.allSixCivsComplete {
             let remaining = TabletSlot.all.count - gameState.manduCorrectCount
             return (
                 icon: "hand.tap",
-                message: "All civilizations mastered. Tap a cell, then place its symbol from the palette below. \(remaining) symbol\(remaining == 1 ? "" : "s") remain.",
+                message: "All six civilizations mastered. Place every symbol to seal the stone forever. \(remaining) remaining.",
+                isWarning: false
+            )
+        } else if completedCount > 0 {
+            return (
+                icon: "arrow.down.to.line",
+                message: "Symbols you place here fall away when you leave — they hold only when all six civilizations are complete. \(completedCount) of 6 done. Keep deciphering.",
                 isWarning: false
             )
         } else {
-            let completedCount = gameState.civilizationsCompletedForMandu.count
-            let totalUnlocked = Civilization.all.filter { $0.isUnlocked }.count
             return (
                 icon: "lock.fill",
-                message: "You must complete all civilization puzzles before the stone can be filled. \(completedCount) of \(totalUnlocked) unlocked civilizations finished.",
+                message: "Decipher Egypt's tablets first to place your first symbols on the stone.",
                 isWarning: true
             )
         }
@@ -466,7 +471,7 @@ struct ManduTabletView: View {
     // MARK: - Lore Note
 
     private var loreNote: some View {
-        Text("Thirty symbols. Six civilizations. One message. Solve every puzzle to unlock every symbol. Place each one where it belongs. The stone will speak.")
+        Text("Thirty symbols. Six civilizations. One message.\n\nPlace symbols as you learn them — but the stone does not hold them. They fall away each time you leave. Only when all six civilizations are deciphered will the stone keep what you place upon it.")
             .font(EgyptFont.bodyItalic(19))
             .foregroundStyle(ink.opacity(0.65))
             .multilineTextAlignment(.center)

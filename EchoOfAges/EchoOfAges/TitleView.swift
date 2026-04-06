@@ -71,6 +71,23 @@ struct TitleView: View {
                     }
                 }
 
+                // Civilization selector — appears once Egyptian is started; grows as tiers unlock
+                let unlocked = Civilization.all.filter { gameState.dynamicallyUnlockedCivIds.contains($0.id) }
+                if unlocked.count > 1 {
+                    Spacer(minLength: 12)
+                    VStack(spacing: 8) {
+                        Text("CHOOSE YOUR CIVILIZATION")
+                            .font(EgyptFont.title(11))
+                            .tracking(3)
+                            .foregroundStyle(Color(red: 0.30, green: 0.20, blue: 0.08).opacity(0.55))
+                        HStack(spacing: 8) {
+                            ForEach(unlocked) { civ in
+                                civCard(civ)
+                            }
+                        }
+                    }
+                }
+
                 Spacer(minLength: 18)
 
                 // Footer
@@ -109,6 +126,52 @@ struct TitleView: View {
     }
 
     // MARK: Helpers
+
+    @ViewBuilder
+    private func civCard(_ civ: Civilization) -> some View {
+        let done = gameState.civilizationsCompletedForMandu.contains(civ.id)
+        let ink = Color(red: 0.22, green: 0.14, blue: 0.05)
+        Button {
+            HapticFeedback.tap()
+            withAnimation(.easeInOut(duration: 0.4)) {
+                switch civ.id {
+                case .egyptian: gameState.continueGame()
+                case .norse:    gameState.startNorseGame()
+                case .sumerian: gameState.startSumerianGame()
+                default: break
+                }
+            }
+        } label: {
+            VStack(spacing: 5) {
+                Text(civ.emblem)
+                    .font(.system(size: 26))
+                    .foregroundStyle(done ? civ.accentColor : ink.opacity(0.75))
+                Text(civ.name.components(separatedBy: " ").first ?? civ.name)
+                    .font(EgyptFont.body(11))
+                    .foregroundStyle(done ? civ.accentColor.opacity(0.85) : ink.opacity(0.55))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                if done {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 11))
+                        .foregroundStyle(civ.accentColor)
+                } else {
+                    Image(systemName: "circle")
+                        .font(.system(size: 11))
+                        .foregroundStyle(ink.opacity(0.22))
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+            .background(
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(done ? civ.accentColor.opacity(0.12) : ink.opacity(0.06))
+                    .overlay(RoundedRectangle(cornerRadius: 10)
+                        .stroke(done ? civ.accentColor.opacity(0.45) : ink.opacity(0.18), lineWidth: 1))
+            )
+        }
+        .buttonStyle(.plain)
+    }
 
     private func landingButton(
         asset: String,
