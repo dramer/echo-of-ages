@@ -20,7 +20,7 @@ struct ContentView: View {
             Group {
                 switch gameState.currentScreen {
                 case .intro:
-                    TitleView()
+                    IntroView()
                         .transition(.opacity)
 
                 case .title:
