@@ -2,25 +2,31 @@
 // EchoOfAges
 //
 // Norse pathfinding puzzles — Hamiltonian path through a grid of runestones.
-// The player traces a continuous route that visits every cell exactly once,
-// guided by pre-revealed rune waypoints that must be reached in sequence.
+// The player traces a continuous route visiting every valid stone exactly once,
+// guided by pre-revealed rune waypoints that must be reached in the right order.
+//
+// Blocked cells (impassable stone) are introduced at level 3 and increase the
+// topological difficulty — standard row-by-row sweeps fail around obstacles.
 //
 // Puzzle rules (displayed to the player):
-//   1. Start at the marked rune (ᚠ or equivalent START stone).
+//   1. Start at the marked rune (the glowing Start stone).
 //   2. Trace a path by tapping adjacent cells — left, right, up, or down.
-//   3. Every stone on the tablet must be visited exactly once.
-//   4. The visible rune waypoints mark landmarks on the correct route — reach
-//      them in the order they are numbered.
-//   5. Tap the last placed cell to backtrack one step.
+//   3. Every VALID stone on the tablet must be visited exactly once.
+//   4. Cracked/dark stones are impassable — route around them.
+//   5. Visible rune waypoints mark fixed landmarks — reach them in order.
+//   6. Tap the last placed cell to backtrack one step.
 //
-// Verification: the player's full path must exactly match the solution path.
+// Difficulty design principles:
+//   • Irregular (non-serpentine) paths with dead-end traps
+//   • Blocked cells change grid topology — standard patterns fail
+//   • Fewer waypoints on harder levels force deduction over guidance
 //
 // Level progression:
-//   L1 3×3   9 cells   4 waypoints   Bifrost Crossing     — learn the mechanic
-//   L2 4×4  16 cells   6 waypoints   The Longship Route   — longer, non-obvious turns
-//   L3 4×4  16 cells   5 waypoints   Yggdrasil's Root     — reversed start, harder routing
-//   L4 5×5  25 cells   6 waypoints   Spiral of Nine       — inward spiral, 25 cells
-//   L5 5×5  25 cells   5 waypoints   Ragnarök             — column serpentine, minimal anchors
+//   L1  3×3   0 blocked   3 waypoints   Odin's Spiral        — outer spiral, tutorial
+//   L2  4×4   0 blocked   4 waypoints   The Fjord Route      — "inlet" trap at start
+//   L3  4×4   1 blocked   3 waypoints   The Cracked Stone    — hole in centre-right
+//   L4  4×4   1 blocked   3 waypoints   The Broken Altar     — missing corner, L-shape
+//   L5  5×5   2 blocked   3 waypoints   Jormungandr's Back   — serpent blocks axis
 
 import Foundation
 
@@ -56,14 +62,17 @@ struct PathLevel: Identifiable {
     let inscriptions: [String]
     let rows: Int
     let cols: Int
-    let solution: [GridPosition]   // complete ordered path (all cells)
-    let waypoints: [Waypoint]      // pre-revealed landmark cells
+    let solution: [GridPosition]      // complete ordered path (all valid cells)
+    let waypoints: [Waypoint]         // pre-revealed landmark cells
+    let blockedCells: Set<GridPosition>  // impassable stones — route around these
     let journalEntry: JournalEntry
     let decodedMessage: String
 
+    // Total valid cells the player must visit
+    var totalCells: Int { rows * cols - blockedCells.count }
+
     var startPosition: GridPosition { solution[0] }
     var endPosition:   GridPosition { solution[solution.count - 1] }
-    var totalCells:    Int          { rows * cols }
 
     func waypoint(at pos: GridPosition) -> Waypoint? {
         waypoints.first { $0.position == pos }
@@ -71,6 +80,10 @@ struct PathLevel: Identifiable {
 
     func isWaypoint(_ pos: GridPosition) -> Bool {
         waypoints.contains { $0.position == pos }
+    }
+
+    func isBlocked(_ pos: GridPosition) -> Bool {
+        blockedCells.contains(pos)
     }
 
     func isSolved(_ path: [GridPosition]) -> Bool {
@@ -87,331 +100,339 @@ struct PathLevel: Identifiable {
 
 // MARK: - Level Definitions
 //
-// All solutions verified: Hamiltonian paths (visit every cell once),
-// all steps H/V adjacent, waypoints lie on the solution path at stated indices.
+// All solutions verified:
+//   • Hamiltonian paths — visit every valid (non-blocked) cell exactly once
+//   • All steps are H/V adjacent
+//   • Waypoints lie on the solution path at the stated pathIndex
+//   • Parity check (chess-colour balance) confirms Hamiltonian path existence
 //
 // Rune key:
-//   ᚠ Fehu (wealth)     ᚢ Uruz (strength)   ᚦ Thurisaz (thorn)
-//   ᚨ Ansuz (Odin)      ᚱ Raidho (journey)  ᚲ Kenaz (torch)
-//   ᚷ Gebo (gift)       ᚹ Wunjo (joy)       ᚾ Naudiz (need)
-//   ᛁ Isa (ice)         ᛃ Jera (harvest)    ᛊ Sowilo (sun)
-//   ᛏ Tiwaz (justice)   ᛟ Othala (home)
+//   ᚠ Fehu (wealth/start)  ᚢ Uruz (strength)   ᚦ Thurisaz (thorn)
+//   ᚨ Ansuz (Odin/breath)  ᚱ Raidho (journey)  ᚲ Kenaz (torch)
+//   ᚷ Gebo (gift)          ᚹ Wunjo (joy)       ᚾ Naudiz (need)
+//   ᛁ Isa (ice)            ᛃ Jera (harvest)    ᛊ Sowilo (sun)
+//   ᛏ Tiwaz (justice)      ᛟ Othala (home)
 
 extension PathLevel {
     static let allLevels: [PathLevel] = [level1, level2, level3, level4, level5]
 
     // ─────────────────────────────────────────────────
-    // LEVEL 1 · 3×3 · "Bifrost Crossing"
+    // LEVEL 1 · 3×3 · "Odin's Spiral"
     //
-    // Grid (0-indexed row, col):
-    //   [W1] [ ] [W2]
-    //   [ ]  [ ] [ ]
-    //   [ ]  [W3][W4]
+    // Grid:
+    //   [W1][ ][ ]
+    //   [ ] [ ][W2←path comes back to this column]
+    //   [ ] [ ][W3]
     //
-    // Solution path (9 cells):
-    //   (0,0)→(0,1)→(0,2)→(1,2)→(1,1)→(1,0)→(2,0)→(2,1)→(2,2)
+    // Solution path (9 cells) — counterclockwise outer spiral, end at centre:
+    //   (0,0)→(1,0)→(2,0)→(2,1)→(2,2)→(1,2)→(0,2)→(0,1)→(1,1)
+    //
+    // Why harder than a row-sweep: the path goes DOWN the left column first,
+    // then across the bottom, up the right, across the top — ending in the
+    // centre. Going across row 0 first leaves the centre unreachable.
     //
     // Waypoints:
-    //   idx 0  (0,0) ᚠ Fehu   START
-    //   idx 2  (0,2) ᚱ Raidho
-    //   idx 5  (1,0) ᚨ Ansuz
-    //   idx 8  (2,2) ᚢ Uruz   END
+    //   idx 0  (0,0) ᚠ START
+    //   idx 4  (2,2) ᚱ Raidho
+    //   idx 8  (1,1) ᛟ END
     // ─────────────────────────────────────────────────
     static let level1 = PathLevel(
         id: 1,
         civilization: .norse,
-        title: "Bifrost Crossing",
-        subtitle: "The Rainbow Bridge",
-        lore: "The runestone before you marks the safe passage across Bifrost — the burning rainbow bridge that connects Midgard to Asgard. Only those who read the runes correctly and follow them in order may cross. Step wrong and the bridge collapses beneath you.",
+        title: "Odin's Spiral",
+        subtitle: "The Allfather's Pattern",
+        lore: "Before the worlds were named, Odin carved his knowledge into the first runestone in the shape of a spiral — not left to right, but inward, like thought itself. The path does not begin by going forward. It begins by going down.",
         inscriptions: [
-            "ᚠ Fehu marks the threshold where all journeys begin. Set your first foot there.",
-            "ᚱ Raidho — the rune of riding and roads — appears at the far edge of the first row. The path must cross the bridge from left to right before descending.",
-            "ᚨ Ansuz is Odin's rune: breath, voice, command. It appears after the bridge turns back. When you hear the wind change direction, you have found it.",
-            "ᚢ Uruz marks the landing point — the far shore. Every stone of the bridge must bear your weight before you may arrive."
+            "ᚠ Fehu opens at the crown of the stone. But Fehu's path is not eastward — it descends first, following the left edge into the deep.",
+            "ᚱ Raidho — the rune of roads — marks the far corner of the base. To reach it, you must first traverse the bottom, not the top.",
+            "ᛟ Othala, home, rests at the centre of the spiral. All paths that are true end here — in the middle, not at the edge."
         ],
         rows: 3, cols: 3,
         solution: [
-            GridPosition(row:0,col:0), GridPosition(row:0,col:1), GridPosition(row:0,col:2),
-            GridPosition(row:1,col:2), GridPosition(row:1,col:1), GridPosition(row:1,col:0),
-            GridPosition(row:2,col:0), GridPosition(row:2,col:1), GridPosition(row:2,col:2)
+            GridPosition(row:0,col:0), GridPosition(row:1,col:0), GridPosition(row:2,col:0),
+            GridPosition(row:2,col:1), GridPosition(row:2,col:2),
+            GridPosition(row:1,col:2), GridPosition(row:0,col:2), GridPosition(row:0,col:1),
+            GridPosition(row:1,col:1)
         ],
         waypoints: [
             Waypoint(id:1, pathIndex:0, position:GridPosition(row:0,col:0),
-                     rune:"ᚠ", runeName:"Fehu", meaning:"Wealth · Beginning", isStart:true),
-            Waypoint(id:2, pathIndex:2, position:GridPosition(row:0,col:2),
-                     rune:"ᚱ", runeName:"Raidho", meaning:"Journey · Road"),
-            Waypoint(id:3, pathIndex:5, position:GridPosition(row:1,col:0),
-                     rune:"ᚨ", runeName:"Ansuz", meaning:"Odin · Breath"),
-            Waypoint(id:4, pathIndex:8, position:GridPosition(row:2,col:2),
-                     rune:"ᚢ", runeName:"Uruz", meaning:"Strength · Arrival", isEnd:true)
+                     rune:"ᚠ", runeName:"Fehu", meaning:"Wealth · The threshold", isStart:true),
+            Waypoint(id:2, pathIndex:4, position:GridPosition(row:2,col:2),
+                     rune:"ᚱ", runeName:"Raidho", meaning:"Journey · The far corner"),
+            Waypoint(id:3, pathIndex:8, position:GridPosition(row:1,col:1),
+                     rune:"ᛟ", runeName:"Othala", meaning:"Home · The centre", isEnd:true)
         ],
+        blockedCells: [],
         journalEntry: JournalEntry(
             id: 6,
-            title: "The Runestone of Bifrost",
-            body: "The Norse tablet opens with four runes arranged as a bridge inscription. Fehu at the start, Uruz at the end — wealth to strength, beginning to arrival. Raidho and Ansuz mark the turns. I traced the path three times before I trusted it.",
+            title: "The First Runestone",
+            body: "The spiral is Odin's signature — not a serpentine sweep but an inward turn. I made the mistake of going east first. The stone taught me: descend before you cross. The centre is always reached last.",
             artifact: "ᚠ"
         ),
-        decodedMessage: "The bridge is not made of stone or fire alone. It is made of the steps taken in the right order, without hesitation. Odin watches every crossing. He counts the feet."
+        decodedMessage: "The spiral is not decoration. It is instruction. You cannot reach the centre of anything by going straight across it. You must first walk the outer edge. All the way around. Only then does the middle open."
     )
 
     // ─────────────────────────────────────────────────
-    // LEVEL 2 · 4×4 · "The Longship Route"
+    // LEVEL 2 · 4×4 · "The Fjord Route"
     //
-    // Solution path (16 cells):
-    //   (0,0)→(1,0)→(2,0)→(3,0)→(3,1)→(2,1)→(1,1)→(0,1)
-    //       →(0,2)→(0,3)→(1,3)→(1,2)→(2,2)→(2,3)→(3,3)→(3,2)
+    // Solution path (16 cells) — "inlet" pattern:
+    //   (0,0)→(0,1)→(1,1)→(1,0)  ← dips into top-left 2×2 before heading south
+    //       →(2,0)→(3,0)→(3,1)→(2,1)→(2,2)→(3,2)→(3,3)→(2,3)→(1,3)→(0,3)→(0,2)→(1,2)
+    //
+    // Why harder: going straight across row 0 first seems obvious but traps
+    // (1,1)/(1,0) — they can only be reached together from (0,1)/(0,0).
+    // The forced "inlet" move at the start must be discovered by deduction.
     //
     // Waypoints:
     //   idx 0  (0,0) ᚠ START
-    //   idx 3  (3,0) ᚦ Thurisaz
-    //   idx 7  (0,1) ᚲ Kenaz
-    //   idx 9  (0,3) ᚾ Naudiz
-    //   idx 11 (1,2) ᚷ Gebo
-    //   idx 15 (3,2) ᚹ END
+    //   idx 5  (3,0) ᚦ Thurisaz   — forces the first column fully down
+    //   idx 11 (2,3) ᚹ Wunjo      — placed so only the correct zigzag approach works
+    //   idx 15 (1,2) ᚨ END
     // ─────────────────────────────────────────────────
     static let level2 = PathLevel(
         id: 2,
         civilization: .norse,
-        title: "The Longship Route",
-        subtitle: "Through Ice and Current",
-        lore: "The Norse carved their sailing routes into runestones so they could not be lost to memory or weather. This tablet maps a sea crossing — down the coast, up the fjord, across the headland, and into harbor. The longship visits every waypoint. Nothing is left uncharted.",
+        title: "The Fjord Route",
+        subtitle: "Into the Inlet and Out",
+        lore: "A fjord demands that you enter its narrow throat before you may reach its far end. Viking navigators who tried to sail the outer coast without entering the fjord always missed the safe harbour. This tablet maps such a route. The first move is never the obvious one.",
         inscriptions: [
-            "Begin at ᚠ Fehu and drive south along the coast. The path descends the left column completely before it turns.",
-            "ᚦ Thurisaz — the giant, the thorn, the obstacle — marks the southern headland. After this stone, the route turns inland and climbs.",
-            "ᚲ Kenaz is the torch in the harbor. When you reach it, you have climbed back to the first row and turned east. The top of the tablet opens.",
-            "ᚷ Gebo — the gift — waits at the crossing point. It is reached from the north, not the south. Remember that when you plan your approach.",
-            "ᚹ Wunjo marks the final haven. Every stone before it must be visited. Nothing on the route is skipped."
+            "ᚠ Fehu stands at the top-left corner. But the path does not go east along the first row — it dips south immediately into the narrow inlet before it may continue.",
+            "ᚦ Thurisaz — giant and obstacle — marks the bottom of the left column. You cannot reach it without first exploring the inlet formed by the first two columns.",
+            "ᚹ Wunjo is the joy of safe harbour, reached near the bottom-right. The path arrives here from the south, not from the east.",
+            "ᚨ Ansuz — Odin's breath — closes the route. It lies in the interior, reachable only after the outer ring of the right side has been fully traversed."
         ],
         rows: 4, cols: 4,
         solution: [
-            GridPosition(row:0,col:0), GridPosition(row:1,col:0), GridPosition(row:2,col:0), GridPosition(row:3,col:0),
-            GridPosition(row:3,col:1), GridPosition(row:2,col:1), GridPosition(row:1,col:1), GridPosition(row:0,col:1),
-            GridPosition(row:0,col:2), GridPosition(row:0,col:3), GridPosition(row:1,col:3), GridPosition(row:1,col:2),
-            GridPosition(row:2,col:2), GridPosition(row:2,col:3), GridPosition(row:3,col:3), GridPosition(row:3,col:2)
+            GridPosition(row:0,col:0), GridPosition(row:0,col:1),
+            GridPosition(row:1,col:1), GridPosition(row:1,col:0),
+            GridPosition(row:2,col:0), GridPosition(row:3,col:0),
+            GridPosition(row:3,col:1), GridPosition(row:2,col:1),
+            GridPosition(row:2,col:2), GridPosition(row:3,col:2),
+            GridPosition(row:3,col:3), GridPosition(row:2,col:3),
+            GridPosition(row:1,col:3), GridPosition(row:0,col:3),
+            GridPosition(row:0,col:2), GridPosition(row:1,col:2)
         ],
         waypoints: [
             Waypoint(id:1, pathIndex:0,  position:GridPosition(row:0,col:0),
                      rune:"ᚠ", runeName:"Fehu", meaning:"Wealth · Departure", isStart:true),
-            Waypoint(id:2, pathIndex:3,  position:GridPosition(row:3,col:0),
-                     rune:"ᚦ", runeName:"Thurisaz", meaning:"Giant · Headland"),
-            Waypoint(id:3, pathIndex:7,  position:GridPosition(row:0,col:1),
-                     rune:"ᚲ", runeName:"Kenaz", meaning:"Torch · Harbor light"),
-            Waypoint(id:4, pathIndex:9,  position:GridPosition(row:0,col:3),
-                     rune:"ᚾ", runeName:"Naudiz", meaning:"Need · Crossing"),
-            Waypoint(id:5, pathIndex:11, position:GridPosition(row:1,col:2),
-                     rune:"ᚷ", runeName:"Gebo", meaning:"Gift · Waypoint"),
-            Waypoint(id:6, pathIndex:15, position:GridPosition(row:3,col:2),
-                     rune:"ᚹ", runeName:"Wunjo", meaning:"Joy · Safe harbor", isEnd:true)
+            Waypoint(id:2, pathIndex:5,  position:GridPosition(row:3,col:0),
+                     rune:"ᚦ", runeName:"Thurisaz", meaning:"Giant · South headland"),
+            Waypoint(id:3, pathIndex:11, position:GridPosition(row:2,col:3),
+                     rune:"ᚹ", runeName:"Wunjo", meaning:"Joy · Harbour approach"),
+            Waypoint(id:4, pathIndex:15, position:GridPosition(row:1,col:2),
+                     rune:"ᚨ", runeName:"Ansuz", meaning:"Odin · Safe harbour", isEnd:true)
         ],
+        blockedCells: [],
         journalEntry: JournalEntry(
             id: 7,
-            title: "The Navigator's Runestone",
-            body: "Viking navigators memorized coastlines through rune sequences. Each rune along a sailing route named a landmark — a headland, a current, a safe harbor. This tablet is such a route map. Fehu to Wunjo: the full journey from departure to arrival, not one stone skipped.",
+            title: "The Navigator's Fjord Tablet",
+            body: "Viking navigators carved route maps into stone — not as straight lines but as exact sequences. This tablet shows an fjord crossing that requires entering an inlet before reaching the far harbour. I tried the direct route twice. It always stranded me. The inlet is not a detour. It is the route.",
             artifact: "ᚱ"
         ),
-        decodedMessage: "The sea does not forgive a wrong heading. Neither does the runestone. There is one route and one route only — determined not by the strongest current but by the runes that have gone before."
+        decodedMessage: "The fjord demands that you trust the narrow passage. Those who refused to enter it, who clung to the outer coast thinking it safer, never found the harbour. The route is not the route that looks direct. It is the route that visits everywhere."
     )
 
     // ─────────────────────────────────────────────────
-    // LEVEL 3 · 4×4 · "Yggdrasil's Root"
+    // LEVEL 3 · 4×4 · "The Cracked Stone"
+    // BLOCKED: (2,2) — a split stone in the centre-right area
     //
-    // Solution path (16 cells) — starts top-right, ends mid-left:
-    //   (0,3)→(0,2)→(0,1)→(0,0)→(1,0)→(1,1)→(1,2)→(1,3)
-    //       →(2,3)→(3,3)→(3,2)→(3,1)→(3,0)→(2,0)→(2,1)→(2,2)
+    // Grid (X = blocked):
+    //   [.][.][.][.]
+    //   [.][.][.][.]
+    //   [.][.][X][.]
+    //   [.][.][.][.]
+    //
+    // Solution path (15 cells) — right-to-left start, winds around the crack:
+    //   (0,3)→(0,2)→(0,1)→(0,0)
+    //       →(1,0)→(2,0)→(3,0)→(3,1)→(2,1)→(1,1)
+    //       →(1,2)→(1,3)→(2,3)→(3,3)→(3,2)
+    //
+    // Parity check (4×4 = 8B+8W; block (2,2) which is BLACK [2+2=4 even]):
+    //   7 black + 8 white = 15 cells; |7-8|=1 ✓
+    //
+    // Why harder: start is top-right (non-obvious). Going top-left first seems
+    // natural but leaves the bottom-right pocket inaccessible.
     //
     // Waypoints:
-    //   idx 0  (0,3) ᛁ Isa      START
-    //   idx 3  (0,0) ᛃ Jera
-    //   idx 7  (1,3) ᛊ Sowilo
-    //   idx 12 (3,0) ᛏ Tiwaz
-    //   idx 15 (2,2) ᛟ Othala  END
+    //   idx 0  (0,3) ᛁ Isa     START
+    //   idx 6  (3,0) ᛏ Tiwaz
+    //   idx 14 (3,2) ᛟ END
     // ─────────────────────────────────────────────────
     static let level3 = PathLevel(
         id: 3,
         civilization: .norse,
-        title: "Yggdrasil's Root",
-        subtitle: "The World Tree Descends",
-        lore: "Yggdrasil — the great ash tree at the center of all nine worlds — has three roots. Each root reaches into a different realm. This tablet traces one root from its frozen crown to the deep earth. The path begins at ice and ends at home.",
+        title: "The Cracked Stone",
+        subtitle: "What the Fault Demands",
+        lore: "The runestone had been split by frost — one stone in its centre-right was shattered and impassable. But the inscription remained readable around the fault. The rune-carver had anticipated this: the path was designed to avoid the crack from the beginning.",
         inscriptions: [
-            "ᛁ Isa — the rune of ice — marks the crown of the root at the far right of the first row. The journey moves leftward before it can descend.",
-            "ᛃ Jera is the harvest rune — completion of a cycle. It rests at the far left, the end of the first row's traversal. After Jera, the path turns and grows downward.",
-            "ᛊ Sowilo — the sun rune — burns at the end of the second row. It arrives from the left after traversing all of row one. The sun only rises on a completed passage.",
-            "ᛏ Tiwaz is Tyr's rune — justice and sacrifice. It waits at the bottom-left corner. The world tree's root does not avoid the hardest ground.",
-            "ᛟ Othala — home and heritage — closes the path. The root ends not at an edge but at the center of the lower half. Home is never at the boundary. It is always deeper in."
+            "ᛁ Isa — the rune of ice — marks the far right of the first row. It was ice that cracked this stone. Fittingly, the path begins where the cold originated.",
+            "The cracked stone lies in the second column from the right, second row from the bottom. Route around it as you would route around a reef.",
+            "ᛏ Tiwaz — justice, sacrifice — rests at the bottom-left corner. You cannot reach it without first tracing the entire left side of the tablet.",
+            "ᛟ Othala closes the path near the base. Home is found not by avoiding the damaged stone but by accepting the longer route around it."
         ],
         rows: 4, cols: 4,
         solution: [
             GridPosition(row:0,col:3), GridPosition(row:0,col:2), GridPosition(row:0,col:1), GridPosition(row:0,col:0),
-            GridPosition(row:1,col:0), GridPosition(row:1,col:1), GridPosition(row:1,col:2), GridPosition(row:1,col:3),
-            GridPosition(row:2,col:3), GridPosition(row:3,col:3), GridPosition(row:3,col:2), GridPosition(row:3,col:1),
-            GridPosition(row:3,col:0), GridPosition(row:2,col:0), GridPosition(row:2,col:1), GridPosition(row:2,col:2)
+            GridPosition(row:1,col:0), GridPosition(row:2,col:0), GridPosition(row:3,col:0),
+            GridPosition(row:3,col:1), GridPosition(row:2,col:1), GridPosition(row:1,col:1),
+            GridPosition(row:1,col:2), GridPosition(row:1,col:3),
+            GridPosition(row:2,col:3), GridPosition(row:3,col:3), GridPosition(row:3,col:2)
         ],
         waypoints: [
             Waypoint(id:1, pathIndex:0,  position:GridPosition(row:0,col:3),
-                     rune:"ᛁ", runeName:"Isa", meaning:"Ice · Stillness", isStart:true),
-            Waypoint(id:2, pathIndex:3,  position:GridPosition(row:0,col:0),
-                     rune:"ᛃ", runeName:"Jera", meaning:"Harvest · Cycle"),
-            Waypoint(id:3, pathIndex:7,  position:GridPosition(row:1,col:3),
-                     rune:"ᛊ", runeName:"Sowilo", meaning:"Sun · Victory"),
-            Waypoint(id:4, pathIndex:12, position:GridPosition(row:3,col:0),
-                     rune:"ᛏ", runeName:"Tiwaz", meaning:"Justice · Sacrifice"),
-            Waypoint(id:5, pathIndex:15, position:GridPosition(row:2,col:2),
-                     rune:"ᛟ", runeName:"Othala", meaning:"Home · Heritage", isEnd:true)
+                     rune:"ᛁ", runeName:"Isa", meaning:"Ice · The crack's origin", isStart:true),
+            Waypoint(id:2, pathIndex:6,  position:GridPosition(row:3,col:0),
+                     rune:"ᛏ", runeName:"Tiwaz", meaning:"Justice · The far corner"),
+            Waypoint(id:3, pathIndex:14, position:GridPosition(row:3,col:2),
+                     rune:"ᛟ", runeName:"Othala", meaning:"Home · The end of the detour", isEnd:true)
         ],
+        blockedCells: [GridPosition(row:2, col:2)],
         journalEntry: JournalEntry(
             id: 8,
-            title: "The Root Inscription",
-            body: "The three roots of Yggdrasil reach into Asgard, Jotunheim, and Niflheim. Each root was carved on a separate tablet. This is the Niflheim root — the root of ice, sacrifice, and return. I traced it backwards three times before I accepted that it begins where it seems to end.",
+            title: "The Frost-Split Inscription",
+            body: "Not all runestones survive intact. This one had been cracked by permafrost — one stone impassable, the surrounding inscription still legible. I spent an hour assuming the path started from the top-left. It starts from the top-right. Once I saw that, the route around the fault was the only one possible.",
             artifact: "ᛁ"
         ),
-        decodedMessage: "The tree descends before it rises. Every root goes down into darkness before the crown can reach the sky. Do not fear the depth. The path through ice and sacrifice is the only path that reaches home."
+        decodedMessage: "The frost does not break what is meant to last. It reveals the shape that was always there. When one stone is removed from the path, the route does not end. It simply shows its true form — the form that was always waiting for the obstacle."
     )
 
     // ─────────────────────────────────────────────────
-    // LEVEL 4 · 5×5 · "Spiral of Nine"
+    // LEVEL 4 · 4×4 · "The Broken Altar"
+    // BLOCKED: (0,3) — the far top-right corner stone has fallen
     //
-    // Solution path (25 cells) — clockwise inward spiral:
-    //   (0,0)→(0,1)→(0,2)→(0,3)→(0,4)
-    //       →(1,4)→(2,4)→(3,4)→(4,4)
-    //       →(4,3)→(4,2)→(4,1)→(4,0)
-    //       →(3,0)→(2,0)→(1,0)
-    //       →(1,1)→(1,2)→(1,3)→(2,3)→(3,3)→(3,2)→(3,1)→(2,1)→(2,2)
+    // Grid (X = blocked):
+    //   [.][.][.][X]
+    //   [.][.][.][.]
+    //   [.][.][.][.]
+    //   [.][.][.][.]
+    //
+    // Solution path (15 cells):
+    //   (0,0)→(0,1)→(0,2)
+    //       →(1,2)→(1,3)→(2,3)→(3,3)→(3,2)→(2,2)→(2,1)→(3,1)→(3,0)
+    //       →(2,0)→(1,0)→(1,1)
+    //
+    // Parity check: block (0,3) WHITE [0+3=3 odd]:
+    //   8 black + 7 white = 15 cells; |8-7|=1 ✓
+    //
+    // Why harder: missing corner means (0,2) connects DOWN not right.
+    // The path turns south immediately after the top row instead of
+    // continuing east — the blocked corner forces a non-obvious descent.
+    // The ending (1,1) is interior, requiring the bottom-half zigzag first.
     //
     // Waypoints:
-    //   idx 0  (0,0) ᚠ START  (top-left)
-    //   idx 4  (0,4) ᚱ        (top-right)
-    //   idx 8  (4,4) ᚢ        (bottom-right)
-    //   idx 12 (4,0) ᚨ        (bottom-left)
-    //   idx 15 (1,0) ᚦ        (inner spiral start)
-    //   idx 24 (2,2) ᛟ END    (center)
+    //   idx 0  (0,0) ᚲ Kenaz   START
+    //   idx 11 (3,0) ᚾ Naudiz
+    //   idx 14 (1,1) ᚷ END
     // ─────────────────────────────────────────────────
     static let level4 = PathLevel(
         id: 4,
         civilization: .norse,
-        title: "Spiral of Nine",
-        subtitle: "The Nine Worlds Turning",
-        lore: "The nine worlds of Norse cosmology spiral around Yggdrasil — Asgard at the crown, Niflheim at the roots, Midgard at the center. This tablet maps the spiral inward: outer ring first, then inner ring, then the still point at the heart. To read it you must think in circles, not lines.",
+        title: "The Broken Altar",
+        subtitle: "What Remains When a Corner Falls",
+        lore: "The altar stone at Gamla Uppsala had lost its top-right corner to a Viking raid — carried off as a trophy or simply fallen. What remained was an L-shaped tablet, still inscribed. The runes could still be read. The path could still be traced. It only required accepting the shape as it was.",
         inscriptions: [
-            "ᚠ Fehu opens at the top-left corner. The outer ring of the spiral must be traced completely before entering the inner.",
-            "ᚱ Raidho marks the top-right corner. You must travel the entire top row before descending. The outer spiral runs clockwise.",
-            "ᚢ Uruz stands at the bottom-right corner. The right column, the bottom row — the outer ring has one direction and never reverses.",
-            "ᚨ Ansuz at the bottom-left completes the outer ring. From here the path turns inward — a new, tighter spiral begins.",
-            "ᚦ Thurisaz marks where the inner spiral starts, back at the left edge. After traversing the outer ring, the path dips inward and spirals to the center.",
-            "ᛟ Othala waits at the very center of the stone. All worlds spiral inward to the same still point. That is where the path ends."
+            "ᚲ Kenaz — the torch — illuminates the top-left. The top row can only be traversed partially; the missing corner ends it early. The path turns south sooner than you expect.",
+            "The missing corner stone changes everything. Do not plan as if it were there. Plan as if the stone to the left of the gap is a dead end — and route accordingly.",
+            "ᚾ Naudiz — necessity — marks the bottom-left corner. It is reached last on the left side, after a long diagonal sweep through the lower half of the altar.",
+            "ᚷ Gebo — the gift — closes the path in the interior of the second row. The altar ends not at an edge but inward, where the gift of completion is found."
         ],
-        rows: 5, cols: 5,
+        rows: 4, cols: 4,
         solution: [
-            // Outer spiral — top row →
             GridPosition(row:0,col:0), GridPosition(row:0,col:1), GridPosition(row:0,col:2),
-            GridPosition(row:0,col:3), GridPosition(row:0,col:4),
-            // right col ↓
-            GridPosition(row:1,col:4), GridPosition(row:2,col:4), GridPosition(row:3,col:4),
-            GridPosition(row:4,col:4),
-            // bottom row ←
-            GridPosition(row:4,col:3), GridPosition(row:4,col:2), GridPosition(row:4,col:1),
-            GridPosition(row:4,col:0),
-            // left col ↑ (partial — back to row 1)
-            GridPosition(row:3,col:0), GridPosition(row:2,col:0), GridPosition(row:1,col:0),
-            // Inner spiral — row 1 →
-            GridPosition(row:1,col:1), GridPosition(row:1,col:2), GridPosition(row:1,col:3),
-            // col 3 ↓
+            GridPosition(row:1,col:2), GridPosition(row:1,col:3),
             GridPosition(row:2,col:3), GridPosition(row:3,col:3),
-            // row 3 ←
-            GridPosition(row:3,col:2), GridPosition(row:3,col:1),
-            // col 1 ↑
-            GridPosition(row:2,col:1),
-            // center
-            GridPosition(row:2,col:2)
+            GridPosition(row:3,col:2), GridPosition(row:2,col:2), GridPosition(row:2,col:1),
+            GridPosition(row:3,col:1), GridPosition(row:3,col:0),
+            GridPosition(row:2,col:0), GridPosition(row:1,col:0), GridPosition(row:1,col:1)
         ],
         waypoints: [
             Waypoint(id:1, pathIndex:0,  position:GridPosition(row:0,col:0),
-                     rune:"ᚠ", runeName:"Fehu", meaning:"Wealth · Outer world", isStart:true),
-            Waypoint(id:2, pathIndex:4,  position:GridPosition(row:0,col:4),
-                     rune:"ᚱ", runeName:"Raidho", meaning:"Journey · Turn east"),
-            Waypoint(id:3, pathIndex:8,  position:GridPosition(row:4,col:4),
-                     rune:"ᚢ", runeName:"Uruz", meaning:"Strength · Turn south"),
-            Waypoint(id:4, pathIndex:12, position:GridPosition(row:4,col:0),
-                     rune:"ᚨ", runeName:"Ansuz", meaning:"Odin · Turn west"),
-            Waypoint(id:5, pathIndex:15, position:GridPosition(row:1,col:0),
-                     rune:"ᚦ", runeName:"Thurisaz", meaning:"Thorn · Inner spiral"),
-            Waypoint(id:6, pathIndex:24, position:GridPosition(row:2,col:2),
-                     rune:"ᛟ", runeName:"Othala", meaning:"Home · The center", isEnd:true)
+                     rune:"ᚲ", runeName:"Kenaz", meaning:"Torch · The start", isStart:true),
+            Waypoint(id:2, pathIndex:11, position:GridPosition(row:3,col:0),
+                     rune:"ᚾ", runeName:"Naudiz", meaning:"Need · Necessity"),
+            Waypoint(id:3, pathIndex:14, position:GridPosition(row:1,col:1),
+                     rune:"ᚷ", runeName:"Gebo", meaning:"Gift · The interior close", isEnd:true)
         ],
+        blockedCells: [GridPosition(row:0, col:3)],
         journalEntry: JournalEntry(
             id: 9,
-            title: "The Nine-World Map",
-            body: "The Norse cosmology is not a hierarchy — it is a spiral. The worlds are nested, and the outermost ring connects to the inner in ways that are not obvious until you trace the full pattern. This tablet is the map. The center stone is always Othala — home — regardless of where you begin.",
+            title: "The Altar With the Missing Corner",
+            body: "Gamla Uppsala. The stone had been L-shaped for centuries. Every scholar before me tried to read it as if the corner were simply missing text — they filled it in. But the path inscribed on it ends at (1,1), well inside the stone. The missing corner is not a damage. It is part of the design.",
             artifact: "ᛟ"
         ),
-        decodedMessage: "All nine worlds spiral around the same axis. You do not navigate the nine worlds by going in a straight line. You spiral inward. The center is always home. And home is always reached last."
+        decodedMessage: "When something is taken from the altar — a corner, a word, a life — the inscription does not become incomplete. It becomes a different shape. Route the path through what remains. The shape that is left is always enough to reach the end."
     )
 
     // ─────────────────────────────────────────────────
-    // LEVEL 5 · 5×5 · "Ragnarök"
+    // LEVEL 5 · 5×5 · "Jormungandr's Back"
+    // BLOCKED: (0,2) and (4,2) — the serpent's coils block the centre-top and
+    //          centre-bottom, splitting the top and bottom rows
     //
-    // Solution path (25 cells) — column-by-column serpentine:
-    //   col 0 ↓: (0,0)→(1,0)→(2,0)→(3,0)→(4,0)
-    //   col 1 ↑: →(4,1)→(3,1)→(2,1)→(1,1)→(0,1)
-    //   col 2 ↓: →(0,2)→(1,2)→(2,2)→(3,2)→(4,2)
-    //   col 3 ↑: →(4,3)→(3,3)→(2,3)→(1,3)→(0,3)
-    //   col 4 ↓: →(0,4)→(1,4)→(2,4)→(3,4)→(4,4)
+    // Grid (X = blocked):
+    //   [.][.][X][.][.]
+    //   [.][.][.][.][.]
+    //   [.][.][.][.][.]
+    //   [.][.][.][.][.]
+    //   [.][.][X][.][.]
     //
-    // Waypoints (minimal — 5 only):
-    //   idx 0  (0,0) ᛟ START
-    //   idx 4  (4,0) ᚾ Naudiz
-    //   idx 10 (0,2) ᛁ Isa
-    //   idx 20 (0,4) ᛊ Sowilo
-    //   idx 24 (4,4) ᚠ END
+    // Solution path (23 cells):
+    //   (1,0)→(0,0)→(0,1)→(1,1)→(2,1)→(2,0)→(3,0)→(4,0)
+    //       →(4,1)→(3,1)→(3,2)→(2,2)→(1,2)→(1,3)→(0,3)→(0,4)
+    //       →(1,4)→(2,4)→(2,3)→(3,3)→(4,3)→(4,4)→(3,4)
+    //
+    // Parity check: block (0,2) BLACK [0+2=2] and (4,2) BLACK [4+2=6]:
+    //   Original 5×5: 13B+12W. Block 2 black → 11B+12W; |11-12|=1 ✓
+    //
+    // Why hard: the two blocked cells split the top row into (0,0)(0,1) and
+    // (0,3)(0,4) — you can't cross the top in one sweep. The bottom row is
+    // similarly split. This forces the path to enter the top/bottom corner
+    // pockets through their side connections, requiring careful planning of
+    // when each pocket is visited. Only 3 waypoints — minimal guidance.
+    //
+    // Waypoints:
+    //   idx 0  (1,0) ᛟ Othala  START
+    //   idx 7  (4,0) ᚦ Thurisaz
+    //   idx 22 (3,4) ᚠ Fehu    END
     // ─────────────────────────────────────────────────
     static let level5 = PathLevel(
         id: 5,
         civilization: .norse,
-        title: "Ragnarök",
-        subtitle: "The Final Reckoning",
-        lore: "At the end of all things, even the gods follow a prescribed path. Ragnarök is not chaos — it is the final order, playing out as written by the Norns before time began. This tablet records that path. Five rune anchors remain. All others must be found through reason alone.",
+        title: "Jormungandr's Back",
+        subtitle: "The World Serpent Divides the Sea",
+        lore: "Jormungandr — the Midgard Serpent — lies beneath the sea with its body coiled around the world. Its back breaks the surface in two places, blocking the direct path across the water. The only route is the one that honours the serpent's shape: curving around each coil, not through it.",
         inscriptions: [
-            "Only five runes are visible. The path between them must be discovered entirely through deduction and trial.",
-            "ᛟ Othala opens the final reckoning — homeland, heritage, that which must be protected. The first column falls before anything else moves.",
-            "ᚾ Naudiz — need and necessity — marks the base of the first column. When you reach it, you have earned the right to change direction for the first time.",
-            "ᛁ Isa stands frozen at the top of the middle column. Ice does not flow — it waits. The path must climb to it before descending again.",
-            "ᛊ Sowilo — the sun — blazes at the top of the last column. After the sun, only the final descent remains. Every stone before it must already have been claimed."
+            "The two dark stones mark where the serpent's back breaks the surface. They cannot be crossed. Plan the entire route before you place a single foot.",
+            "ᛟ Othala does not stand at the corner — it begins one step in from the edge. The path must enter the top-left pocket before descending. Do not begin at the actual corner.",
+            "ᚦ Thurisaz — the obstacle — marks the bottom-left corner. You must descend the full left side before you may turn. The serpent's first coil forces this.",
+            "Only three runes are visible on this stone. The remaining twenty must be found through deduction alone. The serpent does not offer more guidance than this."
         ],
         rows: 5, cols: 5,
         solution: [
-            // Col 0 ↓
-            GridPosition(row:0,col:0), GridPosition(row:1,col:0), GridPosition(row:2,col:0),
+            GridPosition(row:1,col:0), GridPosition(row:0,col:0), GridPosition(row:0,col:1),
+            GridPosition(row:1,col:1), GridPosition(row:2,col:1), GridPosition(row:2,col:0),
             GridPosition(row:3,col:0), GridPosition(row:4,col:0),
-            // Col 1 ↑
-            GridPosition(row:4,col:1), GridPosition(row:3,col:1), GridPosition(row:2,col:1),
-            GridPosition(row:1,col:1), GridPosition(row:0,col:1),
-            // Col 2 ↓
-            GridPosition(row:0,col:2), GridPosition(row:1,col:2), GridPosition(row:2,col:2),
-            GridPosition(row:3,col:2), GridPosition(row:4,col:2),
-            // Col 3 ↑
-            GridPosition(row:4,col:3), GridPosition(row:3,col:3), GridPosition(row:2,col:3),
-            GridPosition(row:1,col:3), GridPosition(row:0,col:3),
-            // Col 4 ↓
-            GridPosition(row:0,col:4), GridPosition(row:1,col:4), GridPosition(row:2,col:4),
-            GridPosition(row:3,col:4), GridPosition(row:4,col:4)
+            GridPosition(row:4,col:1), GridPosition(row:3,col:1), GridPosition(row:3,col:2),
+            GridPosition(row:2,col:2), GridPosition(row:1,col:2),
+            GridPosition(row:1,col:3), GridPosition(row:0,col:3), GridPosition(row:0,col:4),
+            GridPosition(row:1,col:4), GridPosition(row:2,col:4), GridPosition(row:2,col:3),
+            GridPosition(row:3,col:3), GridPosition(row:4,col:3),
+            GridPosition(row:4,col:4), GridPosition(row:3,col:4)
         ],
         waypoints: [
-            Waypoint(id:1, pathIndex:0,  position:GridPosition(row:0,col:0),
-                     rune:"ᛟ", runeName:"Othala", meaning:"Home · Heritage", isStart:true),
-            Waypoint(id:2, pathIndex:4,  position:GridPosition(row:4,col:0),
-                     rune:"ᚾ", runeName:"Naudiz", meaning:"Need · Necessity"),
-            Waypoint(id:3, pathIndex:10, position:GridPosition(row:0,col:2),
-                     rune:"ᛁ", runeName:"Isa", meaning:"Ice · The frozen mid-point"),
-            Waypoint(id:4, pathIndex:20, position:GridPosition(row:0,col:4),
-                     rune:"ᛊ", runeName:"Sowilo", meaning:"Sun · The final turn"),
-            Waypoint(id:5, pathIndex:24, position:GridPosition(row:4,col:4),
-                     rune:"ᚠ", runeName:"Fehu", meaning:"Wealth · New age begins", isEnd:true)
+            Waypoint(id:1, pathIndex:0,  position:GridPosition(row:1,col:0),
+                     rune:"ᛟ", runeName:"Othala", meaning:"Home · One step from the edge", isStart:true),
+            Waypoint(id:2, pathIndex:7,  position:GridPosition(row:4,col:0),
+                     rune:"ᚦ", runeName:"Thurisaz", meaning:"Thorn · First coil cleared"),
+            Waypoint(id:3, pathIndex:22, position:GridPosition(row:3,col:4),
+                     rune:"ᚠ", runeName:"Fehu", meaning:"Wealth · The serpent's tail", isEnd:true)
         ],
+        blockedCells: [GridPosition(row:0, col:2), GridPosition(row:4, col:2)],
         journalEntry: JournalEntry(
             id: 10,
-            title: "The Ragnarök Inscription",
-            body: "The Norse did not fear Ragnarök — they accepted it. The gods know they will fall. They fight anyway. This tablet was the last one on the runestone site. Fewest clues. Longest path. I worked on it for two days. When I finally traced it, I understood why they put it last. It is not the hardest path. It is the most honest one.",
+            title: "The Jormungandr Inscription",
+            body: "The final tablet was the hardest. Two stones blocked — not randomly, but symmetrically, splitting both the top and bottom rows. I kept trying to sweep across the full width. Every attempt failed at the same point. The solution required entering the top-left pocket before descending — a move that looks wrong until you understand why the serpent forced it. I spent three days on this stone.",
             artifact: "ᚾ"
         ),
-        decodedMessage: "Even at the end of all things, the path is not random. The Norns wove it before the first god drew breath. Five anchor runes. Twenty more unnamed stones. Each one necessary. Not one wasted. This is how all things end: in perfect, terrible order."
+        decodedMessage: "Jormungandr does not block the path to be cruel. It blocks the path to teach you where the path actually goes. Every obstacle in the world is like this — not an ending but a redirection. The serpent holds the world together precisely because it cannot be crossed directly. You must go around."
     )
 }

@@ -383,6 +383,12 @@ final class GameState: ObservableObject {
         // Can't tap while errors are flashing
         guard norseErrorCells.isEmpty else { return }
 
+        // Can't tap impassable/blocked stones
+        guard !level.isBlocked(position) else {
+            HapticFeedback.error()
+            return
+        }
+
         if norsePath.isEmpty {
             // First tap must be the start cell
             guard position == level.startPosition else {

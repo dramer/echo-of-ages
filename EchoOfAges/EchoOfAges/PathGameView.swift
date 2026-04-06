@@ -424,9 +424,11 @@ struct PathGameView: View {
             try? await Task.sleep(nanoseconds: 8_000_000_000)
             guard !hasInteracted else { return }
             let level = gameState.norseCurrentLevel
+            let hasBlocked = !level.blockedCells.isEmpty
+            let blockedNote = hasBlocked ? " Dark crossed stones are impassable — route around them." : ""
             showToast(
-                "Tap the \(level.waypoints.first?.rune ?? "ᚠ") rune to begin your path. Then tap each adjacent stone in sequence — you must visit every stone on the tablet before you may stop.",
-                duration: 6.5
+                "Tap the \(level.waypoints.first?.rune ?? "ᚠ") rune to begin. Then tap each adjacent stone — visit every valid stone exactly once.\(blockedNote)",
+                duration: 7.0
             )
         }
     }
@@ -461,6 +463,7 @@ private struct PathCellView: View {
     let size: CGFloat
     let onTap: () -> Void
 
+    private var isBlocked: Bool { level.isBlocked(position) }
     private var pathIndex: Int? { path.firstIndex(of: position) }
     private var isInPath:  Bool { pathIndex != nil }
     private var isPathEnd: Bool { path.last == position }
@@ -478,11 +481,18 @@ private struct PathCellView: View {
             .frame(width: size, height: size)
         }
         .buttonStyle(.plain)
+        .disabled(isBlocked)
     }
 
     @ViewBuilder
     private var cellBackground: some View {
-        if isError {
+        if isBlocked {
+            // Impassable stone — dark, earthy, clearly inert
+            RoundedRectangle(cornerRadius: 6)
+                .fill(Color(red: 0.09, green: 0.08, blue: 0.07))
+                .overlay(RoundedRectangle(cornerRadius: 6)
+                    .stroke(Color(red: 0.22, green: 0.18, blue: 0.14).opacity(0.7), lineWidth: 1))
+        } else if isError {
             RoundedRectangle(cornerRadius: 6)
                 .fill(Color(red: 0.55, green: 0.08, blue: 0.08))
                 .overlay(RoundedRectangle(cornerRadius: 6)
@@ -524,7 +534,26 @@ private struct PathCellView: View {
 
     @ViewBuilder
     private var cellContent: some View {
-        if isError {
+        if isBlocked {
+            // Cracked/impassable stone — subtle crossed lines
+            ZStack {
+                // Diagonal crack lines
+                Canvas { ctx, size in
+                    let s = size.width
+                    var p1 = Path()
+                    p1.move(to: CGPoint(x: s * 0.22, y: s * 0.22))
+                    p1.addLine(to: CGPoint(x: s * 0.78, y: s * 0.78))
+                    var p2 = Path()
+                    p2.move(to: CGPoint(x: s * 0.78, y: s * 0.22))
+                    p2.addLine(to: CGPoint(x: s * 0.22, y: s * 0.78))
+                    ctx.stroke(p1, with: .color(Color(red: 0.30, green: 0.24, blue: 0.18).opacity(0.6)),
+                               style: StrokeStyle(lineWidth: 1.2, lineCap: .round))
+                    ctx.stroke(p2, with: .color(Color(red: 0.30, green: 0.24, blue: 0.18).opacity(0.6)),
+                               style: StrokeStyle(lineWidth: 1.2, lineCap: .round))
+                }
+                .frame(width: size, height: size)
+            }
+        } else if isError {
             // Red X for wrong path
             Image(systemName: "xmark")
                 .font(.system(size: size * 0.38, weight: .bold))
