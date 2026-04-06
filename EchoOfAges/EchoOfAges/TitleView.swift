@@ -23,22 +23,7 @@ struct TitleView: View {
                     .shadow(color: Color.stoneDark.opacity(glowPulse ? 0.25 : 0.10),
                             radius: 12, x: 0, y: 4)
 
-                Spacer(minLength: 18)
-
-                // Glyphs
-                HStack(spacing: 0) {
-                    glyphSymbol("𓂀")
-                    glyphDivider
-                    glyphSymbol("𓅓")
-                    glyphDivider
-                    glyphSymbol("𓈖")
-                    glyphDivider
-                    glyphSymbol("𓃭")
-                    glyphDivider
-                    glyphSymbol("𓇯")
-                }
-
-                Spacer(minLength: 22)
+                Spacer(minLength: 28)
 
                 // Text
                 VStack(spacing: 16) {
@@ -116,19 +101,6 @@ struct TitleView: View {
     }
 
     // MARK: Helpers
-
-    private func glyphSymbol(_ symbol: String) -> some View {
-        Text(symbol)
-            .font(.system(size: 50))
-            .foregroundStyle(Color.stoneDark.opacity(0.82))
-    }
-
-    private var glyphDivider: some View {
-        Text("·")
-            .font(EgyptFont.title(26))
-            .foregroundStyle(Color.stoneMid.opacity(0.55))
-            .padding(.horizontal, 8)
-    }
 
     private func landingButton(
         asset: String,
