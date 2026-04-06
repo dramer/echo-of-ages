@@ -5,134 +5,172 @@ import SwiftUI
 
 struct TitleView: View {
     @EnvironmentObject var gameState: GameState
-    @State private var glowPulse = false
-    @State private var appeared  = false
+    @State private var glowPulse  = false
+    @State private var appeared   = false   // banner + text + buttons
+    @State private var tabletUp   = false   // glyph rows rising into tablet
+
+    // Hieroglyph rows that form the stone tablet.
+    // 5 rows × 6 columns = 30 signs; chosen for visual variety.
+    private let tabletRows: [[String]] = [
+        ["𓂀", "𓅓", "𓈖", "𓃭", "𓇯", "𓀭"],
+        ["𓆑", "𓏏", "𓊪", "𓅱", "𓁷", "𓃒"],
+        ["𓋴", "𓂋", "𓈗", "𓇋", "𓆼", "𓂧"],
+        ["𓌀", "𓅆", "𓏛", "𓄿", "𓃀", "𓏤"],
+        ["𓏭", "𓅐", "𓍿", "𓊃", "𓇌", "𓈀"],
+    ]
 
     var body: some View {
         ZStack {
             background
 
             VStack(spacing: 0) {
-                // ── Banner sits at the very top ──────────────────────────
-                Spacer(minLength: 12)
+                // Banner pinned near the top — drops in from above
+                Spacer(minLength: 8)
                 bannerImage
 
-                // ── Hieroglyph row directly below banner ─────────────────
-                Spacer(minLength: 18)
-                glyphDecoration
+                // Glyph tablet assembles from the bottom
+                Spacer(minLength: 20)
+                glyphTablet
 
-                // ── Subtitle text ────────────────────────────────────────
+                // Subtitle text
                 Spacer(minLength: 22)
                 textBlock
 
-                // ── Flexible gap pushes buttons toward the bottom ────────
+                // Buttons toward the bottom
                 Spacer()
-
-                // ── Navigation buttons ───────────────────────────────────
                 imageButtons
-
-                Spacer(minLength: 18)
+                Spacer(minLength: 16)
                 footerHieroglyphs
                 Spacer(minLength: 20)
             }
             .padding(.horizontal, 24)
         }
         .onAppear {
+            // Glow pulse — continuous
             withAnimation(.easeInOut(duration: 2.2).repeatForever(autoreverses: true)) {
                 glowPulse = true
             }
-            withAnimation(.easeOut(duration: 0.8)) {
+            // Banner, text & buttons fade-in
+            withAnimation(.easeOut(duration: 0.7)) {
                 appeared = true
+            }
+            // Glyph rows rise into the tablet a beat later
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
+                tabletUp = true
             }
         }
     }
 
-    // MARK: Background
+    // MARK: Background — exact diary paperCream colour
 
     private var background: some View {
         ZStack {
-            Color(red: 0.88, green: 0.82, blue: 0.63).ignoresSafeArea()
+            // Match the journal page exactly
+            Color(red: 0.93, green: 0.87, blue: 0.73).ignoresSafeArea()
+            // Soft warm glow from centre (candlelight)
             RadialGradient(
-                colors: [Color(red: 0.96, green: 0.91, blue: 0.74).opacity(0.65), .clear],
-                center: .center, startRadius: 50, endRadius: 360
+                colors: [Color(red: 0.98, green: 0.94, blue: 0.80).opacity(0.55), .clear],
+                center: .center, startRadius: 40, endRadius: 340
             )
             .ignoresSafeArea()
+            // Aged-parchment edge vignette
             RadialGradient(
-                colors: [.clear, Color(red: 0.38, green: 0.26, blue: 0.10).opacity(0.50)],
-                center: .center, startRadius: 270, endRadius: 640
+                colors: [.clear, Color(red: 0.35, green: 0.22, blue: 0.08).opacity(0.45)],
+                center: .center, startRadius: 260, endRadius: 640
             )
             .ignoresSafeArea()
         }
     }
 
-    // MARK: Banner (full-width, top of screen)
+    // MARK: Banner — slides down from above
 
     private var bannerImage: some View {
         Image("banner")
             .resizable()
             .scaledToFit()
             .frame(maxWidth: .infinity)
-            .shadow(color: Color.stoneDark.opacity(glowPulse ? 0.28 : 0.12), radius: 14, x: 0, y: 5)
-            .padding(.horizontal, -24)   // bleed past VStack insets to full width
+            .padding(.horizontal, -24)  // bleed to full screen width
+            .shadow(color: Color.stoneDark.opacity(glowPulse ? 0.22 : 0.08),
+                    radius: 12, x: 0, y: 5)
             .opacity(appeared ? 1 : 0)
-            .offset(y: appeared ? 0 : -12)
-            .animation(.easeOut(duration: 0.7), value: appeared)
+            .offset(y: appeared ? 0 : -28)
+            .animation(.spring(response: 0.65, dampingFraction: 0.78), value: appeared)
     }
 
-    // MARK: Glyph Decoration — below banner, dark so they read on papyrus
+    // MARK: Glyph Tablet
 
-    private var glyphDecoration: some View {
-        HStack(spacing: 0) {
-            decorativeGlyph("𓂀")
-            decorativeDivider
-            decorativeGlyph("𓅓")
-            decorativeDivider
-            decorativeGlyph("𓈖")
-            decorativeDivider
-            decorativeGlyph("𓃭")
-            decorativeDivider
-            decorativeGlyph("𓇯")
+    private var glyphTablet: some View {
+        ZStack {
+            // Stone tablet background
+            RoundedRectangle(cornerRadius: 14)
+                .fill(Color(red: 0.80, green: 0.71, blue: 0.52))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .stroke(Color(red: 0.40, green: 0.28, blue: 0.10).opacity(0.55),
+                                lineWidth: 1.8)
+                )
+
+            // Glyph rows — each row rises into the tablet from below
+            VStack(spacing: 6) {
+                ForEach(0..<tabletRows.count, id: \.self) { rowIdx in
+                    glyphRow(tabletRows[rowIdx], rowIndex: rowIdx)
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
         }
-        .opacity(appeared ? 1 : 0)
-        .animation(.easeIn(duration: 0.9).delay(0.1), value: appeared)
+        // Clip so rows only appear once they enter the tablet from the bottom
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .shadow(color: Color(red: 0.20, green: 0.12, blue: 0.02).opacity(0.30),
+                radius: 8, x: 0, y: 4)
     }
 
-    private func decorativeGlyph(_ symbol: String) -> some View {
-        Text(symbol)
-            .font(.system(size: 50))
-            // Dark stone on papyrus — high contrast, clearly readable
-            .foregroundStyle(Color.stoneDark.opacity(0.82))
-            .shadow(color: Color.stoneDark.opacity(glowPulse ? 0.25 : 0.08), radius: 4, x: 0, y: 1)
+    /// One row of hieroglyphs with its slide-up animation.
+    /// Bottom rows get shorter delays so they arrive first,
+    /// stacking upward to "fill" the tablet from the base.
+    private func glyphRow(_ glyphs: [String], rowIndex: Int) -> some View {
+        let totalRows  = tabletRows.count
+        // Row at bottom of tablet (index = totalRows-1) has smallest delay → arrives first
+        let rowFromBottom = totalRows - 1 - rowIndex
+        let delay = Double(rowFromBottom) * 0.10   // 0.0, 0.10, 0.20, 0.30, 0.40
+
+        return HStack(spacing: 0) {
+            ForEach(glyphs, id: \.self) { glyph in
+                Text(glyph)
+                    .font(.system(size: 30))
+                    .foregroundStyle(Color(red: 0.16, green: 0.10, blue: 0.04).opacity(0.80))
+                    .frame(maxWidth: .infinity)
+            }
+        }
+        // Start far below the tablet — clip hides until the row enters from the bottom
+        .offset(y: tabletUp ? 0 : 220)
+        .animation(
+            .spring(response: 0.60, dampingFraction: 0.82).delay(delay),
+            value: tabletUp
+        )
     }
 
-    private var decorativeDivider: some View {
-        Text("·")
-            .font(EgyptFont.title(26))
-            .foregroundStyle(Color.stoneMid.opacity(0.55))
-            .padding(.horizontal, 8)
-    }
-
-    // MARK: Text Block — subtitle + quote, larger type
+    // MARK: Text Block
 
     private var textBlock: some View {
         VStack(spacing: 16) {
             Text("An Ancient Hieroglyph Deduction Puzzle")
                 .font(EgyptFont.bodyItalic(26))
-                .foregroundStyle(Color.stoneMid)
+                .foregroundStyle(Color(red: 0.25, green: 0.16, blue: 0.06))
                 .multilineTextAlignment(.center)
 
             Text("\"In the beginning was the Word,\nand the Word was carved in stone.\"")
                 .font(EgyptFont.bodyItalic(23))
-                .foregroundStyle(Color.stoneMid.opacity(0.60))
+                .foregroundStyle(Color(red: 0.25, green: 0.16, blue: 0.06).opacity(0.58))
                 .multilineTextAlignment(.center)
                 .lineSpacing(7)
         }
         .opacity(appeared ? 1 : 0)
-        .offset(y: appeared ? 0 : 16)
-        .animation(.easeOut(duration: 0.8).delay(0.15), value: appeared)
+        .offset(y: appeared ? 0 : 14)
+        .animation(.easeOut(duration: 0.7).delay(0.20), value: appeared)
     }
 
-    // MARK: Image Buttons — larger, label-free
+    // MARK: Image Buttons
 
     private var imageButtons: some View {
         HStack(spacing: 8) {
@@ -159,8 +197,8 @@ struct TitleView: View {
             }
         }
         .opacity(appeared ? 1 : 0)
-        .offset(y: appeared ? 0 : 15)
-        .animation(.easeOut(duration: 0.7).delay(0.25), value: appeared)
+        .offset(y: appeared ? 0 : 14)
+        .animation(.easeOut(duration: 0.7).delay(0.30), value: appeared)
     }
 
     private func landingButton(
@@ -177,7 +215,7 @@ struct TitleView: View {
                 } else {
                     Image(systemName: fallback)
                         .font(.system(size: 62))
-                        .foregroundStyle(Color.goldDark)
+                        .foregroundStyle(Color(red: 0.40, green: 0.26, blue: 0.04))
                 }
             }
             .frame(maxWidth: .infinity)
@@ -189,8 +227,8 @@ struct TitleView: View {
 
     private var footerHieroglyphs: some View {
         Text("𓅱 𓆑 𓏏 𓈖 𓊪")
-            .font(.system(size: 26))
-            .foregroundStyle(Color.stoneMid.opacity(0.30))
+            .font(.system(size: 24))
+            .foregroundStyle(Color(red: 0.30, green: 0.20, blue: 0.06).opacity(0.28))
             .tracking(10)
             .opacity(appeared ? 1 : 0)
             .animation(.easeIn(duration: 1.0).delay(0.5), value: appeared)
