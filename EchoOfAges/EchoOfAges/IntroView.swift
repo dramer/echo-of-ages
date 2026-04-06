@@ -270,7 +270,13 @@ struct IntroView: View {
 
             crawlEmphasis("Your mission:")
 
-            crawlParagraph("Decipher the partial tablets,\none inscription at a time.\n\nEach solved puzzle adds known\nglyphs to your codex and brings\nthe Tablet of Mandu closer to\nrevealing its hidden truth.")
+            crawlParagraph("Decipher the partial tablets,\none civilization at a time.\n\nEgypt first. Then Norse and\nSumerian. Then Maya and Celtic.\nFinally — Chinese.")
+
+            crawlParagraph("Each civilization you master\nunlocks the next.\n\nEach script you learn lets you\nplace one more row of symbols\nupon the Tablet of Mandu.")
+
+            crawlParagraph("But the stone does not hold\nwhat you place upon it.\n\nNot yet.\n\nThe symbols fall away — every\ntime — until all six civilizations\nhave been fully deciphered.")
+
+            crawlParagraph("When the last inscription yields\nits secret, return to the stone.\n\nPlace what you have learned.\n\nAll thirty symbols. All six rows.")
 
             crawlParagraph("The ancients placed these symbols\nhere for a reason.\n\nThey were waiting for someone\nwith the patience to listen.")
 
