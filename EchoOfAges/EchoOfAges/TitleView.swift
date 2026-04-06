@@ -17,7 +17,7 @@ struct TitleView: View {
                 glyphDecoration
                 Spacer(minLength: 24)
                 titleBlock
-                Spacer(minLength: 36)
+                Spacer(minLength: 40)
                 imageButtons
                 Spacer()
                 footerHieroglyphs
@@ -35,19 +35,22 @@ struct TitleView: View {
         }
     }
 
-    // MARK: Background
+    // MARK: Background — aged papyrus / diary-page warmth
 
     private var background: some View {
         ZStack {
-            Color.stoneDark.ignoresSafeArea()
+            // Papyrus base
+            Color(red: 0.88, green: 0.82, blue: 0.63).ignoresSafeArea()
+            // Warm candlelight glow at centre
             RadialGradient(
-                colors: [Color(red: 0.25, green: 0.15, blue: 0.06).opacity(0.7), Color.clear],
-                center: .center, startRadius: 80, endRadius: 380
+                colors: [Color(red: 0.96, green: 0.91, blue: 0.74).opacity(0.65), .clear],
+                center: .center, startRadius: 50, endRadius: 360
             )
             .ignoresSafeArea()
+            // Aged-edge vignette — darker corners like old parchment
             RadialGradient(
-                colors: [.clear, Color.black.opacity(0.5)],
-                center: .center, startRadius: 250, endRadius: 550
+                colors: [.clear, Color(red: 0.38, green: 0.26, blue: 0.10).opacity(0.50)],
+                center: .center, startRadius: 270, endRadius: 640
             )
             .ignoresSafeArea()
         }
@@ -74,8 +77,8 @@ struct TitleView: View {
     private func decorativeGlyph(_ symbol: String) -> some View {
         Text(symbol)
             .font(.system(size: 44))
-            .foregroundStyle(Color.goldMid.opacity(0.75))
-            .shadow(color: Color.goldDark.opacity(glowPulse ? 0.5 : 0.2), radius: 6, x: 0, y: 0)
+            .foregroundStyle(Color.goldDark.opacity(0.85))
+            .shadow(color: Color.goldDark.opacity(glowPulse ? 0.45 : 0.12), radius: 6, x: 0, y: 0)
     }
 
     private var decorativeDivider: some View {
@@ -93,21 +96,21 @@ struct TitleView: View {
                 .resizable()
                 .scaledToFit()
                 .frame(maxWidth: .infinity)
-                .shadow(color: Color.goldDark.opacity(glowPulse ? 0.6 : 0.2), radius: 16, x: 0, y: 4)
+                .shadow(color: Color.stoneDark.opacity(glowPulse ? 0.25 : 0.10), radius: 12, x: 0, y: 4)
                 .padding(.horizontal, -24)
 
             Spacer(minLength: 18)
 
             Text("An Ancient Hieroglyph Deduction Puzzle")
                 .font(EgyptFont.bodyItalic(22))
-                .foregroundStyle(Color.papyrus.opacity(0.70))
+                .foregroundStyle(Color.stoneMid.opacity(0.90))
                 .multilineTextAlignment(.center)
 
             Spacer(minLength: 18)
 
             Text("\"In the beginning was the Word,\nand the Word was carved in stone.\"")
                 .font(EgyptFont.bodyItalic(20))
-                .foregroundStyle(Color.papyrus.opacity(0.50))
+                .foregroundStyle(Color.stoneMid.opacity(0.55))
                 .multilineTextAlignment(.center)
                 .lineSpacing(6)
         }
@@ -116,97 +119,62 @@ struct TitleView: View {
         .animation(.easeOut(duration: 0.8).delay(0.1), value: appeared)
     }
 
-    // MARK: Image Buttons
+    // MARK: Image Buttons — no bar, no labels, images speak for themselves
 
     private var imageButtons: some View {
-        HStack(spacing: 0) {
+        HStack(spacing: 8) {
             // Begin Journey — always shown
-            landingButton(
-                asset:    "begin_journey",
-                fallback: "arrow.right.circle.fill",
-                label:    "Begin Journey"
-            ) {
+            landingButton(asset: "begin_journey", fallback: "arrow.right.circle.fill") {
                 HapticFeedback.heavy()
                 withAnimation(.easeInOut(duration: 0.4)) { gameState.startNewGame() }
             }
 
             // Continue Journey — only shown when progress exists
             if gameState.hasProgress {
-                landingButton(
-                    asset:    "continue_journey",
-                    fallback: "forward.fill",
-                    label:    "Continue"
-                ) {
+                landingButton(asset: "continue_journey", fallback: "forward.fill") {
                     HapticFeedback.tap()
                     withAnimation(.easeInOut(duration: 0.4)) { gameState.continueGame() }
                 }
             }
 
             // Open Journal
-            landingButton(
-                asset:    "open_journal",
-                fallback: "book.closed.fill",
-                label:    "Journal"
-            ) {
+            landingButton(asset: "open_journal", fallback: "book.closed.fill") {
                 HapticFeedback.tap()
                 withAnimation(.easeInOut(duration: 0.4)) { gameState.openJournal() }
             }
 
             // Settings
-            landingButton(
-                asset:    "settings",
-                fallback: "gearshape.fill",
-                label:    "Settings"
-            ) {
+            landingButton(asset: "settings", fallback: "gearshape.fill") {
                 HapticFeedback.tap()
                 gameState.openSettings()
             }
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 12)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color.white)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .stroke(Color.goldDark.opacity(0.45), lineWidth: 1)
-                )
-        )
-        .shadow(color: .black.opacity(0.45), radius: 8, x: 0, y: 4)
         .opacity(appeared ? 1 : 0)
         .offset(y: appeared ? 0 : 15)
         .animation(.easeOut(duration: 0.7).delay(0.25), value: appeared)
     }
 
-    /// Single landing-page button: image asset with label below.
-    /// Falls back to an SF Symbol if the asset has no artwork yet.
+    /// Single landing-page button: image asset only — no text label.
+    /// Image is sized large enough to be read on its own.
     private func landingButton(
         asset:    String,
         fallback: String,
-        label:    String,
         action:   @escaping () -> Void
     ) -> some View {
         Button(action: action) {
-            VStack(spacing: 6) {
+            Group {
                 if UIImage(named: asset) != nil {
                     Image(asset)
                         .resizable()
                         .scaledToFit()
-                        .frame(height: 70)
                 } else {
                     Image(systemName: fallback)
-                        .font(.system(size: 40))
-                        .foregroundStyle(Color.goldMid)
-                        .frame(height: 70)
+                        .font(.system(size: 52))
+                        .foregroundStyle(Color.goldDark)
                 }
-                Text(label)
-                    .font(EgyptFont.body(18))
-                    .foregroundStyle(Color.stoneDark)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.75)
             }
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 4)
+            .frame(height: 110)
         }
     }
 
@@ -215,7 +183,7 @@ struct TitleView: View {
     private var footerHieroglyphs: some View {
         Text("𓅱 𓆑 𓏏 𓈖 𓊪")
             .font(.system(size: 26))
-            .foregroundStyle(Color.stoneLight.opacity(0.4))
+            .foregroundStyle(Color.stoneMid.opacity(0.30))
             .tracking(10)
             .opacity(appeared ? 1 : 0)
             .animation(.easeIn(duration: 1.0).delay(0.5), value: appeared)
