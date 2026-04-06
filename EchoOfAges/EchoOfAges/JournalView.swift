@@ -10,6 +10,7 @@ import SwiftUI
 
 private enum DiaryPage: Equatable {
     case frontPage
+    case tableOfContents     // jump to any section
     case drMandu             // Dr. Elena Mandu biography + Egyptian Latin Square
     case mapPage
     case tabletStory
@@ -59,7 +60,8 @@ struct JournalView: View {
 
     private var pages: [DiaryPage] {
         var list: [DiaryPage] = [
-            .frontPage, .drMandu, .mapPage, .tabletStory, .tabletGrid, .civilizations,
+            .frontPage, .tableOfContents,
+            .drMandu, .mapPage, .tabletStory, .tabletGrid, .civilizations,
             .howToPlay,
             .egyptPuzzle, .mesopotamiaPuzzle, .greecePuzzle,
             .chinaPuzzle, .norsePuzzle, .mesoamericanPuzzle
@@ -94,7 +96,7 @@ struct JournalView: View {
             GeometryReader { geo in
                 TabView(selection: $currentPageIndex) {
                     ForEach(0..<pages.count, id: \.self) { index in
-                        BookPage(pageType: pages[index], pageNumber: index + 1, totalPages: pages.count)
+                        BookPage(pageType: pages[index], pageNumber: index + 1, totalPages: pages.count, pages: pages)
                             .tag(index)
                             .environmentObject(gameState)
                     }
@@ -122,13 +124,22 @@ struct JournalView: View {
         .onAppear {
             if let spotId = gameState.spotlightJournalId {
                 gameState.spotlightJournalId = nil
-                // Jump to the chronicle page for this level
                 if let idx = pages.firstIndex(of: .chronicle(spotId)) {
                     currentPageIndex = idx
                 }
             } else {
-                // Default: open at the front page
-                currentPageIndex = 0
+                // Restore last-viewed page
+                let saved = UserDefaults.standard.integer(forKey: "EOA_journalPage")
+                currentPageIndex = min(saved, pages.count - 1)
+            }
+        }
+        .onChange(of: currentPageIndex) { _, idx in
+            UserDefaults.standard.set(idx, forKey: "EOA_journalPage")
+        }
+        .onChange(of: gameState.journalTargetPage) { _, target in
+            if let t = target {
+                currentPageIndex = min(t, pages.count - 1)
+                gameState.journalTargetPage = nil
             }
         }
     }
@@ -209,6 +220,7 @@ private struct BookPage: View {
     let pageType: DiaryPage
     let pageNumber: Int
     let totalPages: Int
+    var pages: [DiaryPage] = []
     @EnvironmentObject var gameState: GameState
 
     private var isPad: Bool { UIDevice.current.userInterfaceIdiom == .pad }
@@ -278,6 +290,7 @@ private struct BookPage: View {
     private var pageContent: some View {
         switch pageType {
         case .frontPage:           FrontPageContent()
+        case .tableOfContents:     TableOfContentsContent(pages: pages)
         case .drMandu:             DrManduContent()
         case .mapPage:             MapPageContent()
         case .tabletStory:         TabletStoryContent()
@@ -390,6 +403,126 @@ private struct FrontPageContent: View {
                 .frame(maxWidth: .infinity, alignment: .center)
             Spacer(minLength: 40)
         }
+    }
+}
+
+// MARK: - Table of Contents
+
+private struct TableOfContentsContent: View {
+    let pages: [DiaryPage]
+    @EnvironmentObject var gameState: GameState
+
+    // Fixed sections with their DiaryPage anchor and display label
+    private struct TOCEntry {
+        let label: String
+        let icon: String
+        let page: DiaryPage
+    }
+
+    private var fixedEntries: [TOCEntry] {
+        [
+            TOCEntry(label: "Dr. Elena Mandu",       icon: "person.fill",          page: .drMandu),
+            TOCEntry(label: "Discovery Site",         icon: "map.fill",             page: .mapPage),
+            TOCEntry(label: "The Tablet of Mandu",   icon: "tablecells.fill",      page: .tabletStory),
+            TOCEntry(label: "The Stone Tablet",       icon: "square.grid.3x3.fill", page: .tabletGrid),
+            TOCEntry(label: "Civilizations",          icon: "globe",                page: .civilizations),
+            TOCEntry(label: "How to Play",            icon: "questionmark.circle.fill", page: .howToPlay),
+            TOCEntry(label: "Field Notes",            icon: "note.text",            page: .fieldNotes),
+            TOCEntry(label: "The Rosetta Stone",      icon: "doc.text.fill",        page: .rosettaStone),
+            TOCEntry(label: "Champollion's Method",   icon: "text.magnifyingglass", page: .champollionMethod),
+            TOCEntry(label: "How to Solve",           icon: "lightbulb.fill",       page: .howToSolve),
+            TOCEntry(label: "Settings",               icon: "gearshape.fill",       page: .settingsPage),
+        ]
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HandTitle(text: "Contents")
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.bottom, 4)
+
+            Rectangle()
+                .fill(Color.ruledLine.opacity(0.5))
+                .frame(height: 1)
+                .padding(.bottom, 14)
+
+            // Fixed section entries
+            ForEach(fixedEntries, id: \.label) { entry in
+                if let idx = pages.firstIndex(of: entry.page) {
+                    tocRow(label: entry.label, icon: entry.icon, pageNum: idx + 1) {
+                        gameState.journalTargetPage = idx
+                    }
+                }
+            }
+
+            // Codex glyphs section
+            let codexIndices = pages.enumerated().compactMap { (i, p) -> Int? in
+                if case .codexGlyph = p { return i } else { return nil }
+            }
+            if let first = codexIndices.first {
+                SectionRule()
+                tocRow(label: "Codex  (\(codexIndices.count) glyphs)", icon: "character.book.closed.fill", pageNum: first + 1) {
+                    gameState.journalTargetPage = first
+                }
+            }
+
+            // Chronicle pages
+            let chronicleIndices = pages.enumerated().compactMap { (i, p) -> Int? in
+                if case .chronicle = p { return i } else { return nil }
+            }
+            if let first = chronicleIndices.first {
+                tocRow(label: "Chronicle  (\(chronicleIndices.count) entries)", icon: "scroll.fill", pageNum: first + 1) {
+                    gameState.journalTargetPage = first
+                }
+            }
+
+            Spacer(minLength: 20)
+
+            // Footer note
+            Text("Tap any entry to jump to that page.")
+                .font(handFont(12))
+                .foregroundStyle(Color.inkSepia.opacity(0.5))
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.top, 8)
+        }
+    }
+
+    @ViewBuilder
+    private func tocRow(label: String, icon: String, pageNum: Int, action: @escaping () -> Void) -> some View {
+        Button(action: {
+            HapticFeedback.tap()
+            action()
+        }) {
+            HStack(spacing: 10) {
+                Image(systemName: icon)
+                    .font(.system(size: 13))
+                    .foregroundStyle(Color.inkBlue.opacity(0.7))
+                    .frame(width: 18)
+
+                Text(label)
+                    .font(handFont(15))
+                    .foregroundStyle(Color.inkSepia)
+                    .lineLimit(1)
+
+                // Dot leaders
+                GeometryReader { geo in
+                    let dots = String(repeating: ".", count: Int(geo.size.width / 5))
+                    Text(dots)
+                        .font(handFont(13))
+                        .foregroundStyle(Color.ruledLine.opacity(0.6))
+                        .lineLimit(1)
+                        .frame(maxWidth: .infinity)
+                }
+                .frame(height: 20)
+
+                Text("\(pageNum)")
+                    .font(handFont(14))
+                    .foregroundStyle(Color.inkBlue)
+                    .frame(width: 28, alignment: .trailing)
+            }
+            .padding(.vertical, 5)
+        }
+        .buttonStyle(.plain)
     }
 }
 

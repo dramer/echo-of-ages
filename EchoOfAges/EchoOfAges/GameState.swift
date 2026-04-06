@@ -54,6 +54,9 @@ final class GameState: ObservableObject {
     // Settings
     @Published var showIntroOnLaunch: Bool = true
 
+    // Set by the Table of Contents to jump to a specific diary page.
+    @Published var journalTargetPage: Int? = nil
+
     // Tracks which civilization the player was last actively playing.
     // Used by Continue Journey to return to exactly where they left off.
     @Published var lastActiveCivilization: CivilizationID? = nil
