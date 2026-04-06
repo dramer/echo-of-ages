@@ -54,6 +54,10 @@ final class GameState: ObservableObject {
     // Settings
     @Published var showIntroOnLaunch: Bool = true
 
+    // Tracks which civilization the player was last actively playing.
+    // Used by Continue Journey to return to exactly where they left off.
+    @Published var lastActiveCivilization: CivilizationID? = nil
+
     var currentLevel: Level { Level.allLevels[currentLevelIndex] }
 
     // Ordered list of discovered glyphs (respects Glyph.allCases canonical order)
@@ -105,15 +109,66 @@ final class GameState: ObservableObject {
 
     // MARK: Navigation
 
+    /// Begin Journey — routes to the next unsolved puzzle in tier order across all civilizations.
     func startNewGame() {
-        loadLevel(0)
-        currentScreen = .game
+        let done = civilizationsCompletedForMandu
+        let unlocked = dynamicallyUnlockedCivIds
+
+        // Tier 1: Egypt
+        if unlocked.contains(.egyptian), !done.contains(.egyptian) {
+            let next = min(unlockedJournalEntries.count, Level.allLevels.count - 1)
+            loadLevel(next)
+            lastActiveCivilization = .egyptian
+            currentScreen = .game
+            return
+        }
+        // Tier 2: Norse then Sumerian (play Norse first if both open and incomplete)
+        if unlocked.contains(.norse), !done.contains(.norse) {
+            lastActiveCivilization = .norse
+            startNorseGame()
+            return
+        }
+        if unlocked.contains(.sumerian), !done.contains(.sumerian) {
+            lastActiveCivilization = .sumerian
+            startSumerianGame()
+            return
+        }
+        // Tier 3+: Maya, Celtic, Chinese (not yet implemented — fall through)
+        // All available civs complete
+        if allSixCivsComplete { currentScreen = .manduTablet }
     }
 
+    /// Continue Journey — returns to the last civilization the player was actively working on.
     func continueGame() {
-        let next = min(unlockedJournalEntries.count, Level.allLevels.count - 1)
-        loadLevel(next)
-        currentScreen = .game
+        switch lastActiveCivilization {
+        case .egyptian:
+            let next = min(unlockedJournalEntries.count, Level.allLevels.count - 1)
+            loadLevel(next)
+            currentScreen = .game
+        case .norse:
+            startNorseGame()
+        case .sumerian:
+            startSumerianGame()
+        default:
+            startNewGame() // no last session — route to next unsolved
+        }
+    }
+
+    /// Direct navigation to a specific civilization's next unsolved puzzle.
+    /// Used by the civilization selector cards on the title screen.
+    func navigateToCivilization(_ id: CivilizationID) {
+        switch id {
+        case .egyptian:
+            let next = min(unlockedJournalEntries.count, Level.allLevels.count - 1)
+            loadLevel(next)
+            currentScreen = .game
+        case .norse:
+            startNorseGame()
+        case .sumerian:
+            startSumerianGame()
+        default:
+            break
+        }
     }
 
     func goToTitle() {
@@ -207,6 +262,7 @@ final class GameState: ObservableObject {
         selectedGlyph = nil
         errorCells = []
         resetGrid(for: Level.allLevels[index])
+        lastActiveCivilization = .egyptian
     }
 
     func resetCurrentLevel() {
@@ -361,6 +417,7 @@ final class GameState: ObservableObject {
     // MARK: Norse Navigation
 
     func startNorseGame() {
+        lastActiveCivilization = .norse
         let next = min(norseUnlockedLevels.count, PathLevel.allLevels.count - 1)
         loadNorseLevel(next)
         currentScreen = .norseGame
@@ -538,6 +595,7 @@ final class GameState: ObservableObject {
     // MARK: Sumerian Navigation
 
     func startSumerianGame() {
+        lastActiveCivilization = .sumerian
         let next = min(sumerianUnlockedLevels.count, SumerianLevel.allLevels.count - 1)
         loadSumerianLevel(next)
         currentScreen = .sumerianGame
@@ -792,6 +850,7 @@ final class GameState: ObservableObject {
         UserDefaults.standard.set(messagesDict, forKey: "EOA_chronicle")
         UserDefaults.standard.set(showIntroOnLaunch, forKey: "EOA_showIntro")
         UserDefaults.standard.set(Array(norseUnlockedLevels), forKey: "EOA_norseUnlocked")
+        UserDefaults.standard.set(lastActiveCivilization?.rawValue, forKey: "EOA_lastCiv")
         // Only persist the Mandu grid when all six civilizations are complete.
         // Until then symbols fall off — clearing here ensures a fresh slate on next open.
         if allSixCivsComplete {
@@ -816,6 +875,9 @@ final class GameState: ObservableObject {
 
         let norseIds = UserDefaults.standard.array(forKey: "EOA_norseUnlocked") as? [Int] ?? []
         norseUnlockedLevels = Set(norseIds)
+        if let rawCiv = UserDefaults.standard.string(forKey: "EOA_lastCiv") {
+            lastActiveCivilization = CivilizationID(rawValue: rawCiv)
+        }
 
         let sumerianIds = UserDefaults.standard.array(forKey: "EOA_sumerianUnlocked") as? [Int] ?? []
         sumerianUnlockedLevels = Set(sumerianIds)
@@ -834,7 +896,7 @@ final class GameState: ObservableObject {
     }
 
     var hasProgress: Bool {
-        !unlockedJournalEntries.isEmpty
+        lastActiveCivilization != nil
     }
 
     func saveSettings() {

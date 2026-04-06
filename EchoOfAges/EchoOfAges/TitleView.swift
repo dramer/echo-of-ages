@@ -134,12 +134,7 @@ struct TitleView: View {
         Button {
             HapticFeedback.tap()
             withAnimation(.easeInOut(duration: 0.4)) {
-                switch civ.id {
-                case .egyptian: gameState.continueGame()
-                case .norse:    gameState.startNorseGame()
-                case .sumerian: gameState.startSumerianGame()
-                default: break
-                }
+                gameState.navigateToCivilization(civ.id)
             }
         } label: {
             VStack(spacing: 5) {
