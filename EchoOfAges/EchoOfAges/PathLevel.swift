@@ -90,6 +90,21 @@ struct PathLevel: Identifiable {
         path == solution
     }
 
+    /// Returns a copy of this level with a newly generated path and waypoints,
+    /// keeping all theme data (title, lore, blocked cells, etc.) unchanged.
+    func withGeneratedPath(solution: [GridPosition], waypoints: [Waypoint]) -> PathLevel {
+        PathLevel(
+            id: id, civilization: civilization,
+            title: title, subtitle: subtitle,
+            lore: lore, inscriptions: inscriptions,
+            rows: rows, cols: cols,
+            solution: solution, waypoints: waypoints,
+            blockedCells: blockedCells,
+            journalEntry: journalEntry,
+            decodedMessage: decodedMessage
+        )
+    }
+
     var romanNumeral: String {
         switch id {
         case 1: return "I"; case 2: return "II"; case 3: return "III"

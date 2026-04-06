@@ -346,7 +346,15 @@ final class GameState: ObservableObject {
     @Published var norseIsAnimatingCompletion: Bool = false
     @Published var norseUnlockedLevels: Set<Int> = []
 
-    var norseCurrentLevel: PathLevel { PathLevel.allLevels[norseCurrentLevelIndex] }
+    /// The active variant of the current level — randomised path + runes.
+    /// Replaced every time loadNorseLevel() or resetNorsePath() is called.
+    private var norseActiveLevel: PathLevel?
+
+    /// Returns the live (generated) variant; falls back to the static template
+    /// if generation hasn't run yet (e.g. during unit tests or first init).
+    var norseCurrentLevel: PathLevel {
+        norseActiveLevel ?? PathLevel.allLevels[norseCurrentLevelIndex]
+    }
 
     var norseHasProgress: Bool { !norseUnlockedLevels.isEmpty }
 
@@ -366,12 +374,34 @@ final class GameState: ObservableObject {
         norseCurrentLevelIndex = max(0, min(index, PathLevel.allLevels.count - 1))
         norsePath = []
         norseErrorCells = []
+        norseActiveLevel = generateNorseVariant(at: norseCurrentLevelIndex)
     }
 
     func resetNorsePath() {
         norsePath = []
         norseErrorCells = []
+        // Generate a fresh path layout — every reset gives a new puzzle
+        norseActiveLevel = generateNorseVariant(at: norseCurrentLevelIndex)
         HapticFeedback.heavy()
+    }
+
+    /// Generates a randomised variant of the level at `index`.
+    /// Keeps the same grid dimensions, blocked cells, title and lore — only
+    /// the Hamiltonian path and rune assignments change.
+    private func generateNorseVariant(at index: Int) -> PathLevel {
+        let template = PathLevel.allLevels[index]
+        guard let path = PathGenerator.generatePath(
+            rows: template.rows,
+            cols: template.cols,
+            blockedCells: template.blockedCells
+        ) else {
+            return template  // Fallback: use the static hand-crafted path
+        }
+        let waypoints = PathGenerator.placeWaypoints(
+            on: path,
+            count: template.waypoints.count
+        )
+        return template.withGeneratedPath(solution: path, waypoints: waypoints)
     }
 
     // MARK: Norse Cell Interaction
