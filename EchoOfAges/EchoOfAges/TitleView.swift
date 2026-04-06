@@ -57,27 +57,21 @@ struct TitleView: View {
                             withAnimation(.easeInOut(duration: 0.4)) { gameState.continueGame() }
                         }
                     }
-                    // Journal button — image + tagline
+                    // Journal button — diary image + tagline
                     Button {
                         HapticFeedback.tap()
                         withAnimation(.easeInOut(duration: 0.4)) { gameState.openJournal() }
                     } label: {
-                        VStack(spacing: 10) {
-                            Group {
-                                if UIImage(named: "journal") != nil {
-                                    Image("journal").resizable().scaledToFit()
-                                } else {
-                                    Image(systemName: "book.closed.fill")
-                                        .font(.system(size: 62))
-                                        .foregroundStyle(Color(red: 0.40, green: 0.26, blue: 0.04))
-                                }
-                            }
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 145)
+                        VStack(spacing: 14) {
+                            Image("diary")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 160)
 
                             Text(gameState.hasProgress ? "Open the Journal" : "Let the adventure begin")
-                                .font(EgyptFont.bodyItalic(17))
-                                .foregroundStyle(Color(red: 0.22, green: 0.14, blue: 0.05).opacity(0.80))
+                                .font(EgyptFont.bodyItalic(28))
+                                .foregroundStyle(Color(red: 0.22, green: 0.14, blue: 0.05).opacity(0.85))
                                 .multilineTextAlignment(.center)
                         }
                     }
