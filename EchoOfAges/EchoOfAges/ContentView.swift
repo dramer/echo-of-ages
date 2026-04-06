@@ -5,6 +5,7 @@ import SwiftUI
 
 struct ContentView: View {
     @StateObject private var gameState = GameState()
+    @State private var splashDone = false
 
     var body: some View {
         ZStack {
@@ -56,7 +57,19 @@ struct ContentView: View {
                 }
             }
             .animation(.easeInOut(duration: 0.38), value: gameState.currentScreen)
+
+            // Splash screen — sits on top, fades out once the animation completes
+            if !splashDone {
+                SplashView {
+                    withAnimation(.easeOut(duration: 0.55)) {
+                        splashDone = true
+                    }
+                }
+                .transition(.opacity)
+                .zIndex(100)
+            }
         }
+        .animation(.easeOut(duration: 0.55), value: splashDone)
         .environmentObject(gameState)
         .preferredColorScheme(.dark)
     }
