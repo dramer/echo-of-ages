@@ -123,7 +123,7 @@ extension Civilization {
             ScriptSymbol(id: "ud",   character: "𒌓", transliteration: "ud",  meaning: "Sun, Day",     civilization: .sumerian),
             ScriptSymbol(id: "gal",  character: "𒃲", transliteration: "gal", meaning: "Great, Large", civilization: .sumerian),
         ],
-        isUnlocked: false,
+        isUnlocked: true,
         levelCount: 5,
         tabletLine: "In the great above and the great below, the branches reach in both directions. What grows toward heaven also grows into earth. The tree has no top and no bottom — only the endless middle, which is now."
     )

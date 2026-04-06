@@ -23,18 +23,26 @@ struct TitleView: View {
                     .shadow(color: Color.stoneDark.opacity(glowPulse ? 0.25 : 0.10),
                             radius: 12, x: 0, y: 4)
 
-                Spacer(minLength: 28)
+                Spacer(minLength: 12)
+
+                // Hieroglyph row
+                Text("𓂀 𓅓 𓈖 𓃭 𓇯 𓀭")
+                    .font(.system(size: 34))
+                    .foregroundStyle(Color(red: 0.22, green: 0.13, blue: 0.04).opacity(0.80))
+                    .tracking(10)
+
+                Spacer(minLength: 20)
 
                 // Text
                 VStack(spacing: 16) {
                     Text("An Ancient Hieroglyph Deduction Puzzle")
-                        .font(EgyptFont.bodyItalic(26))
-                        .foregroundStyle(Color(red: 0.25, green: 0.16, blue: 0.06))
+                        .font(EgyptFont.bodyItalic(30))
+                        .foregroundStyle(Color(red: 0.18, green: 0.11, blue: 0.03))
                         .multilineTextAlignment(.center)
 
                     Text("\"In the beginning was the Word,\nand the Word was carved in stone.\"")
-                        .font(EgyptFont.bodyItalic(23))
-                        .foregroundStyle(Color(red: 0.25, green: 0.16, blue: 0.06).opacity(0.58))
+                        .font(EgyptFont.bodyItalic(26))
+                        .foregroundStyle(Color(red: 0.18, green: 0.11, blue: 0.03).opacity(0.70))
                         .multilineTextAlignment(.center)
                         .lineSpacing(7)
                 }
@@ -86,7 +94,7 @@ struct TitleView: View {
 
     private var background: some View {
         ZStack {
-            Color(red: 0.88, green: 0.82, blue: 0.63).ignoresSafeArea()
+            Color(red: 0.93, green: 0.87, blue: 0.73).ignoresSafeArea()
             RadialGradient(
                 colors: [Color(red: 0.96, green: 0.91, blue: 0.74).opacity(0.65), .clear],
                 center: .center, startRadius: 50, endRadius: 360

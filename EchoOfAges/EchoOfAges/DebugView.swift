@@ -31,6 +31,7 @@ struct DebugView: View {
     enum DebugTab: String, CaseIterable {
         case egyptian = "Egyptian"
         case norse    = "Norse"
+        case sumerian = "Sumerian"
     }
 
     var body: some View {
@@ -58,12 +59,15 @@ struct DebugView: View {
 
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 24) {
-                        if selectedTab == .egyptian {
+                        switch selectedTab {
+                        case .egyptian:
                             ForEach(Civilization.all) { civ in
                                 civSection(civ)
                             }
-                        } else {
+                        case .norse:
                             norseSection
+                        case .sumerian:
+                            sumerianSection
                         }
                         Spacer(minLength: 40)
                     }
@@ -483,6 +487,129 @@ struct DebugView: View {
                         .font(.system(size: 24))
                         .foregroundStyle(Color(red: 0.45, green: 0.75, blue: 1.0))
                 }
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 10)
+                .fill(isSolved
+                    ? Color(red: 0.12, green: 0.22, blue: 0.14).opacity(0.6)
+                    : Color.white.opacity(0.05))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10)
+                        .stroke(isCurrent
+                            ? Color.goldDark.opacity(0.6)
+                            : Color(red: 0.45, green: 0.75, blue: 1.0).opacity(0.15),
+                                lineWidth: isCurrent ? 1.2 : 0.7)
+                )
+        )
+    }
+
+    // MARK: Sumerian Section
+
+    private var sumerianSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 10) {
+                Text("𒀭")
+                    .font(.system(size: 22))
+                Text("SUMERIAN · CIPHER")
+                    .font(EgyptFont.titleBold(15))
+                    .tracking(2)
+                    .foregroundStyle(Color(red: 0.45, green: 0.75, blue: 1.0))
+                Spacer()
+                let nSolved = SumerianLevel.allLevels.filter { gameState.sumerianUnlockedLevels.contains($0.id) }.count
+                Text("\(nSolved)/\(SumerianLevel.allLevels.count) solved")
+                    .font(EgyptFont.body(13))
+                    .foregroundStyle(Color(red: 0.45, green: 0.75, blue: 1.0).opacity(0.55))
+            }
+            .padding(.horizontal, 4)
+
+            Text("Substitution cipher puzzles — deduce the hidden bijection from anchor positions, then decode the full inscription.")
+                .font(EgyptFont.bodyItalic(13))
+                .foregroundStyle(Color(red: 0.45, green: 0.75, blue: 1.0).opacity(0.5))
+                .padding(.horizontal, 4)
+
+            VStack(spacing: 8) {
+                ForEach(SumerianLevel.allLevels) { level in
+                    sumerianCipherRow(level)
+                }
+            }
+        }
+    }
+
+    private func sumerianCipherRow(_ level: SumerianLevel) -> some View {
+        let isSolved  = gameState.sumerianUnlockedLevels.contains(level.id)
+        let isCurrent = gameState.sumerianCurrentLevelIndex == (SumerianLevel.allLevels.firstIndex(where: { $0.id == level.id }) ?? -1)
+
+        return HStack(spacing: 14) {
+
+            // Roman numeral
+            Text(level.romanNumeral)
+                .font(EgyptFont.titleBold(18))
+                .foregroundStyle(isSolved
+                    ? Color(red: 0.30, green: 0.85, blue: 0.50)
+                    : Color(red: 0.45, green: 0.75, blue: 1.0).opacity(0.7))
+                .frame(width: 28)
+
+            // Level info
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 8) {
+                    Text(level.title)
+                        .font(EgyptFont.titleBold(15))
+                        .foregroundStyle(.white)
+                    if isCurrent {
+                        Text("CURRENT")
+                            .font(EgyptFont.body(10))
+                            .tracking(1)
+                            .foregroundStyle(Color.goldBright)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(RoundedRectangle(cornerRadius: 3).fill(Color.goldDark.opacity(0.3)))
+                    }
+                }
+                HStack(spacing: 10) {
+                    // Symbol count
+                    Label("\(level.symbols.count) symbols", systemImage: "character.cursor.ibeam")
+                        .font(EgyptFont.body(12))
+                        .foregroundStyle(Color(red: 0.45, green: 0.75, blue: 1.0).opacity(0.55))
+
+                    // Sequence length
+                    Label("\(level.encodedSequence.count) signs", systemImage: "list.number")
+                        .font(EgyptFont.body(12))
+                        .foregroundStyle(Color(red: 0.45, green: 0.75, blue: 1.0).opacity(0.55))
+
+                    // Anchors badge
+                    Text("\(level.revealedPositions.count) anchors")
+                        .font(EgyptFont.body(11))
+                        .foregroundStyle(Color(red: 1.0, green: 0.80, blue: 0.35).opacity(0.8))
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 2)
+                        .background(
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(Color(red: 1.0, green: 0.80, blue: 0.35).opacity(0.12))
+                                .overlay(RoundedRectangle(cornerRadius: 4)
+                                    .stroke(Color(red: 1.0, green: 0.80, blue: 0.35).opacity(0.35), lineWidth: 0.7))
+                        )
+
+                    if isSolved {
+                        Label("Solved", systemImage: "checkmark.seal.fill")
+                            .font(EgyptFont.body(11))
+                            .foregroundStyle(Color(red: 0.30, green: 0.85, blue: 0.50))
+                    }
+                }
+            }
+
+            Spacer()
+
+            // Play button
+            Button(action: {
+                HapticFeedback.tap()
+                gameState.debugJumpToSumerianLevel(level)
+            }) {
+                Image(systemName: "play.circle.fill")
+                    .font(.system(size: 24))
+                    .foregroundStyle(Color(red: 0.45, green: 0.75, blue: 1.0))
             }
         }
         .padding(.horizontal, 14)

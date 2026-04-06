@@ -76,7 +76,7 @@ struct JournalView: View {
     }
 
     var body: some View {
-        ZStack {
+        ZStack(alignment: .top) {
             Color.leatherBg.ignoresSafeArea()
 
             // Leather texture vignette
@@ -86,13 +86,8 @@ struct JournalView: View {
             )
             .ignoresSafeArea()
 
-            VStack(spacing: 0) {
-                diaryTopBar
-                    .padding(.horizontal, 16)
-                    .padding(.top, 12)
-                    .padding(.bottom, 8)
-
-                // Book pages
+            // Book pages inset so they don't underrun the header or nav bar
+            GeometryReader { geo in
                 TabView(selection: $currentPageIndex) {
                     ForEach(0..<pages.count, id: \.self) { index in
                         BookPage(pageType: pages[index], pageNumber: index + 1, totalPages: pages.count)
@@ -101,11 +96,23 @@ struct JournalView: View {
                     }
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
+                .frame(width: geo.size.width, height: geo.size.height)
+                .padding(.top, 64)
+                .padding(.bottom, 52)
+            }
 
-                // Page navigation
+            // Top bar sits in its own ZStack layer so PageView gestures can't swallow it
+            VStack {
+                diaryTopBar
+                    .padding(.horizontal, 16)
+                    .padding(.top, 12)
+                    .padding(.bottom, 8)
+                    .background(Color.leatherBg.ignoresSafeArea(edges: .top))
+                Spacer()
                 pageNav
-                    .padding(.horizontal, 24)
+                    .frame(maxWidth: .infinity)
                     .padding(.vertical, 10)
+                    .background(Color.leatherBg.ignoresSafeArea(edges: .bottom))
             }
         }
         .onAppear {
@@ -151,7 +158,7 @@ struct JournalView: View {
     }
 
     private var pageNav: some View {
-        HStack(spacing: 20) {
+        HStack {
             Button(action: {
                 if currentPageIndex > 0 {
                     withAnimation(.easeInOut(duration: 0.25)) { currentPageIndex -= 1 }
@@ -163,11 +170,16 @@ struct JournalView: View {
                     .foregroundStyle(currentPageIndex > 0
                                      ? Color(red: 0.75, green: 0.60, blue: 0.35)
                                      : Color(red: 0.35, green: 0.25, blue: 0.12))
+                    .frame(width: 44, height: 36)
             }
+
+            Spacer()
 
             Text("\(currentPageIndex + 1)  of  \(pages.count)")
                 .font(handFont(15))
                 .foregroundStyle(Color(red: 0.65, green: 0.50, blue: 0.28))
+
+            Spacer()
 
             Button(action: {
                 if currentPageIndex < pages.count - 1 {
@@ -180,8 +192,10 @@ struct JournalView: View {
                     .foregroundStyle(currentPageIndex < pages.count - 1
                                      ? Color(red: 0.75, green: 0.60, blue: 0.35)
                                      : Color(red: 0.35, green: 0.25, blue: 0.12))
+                    .frame(width: 44, height: 36)
             }
         }
+        .padding(.horizontal, 16)
     }
 }
 
@@ -465,6 +479,34 @@ private struct TabletGridContent: View {
             SectionRule()
             let count = gameState.decodedTabletSlots.count
             HandNote(text: "\(count) of 30 symbols decoded.", color: count == 30 ? Color.inkBlue : Color.inkSepia.opacity(0.6))
+
+            if gameState.manduAccessible {
+                SectionRule()
+                HandNote(text: "The stone can be read.", color: Color.inkBlue.opacity(0.8))
+                Spacer(minLength: 6)
+                Button {
+                    gameState.openManduTablet()
+                } label: {
+                    HStack {
+                        Spacer()
+                        Text("Open the Stone")
+                            .font(handFont(16, bold: true))
+                            .foregroundStyle(Color.paperCream)
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 10)
+                            .background(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .fill(Color(red: 0.22, green: 0.16, blue: 0.06))
+                                    .overlay(RoundedRectangle(cornerRadius: 8)
+                                        .stroke(Color(red: 0.65, green: 0.50, blue: 0.20), lineWidth: 1))
+                            )
+                        Spacer()
+                    }
+                }
+            } else {
+                SectionRule()
+                HandNote(text: "Solve every civilization's puzzles to place symbols on the stone.", color: Color.inkSepia.opacity(0.55))
+            }
         }
     }
 }

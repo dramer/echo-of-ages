@@ -5,16 +5,22 @@ import SwiftUI
 
 struct ContentView: View {
     @StateObject private var gameState = GameState()
-    @State private var splashDone = false
 
     var body: some View {
+        mainContent
+            .environmentObject(gameState)
+            .preferredColorScheme(.dark)
+    }
+
+    @ViewBuilder
+    private var mainContent: some View {
         ZStack {
             Color.stoneDark.ignoresSafeArea()
 
             Group {
                 switch gameState.currentScreen {
                 case .intro:
-                    IntroView()
+                    TitleView()
                         .transition(.opacity)
 
                 case .title:
@@ -45,8 +51,12 @@ struct ContentView: View {
                         .transition(.move(edge: .trailing).combined(with: .opacity))
 
                 case .debug:
+                    #if DEBUG
                     DebugView()
                         .transition(.move(edge: .trailing).combined(with: .opacity))
+                    #else
+                    TitleView()
+                    #endif
 
                 case .norseGame:
                     PathGameView()
@@ -54,24 +64,24 @@ struct ContentView: View {
                             insertion: .move(edge: .trailing).combined(with: .opacity),
                             removal: .opacity
                         ))
+
+                case .sumerianGame:
+                    SumerianGameView()
+                        .transition(.asymmetric(
+                            insertion: .move(edge: .trailing).combined(with: .opacity),
+                            removal: .opacity
+                        ))
+
+                case .manduTablet:
+                    ManduTabletView()
+                        .transition(.asymmetric(
+                            insertion: .move(edge: .bottom).combined(with: .opacity),
+                            removal: .opacity
+                        ))
                 }
             }
             .animation(.easeInOut(duration: 0.38), value: gameState.currentScreen)
-
-            // Splash screen — sits on top, fades out once the animation completes
-            if !splashDone {
-                SplashView {
-                    withAnimation(.easeOut(duration: 0.55)) {
-                        splashDone = true
-                    }
-                }
-                .transition(.opacity)
-                .zIndex(100)
-            }
         }
-        .animation(.easeOut(duration: 0.55), value: splashDone)
-        .environmentObject(gameState)
-        .preferredColorScheme(.dark)
     }
 }
 

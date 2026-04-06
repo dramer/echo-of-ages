@@ -16,6 +16,8 @@ enum GameScreen: Equatable {
     case settings
     case debug
     case norseGame
+    case sumerianGame
+    case manduTablet
 }
 
 // MARK: - GameState
@@ -98,7 +100,7 @@ final class GameState: ObservableObject {
     init() {
         loadProgress()
         resetGrid(for: Level.allLevels[0])
-        // SplashView handles the launch intro — always start on .title
+        resetSumerianDecoded(for: SumerianLevel.allLevels[0])
     }
 
     // MARK: Navigation
@@ -328,6 +330,8 @@ final class GameState: ObservableObject {
             isAnimatingCompletion = false
             if currentLevelIndex < Level.allLevels.count - 1 {
                 currentScreen = .levelComplete
+            } else if allUnlockedCivsComplete {
+                currentScreen = .manduTablet
             } else {
                 currentScreen = .gameComplete
             }
@@ -501,6 +505,241 @@ final class GameState: ObservableObject {
         currentScreen = .norseGame
     }
 
+    // MARK: Sumerian State
+
+    @Published var sumerianCurrentLevelIndex: Int = 0
+    @Published var playerSumerianDecoded: [CuneiformGlyph?] = []
+    @Published var sumerianSelectedDecodedIndex: Int? = nil
+    @Published var sumerianErrorPositions: Set<Int> = []
+    @Published var sumerianUnlockedLevels: Set<Int> = []
+    @Published var sumerianPendingComplete: Bool = false
+    @Published var sumerianPendingDecodedMessage: String = ""
+
+    var sumerianCurrentLevel: SumerianLevel {
+        SumerianLevel.allLevels[sumerianCurrentLevelIndex]
+    }
+
+    var sumerianHasProgress: Bool { !sumerianUnlockedLevels.isEmpty }
+
+    /// All cipher mappings discoverable from current decoded positions
+    /// (revealed anchors + player-filled cells combined).
+    var sumerianKnownMappings: [CuneiformGlyph: CuneiformGlyph] {
+        let level = sumerianCurrentLevel
+        var mappings: [CuneiformGlyph: CuneiformGlyph] = [:]
+        for (idx, encoded) in level.encodedSequence.enumerated() {
+            guard idx < playerSumerianDecoded.count else { continue }
+            if let decoded = playerSumerianDecoded[idx] {
+                mappings[encoded] = decoded
+            }
+        }
+        return mappings
+    }
+
+    // MARK: Sumerian Navigation
+
+    func startSumerianGame() {
+        let next = min(sumerianUnlockedLevels.count, SumerianLevel.allLevels.count - 1)
+        loadSumerianLevel(next)
+        currentScreen = .sumerianGame
+    }
+
+    func closeSumerianGame() {
+        sumerianPendingComplete = false
+        if allUnlockedCivsComplete {
+            currentScreen = .manduTablet
+        } else {
+            currentScreen = .title
+        }
+    }
+
+    func loadSumerianLevel(_ index: Int) {
+        sumerianCurrentLevelIndex = max(0, min(index, SumerianLevel.allLevels.count - 1))
+        sumerianSelectedDecodedIndex = nil
+        sumerianErrorPositions = []
+        sumerianPendingComplete = false
+        resetSumerianDecoded(for: SumerianLevel.allLevels[sumerianCurrentLevelIndex])
+    }
+
+    private func resetSumerianDecoded(for level: SumerianLevel) {
+        playerSumerianDecoded = level.encodedSequence.indices.map { idx in
+            level.isRevealed(idx) ? level.solution[idx] : nil
+        }
+        sumerianSelectedDecodedIndex = nil
+    }
+
+    // MARK: Sumerian Decoded Interaction
+
+    /// Selects a blank decoded position (or deselects if already selected).
+    func tapSumerianDecodedPosition(_ index: Int) {
+        let level = sumerianCurrentLevel
+        guard !level.isRevealed(index) else { HapticFeedback.error(); return }
+        guard !sumerianPendingComplete else { return }
+        if sumerianSelectedDecodedIndex == index {
+            sumerianSelectedDecodedIndex = nil
+        } else {
+            sumerianSelectedDecodedIndex = index
+            HapticFeedback.tap()
+        }
+    }
+
+    /// Places a glyph at the currently selected decoded position.
+    func placeSumerianGlyph(_ glyph: CuneiformGlyph) {
+        guard let idx = sumerianSelectedDecodedIndex else { return }
+        guard !sumerianPendingComplete else { return }
+        guard idx < playerSumerianDecoded.count else { return }
+        if playerSumerianDecoded[idx] == glyph {
+            playerSumerianDecoded[idx] = nil
+        } else {
+            playerSumerianDecoded[idx] = glyph
+        }
+        sumerianSelectedDecodedIndex = nil
+        HapticFeedback.tap()
+        checkSumerianSolution()
+    }
+
+    func resetSumerianCurrentLevel() {
+        loadSumerianLevel(sumerianCurrentLevelIndex)
+    }
+
+    // MARK: Sumerian Verify
+
+    func verifySumerianPlacement() {
+        let level = sumerianCurrentLevel
+        var mistakes = Set<Int>()
+        for (idx, glyph) in playerSumerianDecoded.enumerated() {
+            if let placed = glyph, placed != level.solution[idx] {
+                mistakes.insert(idx)
+            }
+        }
+        if mistakes.isEmpty {
+            HapticFeedback.success()
+        } else {
+            HapticFeedback.error()
+            sumerianErrorPositions = mistakes
+            Task {
+                try? await Task.sleep(nanoseconds: 1_200_000_000)
+                sumerianErrorPositions = []
+            }
+        }
+    }
+
+    // MARK: Sumerian Solution Check
+
+    private func checkSumerianSolution() {
+        guard playerSumerianDecoded.allSatisfy({ $0 != nil }) else { return }
+        if sumerianCurrentLevel.isSolved(playerSumerianDecoded) {
+            handleSumerianLevelComplete()
+        }
+    }
+
+    private func handleSumerianLevelComplete() {
+        HapticFeedback.success()
+        let level = sumerianCurrentLevel
+        sumerianUnlockedLevels.insert(level.id)
+        sumerianPendingDecodedMessage = level.decodedMessage
+        UserDefaults.standard.set(Array(sumerianUnlockedLevels), forKey: "EOA_sumerianUnlocked")
+        Task {
+            try? await Task.sleep(nanoseconds: 800_000_000)
+            sumerianPendingComplete = true
+        }
+    }
+
+    func advanceSumerianToNextLevel() {
+        let next = sumerianCurrentLevelIndex + 1
+        if next < SumerianLevel.allLevels.count {
+            loadSumerianLevel(next)
+        } else {
+            closeSumerianGame()
+        }
+    }
+
+    // MARK: Sumerian Debug
+
+    func debugJumpToSumerianLevel(_ level: SumerianLevel) {
+        guard let idx = SumerianLevel.allLevels.firstIndex(where: { $0.id == level.id }) else { return }
+        loadSumerianLevel(idx)
+        currentScreen = .sumerianGame
+    }
+
+    // MARK: Mandu Tablet State
+
+    @Published var manduPlayerGrid: [Int: String] = [:]
+    @Published var manduSelectedSlotId: Int? = nil
+
+    /// All civilizations where the player has completed every puzzle.
+    var civilizationsCompletedForMandu: Set<CivilizationID> {
+        var done = Set<CivilizationID>()
+        let egypt = Level.allLevels.filter { $0.civilization == .egyptian }
+        if !egypt.isEmpty, egypt.allSatisfy({ unlockedJournalEntries.contains($0.journalEntry.id) }) {
+            done.insert(.egyptian)
+        }
+        if !PathLevel.allLevels.isEmpty, PathLevel.allLevels.allSatisfy({ norseUnlockedLevels.contains($0.id) }) {
+            done.insert(.norse)
+        }
+        if !SumerianLevel.allLevels.isEmpty, SumerianLevel.allLevels.allSatisfy({ sumerianUnlockedLevels.contains($0.id) }) {
+            done.insert(.sumerian)
+        }
+        return done
+    }
+
+    /// True when at least one civilization is fully solved.
+    var manduAccessible: Bool { !civilizationsCompletedForMandu.isEmpty }
+
+    /// True when every currently unlocked civilization is fully solved.
+    var allUnlockedCivsComplete: Bool {
+        let ids = Civilization.all.filter(\.isUnlocked).map(\.id)
+        return !ids.isEmpty && ids.allSatisfy { civilizationsCompletedForMandu.contains($0) }
+    }
+
+    /// True when every slot in the tablet has the correct symbol placed.
+    var isManduComplete: Bool {
+        TabletSlot.all.allSatisfy { manduPlayerGrid[$0.id] == $0.character }
+    }
+
+    var manduCorrectCount: Int {
+        TabletSlot.all.filter { manduPlayerGrid[$0.id] == $0.character }.count
+    }
+
+    // MARK: Mandu Navigation
+
+    func openManduTablet() {
+        previousScreen = currentScreen
+        currentScreen = .manduTablet
+    }
+
+    func closeManduTablet() {
+        currentScreen = (previousScreen == .manduTablet) ? .title : previousScreen
+    }
+
+    // MARK: Mandu Interaction
+
+    func tapManduSlot(_ slotId: Int) {
+        if manduSelectedSlotId == slotId {
+            manduSelectedSlotId = nil
+        } else {
+            manduSelectedSlotId = slotId
+            HapticFeedback.tap()
+        }
+    }
+
+    func placeManduSymbol(_ character: String) {
+        guard let slotId = manduSelectedSlotId else { return }
+        if manduPlayerGrid[slotId] == character {
+            manduPlayerGrid.removeValue(forKey: slotId)
+        } else {
+            manduPlayerGrid[slotId] = character
+            HapticFeedback.tap()
+        }
+        manduSelectedSlotId = nil
+        if isManduComplete { HapticFeedback.success() }
+    }
+
+    func resetManduGrid() {
+        manduPlayerGrid = [:]
+        manduSelectedSlotId = nil
+        HapticFeedback.heavy()
+    }
+
     // MARK: Reset Civilization
 
     /// Wipes all solved levels and discovered glyphs for a given civilization.
@@ -533,6 +772,8 @@ final class GameState: ObservableObject {
         UserDefaults.standard.set(messagesDict, forKey: "EOA_chronicle")
         UserDefaults.standard.set(showIntroOnLaunch, forKey: "EOA_showIntro")
         UserDefaults.standard.set(Array(norseUnlockedLevels), forKey: "EOA_norseUnlocked")
+        let manduDict = manduPlayerGrid.reduce(into: [String: String]()) { $0["\($1.key)"] = $1.value }
+        UserDefaults.standard.set(manduDict, forKey: "EOA_manduGrid")
     }
 
     private func loadProgress() {
@@ -549,6 +790,14 @@ final class GameState: ObservableObject {
 
         let norseIds = UserDefaults.standard.array(forKey: "EOA_norseUnlocked") as? [Int] ?? []
         norseUnlockedLevels = Set(norseIds)
+
+        let sumerianIds = UserDefaults.standard.array(forKey: "EOA_sumerianUnlocked") as? [Int] ?? []
+        sumerianUnlockedLevels = Set(sumerianIds)
+
+        let rawMandu = UserDefaults.standard.dictionary(forKey: "EOA_manduGrid") as? [String: String] ?? [:]
+        manduPlayerGrid = rawMandu.reduce(into: [Int: String]()) {
+            if let id = Int($1.key) { $0[id] = $1.value }
+        }
 
         // Default showIntroOnLaunch to true only on first ever run
         if UserDefaults.standard.object(forKey: "EOA_showIntro") == nil {
