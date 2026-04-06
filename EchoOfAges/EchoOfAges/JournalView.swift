@@ -28,6 +28,7 @@ private enum DiaryPage: Equatable {
     case fieldNotes             // current puzzle's clues
     case rosettaStone
     case champollionMethod
+    case howToPlay
     case howToSolve
 }
 
@@ -58,6 +59,7 @@ struct JournalView: View {
     private var pages: [DiaryPage] {
         var list: [DiaryPage] = [
             .frontPage, .drMandu, .mapPage, .tabletStory, .tabletGrid, .civilizations,
+            .howToPlay,
             .egyptPuzzle, .mesopotamiaPuzzle, .greecePuzzle,
             .chinaPuzzle, .norsePuzzle, .mesoamericanPuzzle
         ]
@@ -291,6 +293,7 @@ private struct BookPage: View {
         case .fieldNotes:          FieldNotesContent()
         case .rosettaStone:        RosettaStoneContent()
         case .champollionMethod:   ChampollionContent()
+        case .howToPlay:           HowToPlayContent()
         case .howToSolve:          HowToSolveContent()
         }
     }
@@ -732,6 +735,78 @@ private struct ChampollionContent: View {
             }
             SectionRule()
             HandNote(text: "Each certain symbol revealed two more. The cipher cascaded open.", color: Color.inkRed.opacity(0.8))
+        }
+    }
+}
+
+// MARK: - How to Play Page
+
+private struct HowToPlayContent: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+
+            HandTitle(text: "How to Play")
+            HandBody(text: "Six ancient civilizations left behind partial tablets near the Tablet of Mandu — teaching tools, as if someone wanted whoever found them to be able to decode the main inscription.")
+
+            SectionRule()
+
+            // Step 1
+            HStack(alignment: .top, spacing: 10) {
+                Text("I").font(handFont(15, bold: true)).foregroundStyle(Color.inkRed).frame(width: 18)
+                VStack(alignment: .leading, spacing: 4) {
+                    HandTitle(text: "Start with Egypt", size: 15, color: .inkBlue)
+                    HandBody(text: "Egypt's partial tablets use hieroglyphs arranged in a grid. No symbol repeats in any row or column. Fill the grid using logic — no guessing required.", size: 14)
+                }
+            }
+
+            SectionRule()
+
+            // Step 2
+            HStack(alignment: .top, spacing: 10) {
+                Text("II").font(handFont(15, bold: true)).foregroundStyle(Color.inkRed).frame(width: 18)
+                VStack(alignment: .leading, spacing: 4) {
+                    HandTitle(text: "Norse & Sumerian Unlock Together", size: 15, color: .inkBlue)
+                    HandBody(text: "Complete all five Egyptian tablets and two new civilizations open: Norse runes (a pathfinding puzzle — trace the correct route through the runestone) and Sumerian cuneiform (a substitution cipher — decode a message using symbols you uncover).", size: 14)
+                    HandNote(text: "You can play Norse and Sumerian in any order, or switch between them.", size: 12, color: Color.inkSepia.opacity(0.6))
+                }
+            }
+
+            SectionRule()
+
+            // Step 3
+            HStack(alignment: .top, spacing: 10) {
+                Text("III").font(handFont(15, bold: true)).foregroundStyle(Color.inkRed).frame(width: 18)
+                VStack(alignment: .leading, spacing: 4) {
+                    HandTitle(text: "Maya & Celtic Follow", size: 15, color: .inkBlue)
+                    HandBody(text: "Finish both Norse and Sumerian and two more civilizations appear: Maya glyphs and Celtic ogham. Complete either one to unlock the sixth and final civilization.", size: 14)
+                }
+            }
+
+            SectionRule()
+
+            // Step 4
+            HStack(alignment: .top, spacing: 10) {
+                Text("IV").font(handFont(15, bold: true)).foregroundStyle(Color.inkRed).frame(width: 18)
+                VStack(alignment: .leading, spacing: 4) {
+                    HandTitle(text: "Chinese Oracle Script — The Final Gate", size: 15, color: .inkBlue)
+                    HandBody(text: "Complete Maya or Celtic and the last civilization unlocks: ancient Chinese oracle bone script. Master all five of its tablets to complete your sixth and final row on the Tablet of Mandu.", size: 14)
+                }
+            }
+
+            SectionRule()
+
+            // The Mandu Tablet
+            HStack(alignment: .top, spacing: 10) {
+                Text("𓇳").font(.system(size: 15)).foregroundStyle(Color(red: 0.60, green: 0.42, blue: 0.10)).frame(width: 18)
+                VStack(alignment: .leading, spacing: 4) {
+                    HandTitle(text: "The Tablet of Mandu — Always Open", size: 15, color: .inkBlue)
+                    HandBody(text: "The final puzzle is accessible from this diary at any time. As you complete each civilization, their symbols become available in the palette. Place them on the stone where they belong.", size: 14)
+                    Spacer(minLength: 4)
+                    HandNote(text: "But the stone does not hold your work. Every time you close it, the placed symbols fall away — they are only held in place when all six civilizations are fully deciphered.", size: 13, color: Color.inkRed.opacity(0.75))
+                    Spacer(minLength: 4)
+                    HandNote(text: "When all six are complete: return to the stone, place all thirty symbols, and the inscription will reveal itself.", size: 13, color: Color.inkSepia.opacity(0.65))
+                }
+            }
         }
     }
 }
