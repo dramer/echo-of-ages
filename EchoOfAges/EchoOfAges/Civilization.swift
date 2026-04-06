@@ -100,7 +100,7 @@ extension Civilization {
             ScriptSymbol(id: "ansuz",    character: "ᚨ", transliteration: "a",  meaning: "Ansuz — Gods, Breath",      civilization: .norse),
             ScriptSymbol(id: "raidho",   character: "ᚱ", transliteration: "r",  meaning: "Raidho — Journey, Ride",    civilization: .norse),
         ],
-        isUnlocked: false,
+        isUnlocked: true,
         levelCount: 5,
         tabletLine: "Across the fury of all oceans, beneath the world-tree Yggdrasil, the trunk rose through nine worlds. Odin hung nine nights to learn this: the tree is everything, and everything is the tree."
     )
