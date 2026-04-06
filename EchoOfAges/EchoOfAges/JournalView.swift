@@ -30,6 +30,7 @@ private enum DiaryPage: Equatable {
     case champollionMethod
     case howToPlay
     case howToSolve
+    case settingsPage
 }
 
 // MARK: - Diary colors & font
@@ -74,6 +75,7 @@ struct JournalView: View {
         list.append(.rosettaStone)
         list.append(.champollionMethod)
         list.append(.howToSolve)
+        list.append(.settingsPage)
         return list
     }
 
@@ -295,6 +297,7 @@ private struct BookPage: View {
         case .champollionMethod:   ChampollionContent()
         case .howToPlay:           HowToPlayContent()
         case .howToSolve:          HowToSolveContent()
+        case .settingsPage:        SettingsJournalContent()
         }
     }
 }
@@ -559,6 +562,31 @@ private struct CivilizationsContent: View {
                              color: Color.inkSepia.opacity(isDone ? 0.65 : isOpen ? 0.50 : 0.25))
                     HandNote(text: tierLabel(for: civ.id), size: 11,
                              color: isDone ? civ.accentColor.opacity(0.55) : isOpen ? Color.inkSepia.opacity(0.45) : Color.inkSepia.opacity(0.22))
+
+                    // Play button — shown for open, incomplete civilizations
+                    if isOpen && !isDone {
+                        Button {
+                            HapticFeedback.tap()
+                            gameState.navigateToCivilization(civ.id)
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "play.fill")
+                                    .font(.system(size: 11))
+                                Text("Play \(civ.name)")
+                                    .font(handFont(13, bold: true))
+                            }
+                            .foregroundStyle(Color.paperCream)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 7)
+                            .background(
+                                RoundedRectangle(cornerRadius: 6)
+                                    .fill(Color.inkSepia.opacity(0.85))
+                                    .overlay(RoundedRectangle(cornerRadius: 6)
+                                        .stroke(Color(red: 0.65, green: 0.50, blue: 0.20).opacity(0.6), lineWidth: 1))
+                            )
+                        }
+                        .padding(.top, 4)
+                    }
                 }
                 .padding(.vertical, 4)
                 if civ.id != .chinese {
@@ -807,6 +835,149 @@ private struct HowToPlayContent: View {
                     HandNote(text: "When all six are complete: return to the stone, place all thirty symbols, and the inscription will reveal itself.", size: 13, color: Color.inkSepia.opacity(0.65))
                 }
             }
+        }
+    }
+}
+
+// MARK: - Settings Journal Page
+
+private struct SettingsJournalContent: View {
+    @EnvironmentObject var gameState: GameState
+    @State private var confirmingReset: CivilizationID? = nil
+    @State private var confirmingResetAll = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HandTitle(text: "Expedition Settings")
+            HandNote(text: "Field notes on how to configure your expedition.", color: Color.inkSepia.opacity(0.55))
+            SectionRule()
+
+            // Introduction
+            HandTitle(text: "Introduction", size: 17, color: .inkBlue)
+            Spacer(minLength: 2)
+            HStack {
+                VStack(alignment: .leading, spacing: 3) {
+                    HandBody(text: "Show on launch", size: 15)
+                    HandNote(text: "Play the opening story each time the app starts.", size: 12, color: Color.inkSepia.opacity(0.55))
+                }
+                Spacer()
+                Toggle("", isOn: $gameState.showIntroOnLaunch)
+                    .labelsHidden()
+                    .onChange(of: gameState.showIntroOnLaunch) { _, _ in gameState.saveSettings() }
+            }
+            Spacer(minLength: 4)
+            Button {
+                HapticFeedback.tap()
+                gameState.closeJournal()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                    gameState.playIntro()
+                }
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "play.circle.fill").font(.system(size: 16))
+                    Text("Watch Introduction Again").font(handFont(14, bold: true))
+                }
+                .foregroundStyle(Color.inkBlue)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .background(
+                    RoundedRectangle(cornerRadius: 7)
+                        .fill(Color.paperDark)
+                        .overlay(RoundedRectangle(cornerRadius: 7)
+                            .stroke(Color.inkSepia.opacity(0.25), lineWidth: 1))
+                )
+            }
+
+            SectionRule()
+
+            // Reset progress
+            HandTitle(text: "Reset Progress", size: 17, color: .inkBlue)
+            HandNote(text: "Erasing a civilization removes all solved puzzles and decoded messages for that culture.", size: 12, color: Color.inkSepia.opacity(0.55))
+            Spacer(minLength: 6)
+
+            VStack(spacing: 8) {
+                ForEach(Civilization.all.filter { $0.isUnlocked }) { civ in
+                    let hasProg = gameState.civilizationsCompletedForMandu.contains(civ.id) ||
+                                  (civ.id == .egyptian && !gameState.unlockedJournalEntries.isEmpty) ||
+                                  (civ.id == .norse && !gameState.norseUnlockedLevels.isEmpty) ||
+                                  (civ.id == .sumerian && !gameState.sumerianUnlockedLevels.isEmpty)
+                    HStack(spacing: 10) {
+                        Text(civ.emblem).font(.system(size: 20))
+                        HandBody(text: civ.name, size: 14)
+                        Spacer()
+                        if hasProg {
+                            Button {
+                                HapticFeedback.tap()
+                                confirmingReset = civ.id
+                            } label: {
+                                Text("Reset")
+                                    .font(handFont(13, bold: true))
+                                    .foregroundStyle(Color.inkRed)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 5)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 5)
+                                            .fill(Color.inkRed.opacity(0.08))
+                                            .overlay(RoundedRectangle(cornerRadius: 5)
+                                                .stroke(Color.inkRed.opacity(0.30), lineWidth: 1))
+                                    )
+                            }
+                        } else {
+                            HandNote(text: "no progress", size: 12, color: Color.inkSepia.opacity(0.35))
+                        }
+                    }
+                }
+            }
+
+            Spacer(minLength: 4)
+            Button {
+                HapticFeedback.heavy()
+                confirmingResetAll = true
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "exclamationmark.triangle.fill").font(.system(size: 14))
+                    Text("Reset All Progress").font(handFont(13, bold: true))
+                }
+                .foregroundStyle(Color.inkRed)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 9)
+                .background(
+                    RoundedRectangle(cornerRadius: 7)
+                        .fill(Color.inkRed.opacity(0.08))
+                        .overlay(RoundedRectangle(cornerRadius: 7)
+                            .stroke(Color.inkRed.opacity(0.30), lineWidth: 1))
+                )
+            }
+
+            SectionRule()
+
+            // Version
+            HandTitle(text: "About", size: 17, color: .inkBlue)
+            let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—"
+            let build   = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "—"
+            HStack { HandBody(text: "Echo of Ages", size: 14); Spacer() }
+            HStack {
+                HandNote(text: "Version \(version)  ·  Build \(build)", size: 12, color: Color.inkSepia.opacity(0.55))
+                Spacer()
+            }
+        }
+        .confirmationDialog("Reset \(confirmingReset.flatMap { id in Civilization.all.first { $0.id == id }?.name } ?? "")?",
+                            isPresented: Binding(get: { confirmingReset != nil }, set: { if !$0 { confirmingReset = nil } }),
+                            titleVisibility: .visible) {
+            Button("Reset", role: .destructive) {
+                if let id = confirmingReset { gameState.resetCivilization(id) }
+                confirmingReset = nil
+            }
+            Button("Cancel", role: .cancel) { confirmingReset = nil }
+        }
+        .confirmationDialog("Reset all expedition progress?", isPresented: $confirmingResetAll, titleVisibility: .visible) {
+            Button("Reset Everything", role: .destructive) {
+                for civ in Civilization.all where civ.isUnlocked { gameState.resetCivilization(civ.id) }
+                UserDefaults.standard.removeObject(forKey: "EOA_hasSeenIntro")
+                HapticFeedback.heavy()
+                confirmingResetAll = false
+            }
+            Button("Cancel", role: .cancel) { confirmingResetAll = false }
         }
     }
 }
