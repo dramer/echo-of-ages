@@ -13,15 +13,27 @@ struct TitleView: View {
             background
 
             VStack(spacing: 0) {
-                Spacer()
+                // ── Banner sits at the very top ──────────────────────────
+                Spacer(minLength: 12)
+                bannerImage
+
+                // ── Hieroglyph row directly below banner ─────────────────
+                Spacer(minLength: 18)
                 glyphDecoration
-                Spacer(minLength: 24)
-                titleBlock
-                Spacer(minLength: 40)
-                imageButtons
+
+                // ── Subtitle text ────────────────────────────────────────
+                Spacer(minLength: 22)
+                textBlock
+
+                // ── Flexible gap pushes buttons toward the bottom ────────
                 Spacer()
+
+                // ── Navigation buttons ───────────────────────────────────
+                imageButtons
+
+                Spacer(minLength: 18)
                 footerHieroglyphs
-                Spacer(minLength: 24)
+                Spacer(minLength: 20)
             }
             .padding(.horizontal, 24)
         }
@@ -35,19 +47,16 @@ struct TitleView: View {
         }
     }
 
-    // MARK: Background — aged papyrus / diary-page warmth
+    // MARK: Background
 
     private var background: some View {
         ZStack {
-            // Papyrus base
             Color(red: 0.88, green: 0.82, blue: 0.63).ignoresSafeArea()
-            // Warm candlelight glow at centre
             RadialGradient(
                 colors: [Color(red: 0.96, green: 0.91, blue: 0.74).opacity(0.65), .clear],
                 center: .center, startRadius: 50, endRadius: 360
             )
             .ignoresSafeArea()
-            // Aged-edge vignette — darker corners like old parchment
             RadialGradient(
                 colors: [.clear, Color(red: 0.38, green: 0.26, blue: 0.10).opacity(0.50)],
                 center: .center, startRadius: 270, endRadius: 640
@@ -56,7 +65,21 @@ struct TitleView: View {
         }
     }
 
-    // MARK: Glyph Decoration
+    // MARK: Banner (full-width, top of screen)
+
+    private var bannerImage: some View {
+        Image("banner")
+            .resizable()
+            .scaledToFit()
+            .frame(maxWidth: .infinity)
+            .shadow(color: Color.stoneDark.opacity(glowPulse ? 0.28 : 0.12), radius: 14, x: 0, y: 5)
+            .padding(.horizontal, -24)   // bleed past VStack insets to full width
+            .opacity(appeared ? 1 : 0)
+            .offset(y: appeared ? 0 : -12)
+            .animation(.easeOut(duration: 0.7), value: appeared)
+    }
+
+    // MARK: Glyph Decoration — below banner, dark so they read on papyrus
 
     private var glyphDecoration: some View {
         HStack(spacing: 0) {
@@ -71,65 +94,53 @@ struct TitleView: View {
             decorativeGlyph("𓇯")
         }
         .opacity(appeared ? 1 : 0)
-        .animation(.easeIn(duration: 0.9), value: appeared)
+        .animation(.easeIn(duration: 0.9).delay(0.1), value: appeared)
     }
 
     private func decorativeGlyph(_ symbol: String) -> some View {
         Text(symbol)
-            .font(.system(size: 44))
-            .foregroundStyle(Color.goldDark.opacity(0.85))
-            .shadow(color: Color.goldDark.opacity(glowPulse ? 0.45 : 0.12), radius: 6, x: 0, y: 0)
+            .font(.system(size: 50))
+            // Dark stone on papyrus — high contrast, clearly readable
+            .foregroundStyle(Color.stoneDark.opacity(0.82))
+            .shadow(color: Color.stoneDark.opacity(glowPulse ? 0.25 : 0.08), radius: 4, x: 0, y: 1)
     }
 
     private var decorativeDivider: some View {
         Text("·")
-            .font(EgyptFont.title(24))
-            .foregroundStyle(Color.goldDark.opacity(0.5))
+            .font(EgyptFont.title(26))
+            .foregroundStyle(Color.stoneMid.opacity(0.55))
             .padding(.horizontal, 8)
     }
 
-    // MARK: Title Block
+    // MARK: Text Block — subtitle + quote, larger type
 
-    private var titleBlock: some View {
-        VStack(spacing: 0) {
-            Image("banner")
-                .resizable()
-                .scaledToFit()
-                .frame(maxWidth: .infinity)
-                .shadow(color: Color.stoneDark.opacity(glowPulse ? 0.25 : 0.10), radius: 12, x: 0, y: 4)
-                .padding(.horizontal, -24)
-
-            Spacer(minLength: 18)
-
+    private var textBlock: some View {
+        VStack(spacing: 16) {
             Text("An Ancient Hieroglyph Deduction Puzzle")
-                .font(EgyptFont.bodyItalic(22))
-                .foregroundStyle(Color.stoneMid.opacity(0.90))
+                .font(EgyptFont.bodyItalic(26))
+                .foregroundStyle(Color.stoneMid)
                 .multilineTextAlignment(.center)
-
-            Spacer(minLength: 18)
 
             Text("\"In the beginning was the Word,\nand the Word was carved in stone.\"")
-                .font(EgyptFont.bodyItalic(20))
-                .foregroundStyle(Color.stoneMid.opacity(0.55))
+                .font(EgyptFont.bodyItalic(23))
+                .foregroundStyle(Color.stoneMid.opacity(0.60))
                 .multilineTextAlignment(.center)
-                .lineSpacing(6)
+                .lineSpacing(7)
         }
         .opacity(appeared ? 1 : 0)
-        .offset(y: appeared ? 0 : 20)
-        .animation(.easeOut(duration: 0.8).delay(0.1), value: appeared)
+        .offset(y: appeared ? 0 : 16)
+        .animation(.easeOut(duration: 0.8).delay(0.15), value: appeared)
     }
 
-    // MARK: Image Buttons — no bar, no labels, images speak for themselves
+    // MARK: Image Buttons — larger, label-free
 
     private var imageButtons: some View {
         HStack(spacing: 8) {
-            // Begin Journey — always shown
             landingButton(asset: "begin_journey", fallback: "arrow.right.circle.fill") {
                 HapticFeedback.heavy()
                 withAnimation(.easeInOut(duration: 0.4)) { gameState.startNewGame() }
             }
 
-            // Continue Journey — only shown when progress exists
             if gameState.hasProgress {
                 landingButton(asset: "continue_journey", fallback: "forward.fill") {
                     HapticFeedback.tap()
@@ -137,13 +148,11 @@ struct TitleView: View {
                 }
             }
 
-            // Open Journal
             landingButton(asset: "open_journal", fallback: "book.closed.fill") {
                 HapticFeedback.tap()
                 withAnimation(.easeInOut(duration: 0.4)) { gameState.openJournal() }
             }
 
-            // Settings
             landingButton(asset: "settings", fallback: "gearshape.fill") {
                 HapticFeedback.tap()
                 gameState.openSettings()
@@ -154,8 +163,6 @@ struct TitleView: View {
         .animation(.easeOut(duration: 0.7).delay(0.25), value: appeared)
     }
 
-    /// Single landing-page button: image asset only — no text label.
-    /// Image is sized large enough to be read on its own.
     private func landingButton(
         asset:    String,
         fallback: String,
@@ -169,12 +176,12 @@ struct TitleView: View {
                         .scaledToFit()
                 } else {
                     Image(systemName: fallback)
-                        .font(.system(size: 52))
+                        .font(.system(size: 62))
                         .foregroundStyle(Color.goldDark)
                 }
             }
             .frame(maxWidth: .infinity)
-            .frame(height: 110)
+            .frame(height: 145)
         }
     }
 
