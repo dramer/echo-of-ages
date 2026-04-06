@@ -98,11 +98,7 @@ final class GameState: ObservableObject {
     init() {
         loadProgress()
         resetGrid(for: Level.allLevels[0])
-
-        // Show intro on first ever launch, or if the player has it turned on
-        if !hasSeenIntro || showIntroOnLaunch {
-            currentScreen = .intro
-        }
+        // SplashView handles the launch intro — always start on .title
     }
 
     // MARK: Navigation
