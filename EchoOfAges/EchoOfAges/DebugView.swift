@@ -46,8 +46,8 @@ struct DebugView: View {
 
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 10) {
-                        // Egyptian + other future Latin-square civs
-                        ForEach(Civilization.all) { civ in
+                        // Latin-square civs only (Norse and Sumerian have dedicated sections below)
+                        ForEach(Civilization.all.filter { $0.id != .norse && $0.id != .sumerian }) { civ in
                             civExpandableSection(civ)
                         }
 
