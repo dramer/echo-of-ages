@@ -31,6 +31,7 @@ private enum DiaryPage: Equatable {
     case champollionMethod
     case howToPlay
     case howToSolve
+    case inspirationPage        // Why Echo of Ages was created — tribute to Cliff Johnson
     case settingsPage
 }
 
@@ -77,6 +78,7 @@ struct JournalView: View {
         list.append(.rosettaStone)
         list.append(.champollionMethod)
         list.append(.howToSolve)
+        list.append(.inspirationPage)
         list.append(.settingsPage)
         return list
     }
@@ -310,6 +312,7 @@ private struct BookPage: View {
         case .champollionMethod:   ChampollionContent()
         case .howToPlay:           HowToPlayContent()
         case .howToSolve:          HowToSolveContent()
+        case .inspirationPage:     InspirationPageContent()
         case .settingsPage:        SettingsJournalContent()
         }
     }
@@ -431,6 +434,7 @@ private struct TableOfContentsContent: View {
             TOCEntry(label: "The Rosetta Stone",      icon: "doc.text.fill",        page: .rosettaStone),
             TOCEntry(label: "Champollion's Method",   icon: "text.magnifyingglass", page: .champollionMethod),
             TOCEntry(label: "How to Solve",           icon: "lightbulb.fill",       page: .howToSolve),
+            TOCEntry(label: "Why Echo of Ages",       icon: "heart.text.square.fill", page: .inspirationPage),
             TOCEntry(label: "Settings",               icon: "gearshape.fill",       page: .settingsPage),
         ]
     }
@@ -968,6 +972,74 @@ private struct HowToPlayContent: View {
                     HandNote(text: "When all six are complete: return to the stone, place all thirty symbols, and the inscription will reveal itself.", size: 13, color: Color.inkSepia.opacity(0.65))
                 }
             }
+        }
+    }
+}
+
+// MARK: - Inspiration / Tribute Page
+
+private struct InspirationPageContent: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+
+            // Title
+            HandTitle(text: "Why I Built This")
+                .frame(maxWidth: .infinity, alignment: .center)
+            Spacer(minLength: 6)
+            HandNote(text: "A personal note from the developer.", size: 13,
+                     color: Color.inkSepia.opacity(0.55))
+                .frame(maxWidth: .infinity, alignment: .center)
+
+            SectionRule()
+
+            // The Fool's Errand image
+            Image("fools_errand")
+                .resizable()
+                .scaledToFit()
+                .frame(maxWidth: .infinity)
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+                .overlay(RoundedRectangle(cornerRadius: 6)
+                    .stroke(Color.inkSepia.opacity(0.35), lineWidth: 1))
+                .shadow(color: .black.opacity(0.25), radius: 4, x: 2, y: 2)
+
+            Spacer(minLength: 4)
+            HandNote(text: "The Fool's Errand — Cliff Johnson, 1987", size: 12,
+                     color: Color.inkSepia.opacity(0.45))
+                .frame(maxWidth: .infinity, alignment: .center)
+
+            SectionRule()
+
+            HandTitle(text: "A Tribute to Cliff Johnson", size: 18, color: .inkBlue)
+            Spacer(minLength: 10)
+            HandBody(text: "In 1987 a game arrived on the Macintosh that stopped me cold. The Fool's Errand was unlike anything I had encountered — a world woven entirely out of puzzles, where tarot cards, word games, mazes, and logic grids were not obstacles between story beats but the story itself. Every solved puzzle was a sentence in a larger sentence. Cliff Johnson had built a cathedral out of cardboard and ink, and I walked through every room of it.")
+            Spacer(minLength: 12)
+            HandBody(text: "I was young then, just finding my footing as a software developer. I was working at Intuit with a remarkable team, helping build the Macintosh version of Quicken. It was the early days of the Mac — small tight teams, every line of code mattered, and the machine itself felt like a living thing. We worked hard and we cared deeply about the craft.")
+            Spacer(minLength: 12)
+            HandBody(text: "But The Fool's Errand lived in a different part of my mind. It planted a question I never stopped asking: what would it feel like to build something like that? A puzzle that was also a journey. A mystery that rewarded patience, not reflexes.")
+
+            SectionRule()
+
+            HandTitle(text: "Decades Later", size: 18, color: .inkBlue)
+            Spacer(minLength: 10)
+            HandBody(text: "Echo of Ages is my answer to that question. An expedition through ancient civilizations, each culture hiding its knowledge inside a different kind of puzzle. Latin squares, rune paths, substitution ciphers — and eventually, if you follow all six threads, a final stone that only speaks when every voice has been heard.")
+            Spacer(minLength: 12)
+            HandBody(text: "Cliff never knew a young programmer in the 80s would carry his game forward into the next century. This one's for him.")
+            Spacer(minLength: 12)
+
+            // Signature
+            HStack {
+                Spacer()
+                VStack(alignment: .trailing, spacing: 3) {
+                    Text("— D.R.")
+                        .font(handFont(18, bold: true))
+                        .foregroundStyle(Color.inkBlue)
+                    Text("Expedition Archaeologist")
+                        .font(handFont(13))
+                        .foregroundStyle(Color.inkSepia.opacity(0.55))
+                }
+            }
+
+            Spacer(minLength: 20)
         }
     }
 }
