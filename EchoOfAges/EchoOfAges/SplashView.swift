@@ -13,7 +13,8 @@ import SwiftUI
 struct SplashView: View {
     let onFinished: () -> Void
 
-    @State private var bannerVisible = false   // drives banner fade + slide
+    @State private var bannerVisible  = false   // drives banner fade + slide
+    @State private var tributeVisible = false   // tribute line fades in after banner
 
     var body: some View {
         ZStack {
@@ -37,6 +38,16 @@ struct SplashView: View {
                         value: bannerVisible
                     )
 
+                Spacer(minLength: 16)
+
+                // Tribute line — fades in gently after the banner settles
+                Text("A Tribute to Cliff Johnson")
+                    .font(EgyptFont.bodyItalic(17))
+                    .foregroundStyle(Color(red: 0.22, green: 0.13, blue: 0.04).opacity(0.55))
+                    .tracking(1)
+                    .opacity(tributeVisible ? 1 : 0)
+                    .animation(.easeIn(duration: 0.7).delay(0.6), value: tributeVisible)
+
                 Spacer()
             }
             .padding(.horizontal, 24)
@@ -49,8 +60,13 @@ struct SplashView: View {
     private func beginSequence() {
         bannerVisible = true
 
-        // Hold after the spring settles, then hand off to the landing page.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.4) {
+        // Tribute line fades in after the banner spring settles
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            tributeVisible = true
+        }
+
+        // Hold, then hand off to the landing page
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.8) {
             onFinished()
         }
     }
