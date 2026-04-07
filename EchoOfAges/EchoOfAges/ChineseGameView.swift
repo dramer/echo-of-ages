@@ -32,19 +32,25 @@ struct ChineseGameView: View {
 
     // MARK: - Colors
 
-    private var lacquerBlack: Color { Color(red: 0.06, green: 0.04, blue: 0.02) }
-    private var trayFrame:    Color { Color(hex: "4A2810") ?? Color(red: 0.29, green: 0.16, blue: 0.06) }
-    private var emptyCell:    Color { (Color(hex: "D4A96A") ?? Color(red: 0.83, green: 0.66, blue: 0.42)).opacity(0.25) }
-    private var cellBorder:   Color { (Color(hex: "5C3520") ?? Color(red: 0.36, green: 0.21, blue: 0.13)).opacity(0.60) }
-    private var warmGold:     Color { Color(red: 0.85, green: 0.68, blue: 0.28) }
-    private var vermillion:   Color { Color(red: 0.78, green: 0.16, blue: 0.09) }
-    private var inkGrey:      Color { Color(red: 0.55, green: 0.50, blue: 0.44) }
+    private var trayFrame:  Color { Color(hex: "4A2810") ?? Color(red: 0.29, green: 0.16, blue: 0.06) }
+    private var emptyCell:  Color { (Color(hex: "D4A96A") ?? Color(red: 0.83, green: 0.66, blue: 0.42)).opacity(0.35) }
+    private var cellBorder: Color { (Color(hex: "5C3520") ?? Color(red: 0.36, green: 0.21, blue: 0.13)).opacity(0.50) }
+    private var warmGold:   Color { Color.goldDark }
+    private var vermillion: Color { Color(red: 0.78, green: 0.16, blue: 0.09) }
+    private var inkGrey:    Color { Color.stoneLight }
 
     // MARK: - Body
 
+    // Cell size computed from screen width — avoids GeometryReader height estimation bugs.
+    private var computedCellSize: CGFloat {
+        let screenW = UIScreen.main.bounds.width
+        let available = min(screenW - 36, 560.0)
+        return max(44, available / CGFloat(level.cols))
+    }
+
     var body: some View {
         ZStack {
-            lacquerBackground.ignoresSafeArea()
+            Color.papyrus.ignoresSafeArea()
 
             VStack(spacing: 0) {
                 headerBar
@@ -52,12 +58,7 @@ struct ChineseGameView: View {
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 14) {
                         levelHeader
-
-                        GeometryReader { geo in
-                            boardSectionGeometry(geo: geo)
-                        }
-                        .frame(height: boardHeightEstimate)
-
+                        boardSection(cellSize: computedCellSize)
                         piecesPalette
                         actionRow
                         inscriptionsSection
@@ -93,34 +94,6 @@ struct ChineseGameView: View {
         }
     }
 
-    // MARK: - Computed Board Height Estimate
-
-    /// Conservative estimate for the GeometryReader outer frame height.
-    /// The inner boardSection adjusts to the measured width at render time.
-    private var boardHeightEstimate: CGFloat {
-        // Use a generous per-row estimate; the actual computed height may be
-        // smaller on wide screens (fewer rows) or larger on narrow screens.
-        let approxCellSize: CGFloat = 58
-        return CGFloat(level.rows) * approxCellSize + 32
-    }
-
-    /// Wraps boardSection inside a GeometryReader callback, computing a precise height.
-    @ViewBuilder
-    private func boardSectionGeometry(geo: GeometryProxy) -> some View {
-        let sw = geo.size.width + 36  // compensate for parent's horizontal padding
-        let cs = cellSize(screenWidth: sw)
-        let h  = CGFloat(level.rows) * cs + 16
-        boardSection(screenWidth: sw)
-            .frame(height: h)
-    }
-
-    // MARK: - Cell Size
-
-    private func cellSize(screenWidth: CGFloat) -> CGFloat {
-        let available = min(screenWidth - 48, 500.0)
-        return max(44, available / CGFloat(level.cols))
-    }
-
     // MARK: - Header Bar
 
     private var headerBar: some View {
@@ -152,10 +125,10 @@ struct ChineseGameView: View {
         .padding(.horizontal, 20)
         .padding(.vertical, 14)
         .background(
-            lacquerBlack
+            Color.stoneDark
                 .overlay(
                     Rectangle()
-                        .fill(vermillion.opacity(0.40))
+                        .fill(vermillion.opacity(0.50))
                         .frame(height: 0.8),
                     alignment: .bottom
                 )
@@ -168,13 +141,13 @@ struct ChineseGameView: View {
         VStack(alignment: .leading, spacing: 6) {
             Text(level.title)
                 .font(EgyptFont.titleBold(20))
-                .foregroundStyle(warmGold)
+                .foregroundStyle(Color.stoneDark)
             Text(level.subtitle)
                 .font(EgyptFont.bodyItalic(14))
-                .foregroundStyle(warmGold.opacity(0.65))
+                .foregroundStyle(Color.stoneLight)
             Text(level.lore)
                 .font(EgyptFont.body(13))
-                .foregroundStyle(Color.papyrus.opacity(0.80))
+                .foregroundStyle(Color.stoneDark.opacity(0.75))
                 .lineSpacing(3)
                 .padding(.top, 2)
         }
@@ -182,18 +155,17 @@ struct ChineseGameView: View {
         .padding(14)
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(Color(red: 0.09, green: 0.06, blue: 0.03).opacity(0.90))
+                .fill(Color.stoneMid.opacity(0.18))
                 .overlay(
                     RoundedRectangle(cornerRadius: 12)
-                        .stroke(vermillion.opacity(0.22), lineWidth: 0.8)
+                        .stroke(Color.stoneMid.opacity(0.40), lineWidth: 0.8)
                 )
         )
     }
 
     // MARK: - Board Section
 
-    private func boardSection(screenWidth: CGFloat) -> some View {
-        let cs = cellSize(screenWidth: screenWidth)
+    private func boardSection(cellSize cs: CGFloat) -> some View {
         let trayWidth  = CGFloat(level.cols) * cs
         let trayHeight = CGFloat(level.rows) * cs
         let board = level.board(from: gameState.chinesePlacedPieces)
@@ -321,7 +293,7 @@ struct ChineseGameView: View {
         VStack(alignment: .leading, spacing: 10) {
             Text("PIECES")
                 .font(EgyptFont.title(11))
-                .foregroundStyle(warmGold.opacity(0.55))
+                .foregroundStyle(Color.stoneLight)
                 .tracking(2)
 
             ScrollView(.horizontal, showsIndicators: false) {
@@ -369,10 +341,10 @@ struct ChineseGameView: View {
         .padding(14)
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(Color(red: 0.08, green: 0.05, blue: 0.02))
+                .fill(Color.stoneMid.opacity(0.15))
                 .overlay(
                     RoundedRectangle(cornerRadius: 12)
-                        .stroke(vermillion.opacity(0.18), lineWidth: 0.8)
+                        .stroke(Color.stoneMid.opacity(0.35), lineWidth: 0.8)
                 )
         )
         .animation(.easeInOut(duration: 0.20), value: gameState.chineseSelectedPieceId)
@@ -502,15 +474,15 @@ struct ChineseGameView: View {
                     Text("Reset")
                         .font(EgyptFont.title(15))
                 }
-                .foregroundStyle(inkGrey)
+                .foregroundStyle(Color.stoneLight)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 13)
                 .background(
                     RoundedRectangle(cornerRadius: 10)
-                        .fill(Color.white.opacity(0.04))
+                        .fill(Color.stoneMid.opacity(0.12))
                         .overlay(
                             RoundedRectangle(cornerRadius: 10)
-                                .stroke(inkGrey.opacity(0.30), lineWidth: 1)
+                                .stroke(Color.stoneMid.opacity(0.40), lineWidth: 1)
                         )
                 )
             }
@@ -577,7 +549,7 @@ struct ChineseGameView: View {
                                 .foregroundStyle(warmGold.opacity(0.40))
                             Text(note)
                                 .font(EgyptFont.bodyItalic(14))
-                                .foregroundStyle(Color.papyrus.opacity(0.75))
+                                .foregroundStyle(Color.stoneDark.opacity(0.75))
                                 .lineSpacing(4)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
@@ -590,10 +562,10 @@ struct ChineseGameView: View {
         }
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(Color(red: 0.08, green: 0.05, blue: 0.02))
+                .fill(Color.stoneMid.opacity(0.15))
                 .overlay(
                     RoundedRectangle(cornerRadius: 12)
-                        .stroke(vermillion.opacity(0.18), lineWidth: 0.8)
+                        .stroke(Color.stoneMid.opacity(0.35), lineWidth: 0.8)
                 )
         )
     }
@@ -650,7 +622,7 @@ struct ChineseGameView: View {
         .padding(28)
         .background(
             RoundedRectangle(cornerRadius: 20)
-                .fill(lacquerBlack)
+                .fill(Color.stoneDark)
                 .overlay(
                     RoundedRectangle(cornerRadius: 20)
                         .stroke(warmGold.opacity(0.50), lineWidth: 1.2)
@@ -660,20 +632,4 @@ struct ChineseGameView: View {
         .padding(.horizontal, 28)
     }
 
-    // MARK: - Background
-
-    private var lacquerBackground: some View {
-        ZStack {
-            lacquerBlack
-            RadialGradient(
-                colors: [
-                    Color(red: 0.20, green: 0.10, blue: 0.02).opacity(0.50),
-                    .clear
-                ],
-                center: .topLeading,
-                startRadius: 60,
-                endRadius: 440
-            )
-        }
-    }
 }
