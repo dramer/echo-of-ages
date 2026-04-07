@@ -42,11 +42,11 @@ struct SplashView: View {
 
                 // Tribute line — fades in gently after the banner settles
                 Text("A Tribute to Cliff Johnson")
-                    .font(EgyptFont.bodyItalic(17))
-                    .foregroundStyle(Color(red: 0.22, green: 0.13, blue: 0.04).opacity(0.55))
+                    .font(EgyptFont.bodyItalic(19))
+                    .foregroundStyle(Color.black)
                     .tracking(1)
                     .opacity(tributeVisible ? 1 : 0)
-                    .animation(.easeIn(duration: 0.7).delay(0.6), value: tributeVisible)
+                    .animation(.easeIn(duration: 0.9), value: tributeVisible)
 
                 Spacer()
             }
@@ -61,12 +61,12 @@ struct SplashView: View {
         bannerVisible = true
 
         // Tribute line fades in after the banner spring settles
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             tributeVisible = true
         }
 
         // Hold, then hand off to the landing page
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.8) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.4) {
             onFinished()
         }
     }
