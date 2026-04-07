@@ -20,6 +20,16 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>UIAppFonts</key>
+	<array>
+		<string>Cinzel-VariableFont_wght.ttf</string>
+		<string>CrimsonText-Regular.ttf</string>
+		<string>CrimsonText-Italic.ttf</string>
+		<string>CrimsonText-SemiBold.ttf</string>
+		<string>CrimsonText-SemiBoldItalic.ttf</string>
+		<string>CrimsonText-Bold.ttf</string>
+		<string>CrimsonText-BoldItalic.ttf</string>
+	</array>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationIsSceneEnabled</key>
@@ -33,26 +43,9 @@
 	<string>LaunchScreen</string>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
-		<string>UIInterfaceOrientationPortrait</string>
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
-	</array>
-	<key>UISupportedInterfaceOrientations~ipad</key>
-	<array>
 		<string>UIInterfaceOrientationPortrait</string>
-		<string>UIInterfaceOrientationPortraitUpsideDown</string>
-		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
-	</array>
-	<key>UIAppFonts</key>
-	<array>
-		<string>Cinzel-VariableFont_wght.ttf</string>
-		<string>CrimsonText-Regular.ttf</string>
-		<string>CrimsonText-Italic.ttf</string>
-		<string>CrimsonText-SemiBold.ttf</string>
-		<string>CrimsonText-SemiBoldItalic.ttf</string>
-		<string>CrimsonText-Bold.ttf</string>
-		<string>CrimsonText-BoldItalic.ttf</string>
 	</array>
 </dict>
 </plist>
