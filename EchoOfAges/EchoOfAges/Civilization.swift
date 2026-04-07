@@ -146,7 +146,7 @@ extension Civilization {
             ScriptSymbol(id: "imix",  character: "𝋠", transliteration: "imix", meaning: "Earth, Crocodile", civilization: .maya),
             ScriptSymbol(id: "ik",    character: "𝋤", transliteration: "ik",   meaning: "Wind, Breath",     civilization: .maya),
         ],
-        isUnlocked: false,
+        isUnlocked: true,
         levelCount: 5,
         tabletLine: "The World Tree — Wakah-Chan — rises from the turtle shell of creation. The sun has circled it since before the first human opened their eyes. Every calendar measures not time, but the breath of the tree between heartbeats."
     )
@@ -193,7 +193,7 @@ extension Civilization {
             ScriptSymbol(id: "huo",  character: "火", transliteration: "huǒ",  meaning: "Fire",        civilization: .chinese),
             ScriptSymbol(id: "mu",   character: "木", transliteration: "mù",   meaning: "Wood, Tree",  civilization: .chinese),
         ],
-        isUnlocked: false,
+        isUnlocked: true,
         levelCount: 5,
         tabletLine: "The sun rises. The moon follows. Water finds the lowest place and calls it home. Fire transforms everything it touches and regrets nothing. Wood remembers every year in every ring. The tree does not forget."
     )

@@ -46,8 +46,8 @@ struct DebugView: View {
 
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 10) {
-                        // Latin-square civs only (Norse and Sumerian have dedicated sections below)
-                        ForEach(Civilization.all.filter { $0.id != .norse && $0.id != .sumerian }) { civ in
+                        // Latin-square civs only (Norse, Sumerian, Maya, and Chinese have dedicated sections below)
+                        ForEach(Civilization.all.filter { $0.id != .norse && $0.id != .sumerian && $0.id != .maya && $0.id != .chinese }) { civ in
                             civExpandableSection(civ)
                         }
 
@@ -56,6 +56,12 @@ struct DebugView: View {
 
                         // Sumerian cipher
                         sumerianExpandableSection
+
+                        // Maya calendar patterns
+                        mayanExpandableSection
+
+                        // Chinese I Ching hexagrams
+                        chineseExpandableSection
 
                         Spacer(minLength: 40)
                     }
@@ -348,6 +354,225 @@ struct DebugView: View {
             }
         }
         .animation(.easeInOut(duration: 0.22), value: isExpanded)
+    }
+
+    // MARK: Expandable Maya Section
+
+    private var mayanExpandableSection: some View {
+        let key = "mayan_section"
+        let isExpanded = !collapsedSections.contains(key)
+        let allLevels = MayanLevel.allLevels
+        let nSolved = allLevels.filter { gameState.mayanUnlockedLevels.contains($0.id) }.count
+
+        return VStack(alignment: .leading, spacing: 0) {
+            Button { toggleSection(key) } label: {
+                HStack(spacing: 10) {
+                    Text("𝋡").font(.system(size: 22))
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text("MAYA")
+                            .font(EgyptFont.titleBold(15))
+                            .tracking(2)
+                            .foregroundStyle(Color(red: 0.45, green: 0.75, blue: 1.0))
+                        Text("Calendar Patterns")
+                            .font(EgyptFont.bodyItalic(12))
+                            .foregroundStyle(Color(red: 0.45, green: 0.75, blue: 1.0).opacity(0.45))
+                    }
+                    Spacer()
+                    Text("\(nSolved)/\(allLevels.count)")
+                        .font(EgyptFont.body(13))
+                        .foregroundStyle(Color(red: 0.45, green: 0.75, blue: 1.0).opacity(0.55))
+                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Color(red: 0.45, green: 0.75, blue: 1.0).opacity(0.6))
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 12)
+                .background(
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(Color(red: 0.45, green: 0.75, blue: 1.0).opacity(0.08))
+                        .overlay(RoundedRectangle(cornerRadius: 10)
+                            .stroke(Color(red: 0.45, green: 0.75, blue: 1.0).opacity(0.22), lineWidth: 0.8))
+                )
+            }
+            .buttonStyle(.plain)
+
+            if isExpanded {
+                VStack(spacing: 8) {
+                    ForEach(allLevels) { level in
+                        mayanLevelRow(level)
+                    }
+                }
+                .padding(.top, 8)
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+        .animation(.easeInOut(duration: 0.22), value: isExpanded)
+    }
+
+    // MARK: Maya Level Row
+
+    private func mayanLevelRow(_ level: MayanLevel) -> some View {
+        let isSolved  = gameState.mayanUnlockedLevels.contains(level.id)
+        let isCurrent = gameState.mayanCurrentLevelIndex == (MayanLevel.allLevels.firstIndex(where: { $0.id == level.id }) ?? -1)
+        let totalCells = level.cycles.count * level.sequenceLength
+        let blankCount = level.cycles.reduce(0) { acc, cycle in
+            acc + (0..<level.sequenceLength).filter { !cycle.isRevealed($0) }.count
+        }
+
+        return HStack(spacing: 14) {
+            Text(level.romanNumeral)
+                .font(EgyptFont.titleBold(18))
+                .foregroundStyle(isSolved
+                    ? Color(red: 0.30, green: 0.85, blue: 0.50)
+                    : Color(red: 0.45, green: 0.75, blue: 1.0).opacity(0.7))
+                .frame(width: 28)
+
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 8) {
+                    Text(level.title)
+                        .font(EgyptFont.titleBold(15))
+                        .foregroundStyle(.white)
+                    if isCurrent { currentBadge }
+                }
+                HStack(spacing: 10) {
+                    Label("\(level.cycles.count) cycles", systemImage: "arrow.clockwise")
+                        .font(EgyptFont.body(12))
+                        .foregroundStyle(Color(red: 0.45, green: 0.75, blue: 1.0).opacity(0.55))
+                    Label("\(totalCells) cells", systemImage: "dot.circle")
+                        .font(EgyptFont.body(12))
+                        .foregroundStyle(Color(red: 0.45, green: 0.75, blue: 1.0).opacity(0.55))
+                    goldBadge("\(blankCount) blanks")
+                    if isSolved { solvedBadge }
+                }
+            }
+
+            Spacer()
+
+            HStack(spacing: 8) {
+                Button(action: {
+                    HapticFeedback.tap()
+                    gameState.debugSolveMayanLevel(level)
+                }) {
+                    Image(systemName: "checkmark.circle")
+                        .font(.system(size: 18))
+                        .foregroundStyle(Color(red: 0.30, green: 0.85, blue: 0.50).opacity(isSolved ? 0.35 : 0.85))
+                }
+                .disabled(isSolved)
+
+                Button(action: {
+                    HapticFeedback.tap()
+                    gameState.debugJumpToMayanLevel(level)
+                }) {
+                    Image(systemName: "play.circle.fill")
+                        .font(.system(size: 24))
+                        .foregroundStyle(Color(red: 0.45, green: 0.75, blue: 1.0))
+                }
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .background(levelBackground(solved: isSolved, current: isCurrent))
+    }
+
+    // MARK: Expandable Chinese Section
+
+    private var chineseExpandableSection: some View {
+        let key = "chinese_section"
+        let isExpanded = !collapsedSections.contains(key)
+        let allLevels = ChineseBoxLevel.allLevels
+        let nSolved = allLevels.filter { gameState.chineseUnlockedLevels.contains($0.id) }.count
+
+        return VStack(alignment: .leading, spacing: 0) {
+            Button { toggleSection(key) } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: "hexagon.fill")
+                        .font(.system(size: 16))
+                        .foregroundStyle(Color(red: 0.86, green: 0.17, blue: 0.10))
+                    Text("Chinese — Wooden Box Puzzles")
+                        .font(EgyptFont.titleBold(16))
+                        .foregroundStyle(.white)
+                    Spacer()
+                    Text("\(nSolved)/\(allLevels.count)")
+                        .font(EgyptFont.body(13))
+                        .foregroundStyle(Color(red: 0.86, green: 0.17, blue: 0.10).opacity(0.8))
+                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 13))
+                        .foregroundStyle(.white.opacity(0.5))
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 12)
+            }
+            .background(Color.white.opacity(0.05))
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+
+            if isExpanded {
+                VStack(spacing: 8) {
+                    ForEach(allLevels) { level in
+                        chineseLevelRow(level)
+                    }
+                }
+                .padding(.top, 8)
+            }
+        }
+    }
+
+    // MARK: Chinese Level Row
+
+    private func chineseLevelRow(_ level: ChineseBoxLevel) -> some View {
+        let isSolved  = gameState.chineseUnlockedLevels.contains(level.id)
+        let isCurrent = gameState.chineseCurrentLevelIndex == (ChineseBoxLevel.allLevels.firstIndex(where: { $0.id == level.id }) ?? -1)
+        let blankCount = level.pieces.count
+
+        return HStack(spacing: 14) {
+            Text(level.romanNumeral)
+                .font(EgyptFont.titleBold(18))
+                .foregroundStyle(isSolved
+                    ? Color(red: 0.30, green: 0.85, blue: 0.50)
+                    : Color(red: 0.86, green: 0.17, blue: 0.10).opacity(0.7))
+                .frame(width: 28)
+
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 8) {
+                    Text(level.title)
+                        .font(EgyptFont.titleBold(15))
+                        .foregroundStyle(.white)
+                    if isCurrent { currentBadge }
+                }
+                HStack(spacing: 10) {
+                    Label("\(level.rows)×\(level.cols) tray", systemImage: "square.grid.2x2")
+                        .font(EgyptFont.body(12))
+                        .foregroundStyle(Color(red: 0.86, green: 0.17, blue: 0.10).opacity(0.55))
+                    goldBadge("\(blankCount) pieces")
+                    if isSolved { solvedBadge }
+                }
+            }
+
+            Spacer()
+
+            HStack(spacing: 8) {
+                Button(action: {
+                    HapticFeedback.tap()
+                    gameState.debugSolveChineseLevel(level)
+                }) {
+                    Image(systemName: "checkmark.circle")
+                        .font(.system(size: 18))
+                        .foregroundStyle(Color(red: 0.30, green: 0.85, blue: 0.50).opacity(isSolved ? 0.35 : 0.85))
+                }
+                .disabled(isSolved)
+
+                Button(action: {
+                    HapticFeedback.tap()
+                    gameState.debugJumpToChineseLevel(level)
+                }) {
+                    Image(systemName: "play.circle.fill")
+                        .font(.system(size: 24))
+                        .foregroundStyle(Color(red: 0.86, green: 0.17, blue: 0.10))
+                }
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .background(levelBackground(solved: isSolved, current: isCurrent))
     }
 
     // MARK: Toggle helper

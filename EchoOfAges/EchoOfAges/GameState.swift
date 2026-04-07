@@ -17,6 +17,8 @@ enum GameScreen: Equatable {
     case debug
     case norseGame
     case sumerianGame
+    case mayanGame
+    case chineseGame
     case manduTablet
 }
 
@@ -108,6 +110,8 @@ final class GameState: ObservableObject {
         loadProgress()
         resetGrid(for: Level.allLevels[0])
         resetSumerianDecoded(for: SumerianLevel.allLevels[0])
+        resetMayanGrid(for: MayanLevel.allLevels[0])
+        resetChinesePieces(for: ChineseBoxLevel.allLevels[0])
     }
 
     // MARK: Navigation
@@ -136,7 +140,18 @@ final class GameState: ObservableObject {
             startSumerianGame()
             return
         }
-        // Tier 3+: Maya, Celtic, Chinese (not yet implemented — fall through)
+        // Tier 3+: Maya
+        if unlocked.contains(.maya), !done.contains(.maya) {
+            lastActiveCivilization = .maya
+            startMayanGame()
+            return
+        }
+        // Tier 4: Chinese
+        if unlocked.contains(.chinese), !done.contains(.chinese) {
+            lastActiveCivilization = .chinese
+            startChineseGame()
+            return
+        }
         // All available civs complete
         if allSixCivsComplete { currentScreen = .manduTablet }
     }
@@ -152,6 +167,10 @@ final class GameState: ObservableObject {
             startNorseGame()
         case .sumerian:
             startSumerianGame()
+        case .maya:
+            startMayanGame()
+        case .chinese:
+            startChineseGame()
         default:
             startNewGame() // no last session — route to next unsolved
         }
@@ -169,6 +188,10 @@ final class GameState: ObservableObject {
             startNorseGame()
         case .sumerian:
             startSumerianGame()
+        case .maya:
+            startMayanGame()
+        case .chinese:
+            startChineseGame()
         default:
             break
         }
@@ -575,6 +598,27 @@ final class GameState: ObservableObject {
     @Published var sumerianPendingComplete: Bool = false
     @Published var sumerianPendingDecodedMessage: String = ""
 
+    // Maya
+    @Published var mayanCurrentLevelIndex: Int = 0
+    @Published var mayanUnlockedLevels: Set<Int> = []
+    @Published var mayanPlayerGrid: [[MayanGlyph?]] = []
+    @Published var mayanSelectedCell: MayanCellCoord? = nil
+    @Published var mayanArmedGlyph: MayanGlyph? = nil
+    @Published var mayanErrorCells: Set<MayanCellCoord> = []
+    @Published var mayanPendingComplete: Bool = false
+
+    var mayanCurrentLevel: MayanLevel { MayanLevel.allLevels[mayanCurrentLevelIndex] }
+
+    // Chinese Box Puzzle
+    @Published var chineseCurrentLevelIndex: Int = 0
+    @Published var chineseUnlockedLevels: Set<Int> = []
+    @Published var chinesePlacedPieces: [String: ChinesePiecePlacement] = [:]
+    @Published var chineseSelectedPieceId: String? = nil
+    @Published var chineseArmedRotation: Int = 0
+    @Published var chinesePendingComplete: Bool = false
+
+    var chineseCurrentLevel: ChineseBoxLevel { ChineseBoxLevel.allLevels[chineseCurrentLevelIndex] }
+
     var sumerianCurrentLevel: SumerianLevel {
         SumerianLevel.allLevels[sumerianCurrentLevelIndex]
     }
@@ -736,6 +780,12 @@ final class GameState: ObservableObject {
         if !SumerianLevel.allLevels.isEmpty, SumerianLevel.allLevels.allSatisfy({ sumerianUnlockedLevels.contains($0.id) }) {
             done.insert(.sumerian)
         }
+        if !MayanLevel.allLevels.isEmpty, MayanLevel.allLevels.allSatisfy({ mayanUnlockedLevels.contains($0.id) }) {
+            done.insert(.maya)
+        }
+        if !ChineseBoxLevel.allLevels.isEmpty, ChineseBoxLevel.allLevels.allSatisfy({ chineseUnlockedLevels.contains($0.id) }) {
+            done.insert(.chinese)
+        }
         return done
     }
 
@@ -825,6 +875,25 @@ final class GameState: ObservableObject {
 
     /// Wipes all solved levels and discovered glyphs for a given civilization.
     func resetCivilization(_ civId: CivilizationID) {
+        switch civId {
+        case .maya:
+            mayanUnlockedLevels = []
+            mayanCurrentLevelIndex = 0
+            resetMayanGrid(for: MayanLevel.allLevels[0])
+            mayanPendingComplete = false
+            UserDefaults.standard.removeObject(forKey: "EOA_mayanUnlocked")
+            return
+        case .chinese:
+            chineseUnlockedLevels = []
+            chineseCurrentLevelIndex = 0
+            resetChinesePieces(for: ChineseBoxLevel.allLevels[0])
+            chinesePendingComplete = false
+            UserDefaults.standard.removeObject(forKey: "EOA_chineseUnlocked")
+            return
+        default:
+            break
+        }
+
         let civLevels = Level.allLevels.filter { $0.civilization == civId }
 
         for level in civLevels {
@@ -844,6 +913,231 @@ final class GameState: ObservableObject {
         HapticFeedback.heavy()
     }
 
+    // MARK: - Maya Game
+
+    func startMayanGame() {
+        lastActiveCivilization = .maya
+        let idx = min(mayanUnlockedLevels.count, MayanLevel.allLevels.count - 1)
+        loadMayanLevel(idx)
+        previousScreen = currentScreen
+        currentScreen = .mayanGame
+    }
+
+    func closeMayanGame() {
+        mayanPendingComplete = false
+        currentScreen = previousScreen == .mayanGame ? .title : previousScreen
+    }
+
+    func loadMayanLevel(_ index: Int) {
+        mayanCurrentLevelIndex = index
+        resetMayanGrid(for: MayanLevel.allLevels[index])
+        mayanSelectedCell = nil
+        mayanArmedGlyph = nil
+        mayanErrorCells = []
+        mayanPendingComplete = false
+    }
+
+    func resetMayanGrid(for level: MayanLevel) {
+        mayanPlayerGrid = level.cycles.map { cycle in
+            (0..<level.sequenceLength).map { pos in
+                cycle.isRevealed(pos) ? cycle.symbol(at: pos) : nil
+            }
+        }
+    }
+
+    func resetMayanGrid() {
+        resetMayanGrid(for: mayanCurrentLevel)
+        mayanSelectedCell = nil
+        mayanArmedGlyph = nil
+        mayanErrorCells = []
+    }
+
+    func placeMayanGlyph(_ glyph: MayanGlyph, at coord: MayanCellCoord) {
+        guard mayanPlayerGrid.indices.contains(coord.cycle),
+              mayanPlayerGrid[coord.cycle].indices.contains(coord.position),
+              !mayanCurrentLevel.cycles[coord.cycle].isRevealed(coord.position) else { return }
+        mayanPlayerGrid[coord.cycle][coord.position] = glyph
+        mayanErrorCells.remove(coord)
+        // Check for solution after every placement
+        if mayanCurrentLevel.isSolved(mayanPlayerGrid) {
+            completeMayanLevel()
+        }
+    }
+
+    func clearMayanCell(_ coord: MayanCellCoord) {
+        guard mayanPlayerGrid.indices.contains(coord.cycle),
+              mayanPlayerGrid[coord.cycle].indices.contains(coord.position),
+              !mayanCurrentLevel.cycles[coord.cycle].isRevealed(coord.position) else { return }
+        mayanPlayerGrid[coord.cycle][coord.position] = nil
+        mayanErrorCells.remove(coord)
+    }
+
+    func verifyMayanPlacement() {
+        let wrong = mayanCurrentLevel.incorrectCells(mayanPlayerGrid)
+        mayanErrorCells = wrong
+        if !wrong.isEmpty {
+            HapticFeedback.heavy()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+                self.mayanErrorCells = []
+            }
+        }
+    }
+
+    func completeMayanLevel() {
+        let level = mayanCurrentLevel
+        mayanUnlockedLevels.insert(level.id)
+        saveProgress()
+        HapticFeedback.heavy()
+        mayanPendingComplete = true
+        // Auto-navigate to Mandu if all six civs done
+        if allSixCivsComplete {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3.5) {
+                self.openManduTablet()
+            }
+        }
+    }
+
+    func advanceMayanToNextLevel() {
+        let next = mayanCurrentLevelIndex + 1
+        if next < MayanLevel.allLevels.count {
+            loadMayanLevel(next)
+            mayanPendingComplete = false
+        } else {
+            closeMayanGame()
+        }
+    }
+
+    // MARK: Maya Debug
+
+    func debugJumpToMayanLevel(_ level: MayanLevel) {
+        guard let idx = MayanLevel.allLevels.firstIndex(where: { $0.id == level.id }) else { return }
+        loadMayanLevel(idx)
+        currentScreen = .mayanGame
+    }
+
+    func debugSolveMayanLevel(_ level: MayanLevel) {
+        guard let idx = MayanLevel.allLevels.firstIndex(where: { $0.id == level.id }) else { return }
+        loadMayanLevel(idx)
+        let l = MayanLevel.allLevels[idx]
+        mayanPlayerGrid = l.cycles.enumerated().map { (_, cycle) in
+            (0..<l.sequenceLength).map { pos in cycle.symbol(at: pos) }
+        }
+        completeMayanLevel()
+    }
+
+    // MARK: - Chinese Box Puzzle
+
+    func startChineseGame() {
+        lastActiveCivilization = .chinese
+        let idx = min(chineseUnlockedLevels.count, ChineseBoxLevel.allLevels.count - 1)
+        loadChineseLevel(idx)
+        previousScreen = currentScreen
+        currentScreen = .chineseGame
+    }
+
+    func closeChineseGame() {
+        chinesePendingComplete = false
+        currentScreen = previousScreen == .chineseGame ? .title : previousScreen
+    }
+
+    func loadChineseLevel(_ index: Int) {
+        chineseCurrentLevelIndex = index
+        resetChinesePieces(for: ChineseBoxLevel.allLevels[index])
+        chineseSelectedPieceId = nil
+        chineseArmedRotation = 0
+        chinesePendingComplete = false
+    }
+
+    func resetChinesePieces(for level: ChineseBoxLevel) {
+        chinesePlacedPieces = [:]
+    }
+
+    func resetChinesePieces() {
+        resetChinesePieces(for: chineseCurrentLevel)
+        chineseSelectedPieceId = nil
+        chineseArmedRotation = 0
+        HapticFeedback.heavy()
+    }
+
+    /// Select a piece from the palette. If already selected, rotate it instead.
+    func selectChinesePiece(id: String) {
+        if chineseSelectedPieceId == id {
+            chineseArmedRotation = (chineseArmedRotation + 1) % 4
+            HapticFeedback.tap()
+        } else {
+            chineseSelectedPieceId = id
+            chineseArmedRotation = 0
+            HapticFeedback.tap()
+        }
+    }
+
+    func rotateSelectedChinesePiece() {
+        guard chineseSelectedPieceId != nil else { return }
+        chineseArmedRotation = (chineseArmedRotation + 1) % 4
+        HapticFeedback.tap()
+    }
+
+    /// Place the selected piece with its top-left anchor at (row, col).
+    func placeChinesePiece(id: String, row: Int, col: Int) {
+        let level = chineseCurrentLevel
+        guard let piece = level.pieces.first(where: { $0.id == id }) else { return }
+        let proposed = ChinesePiecePlacement(row: row, col: col, rotation: chineseArmedRotation)
+        guard level.isValidPlacement(piece: piece, proposed: proposed, existing: chinesePlacedPieces) else {
+            HapticFeedback.error()
+            return
+        }
+        chinesePlacedPieces[id] = proposed
+        chineseSelectedPieceId = nil
+        chineseArmedRotation = 0
+        HapticFeedback.tap()
+        if level.isSolved(chinesePlacedPieces) {
+            completeChineseLevel()
+        }
+    }
+
+    func removeChinesePiece(id: String) {
+        chinesePlacedPieces.removeValue(forKey: id)
+        HapticFeedback.tap()
+    }
+
+    func completeChineseLevel() {
+        let level = chineseCurrentLevel
+        chineseUnlockedLevels.insert(level.id)
+        saveProgress()
+        HapticFeedback.heavy()
+        chinesePendingComplete = true
+        if allSixCivsComplete {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3.5) {
+                self.openManduTablet()
+            }
+        }
+    }
+
+    func advanceChineseToNextLevel() {
+        let next = chineseCurrentLevelIndex + 1
+        if next < ChineseBoxLevel.allLevels.count {
+            loadChineseLevel(next)
+            chinesePendingComplete = false
+        } else {
+            closeChineseGame()
+        }
+    }
+
+    // MARK: Chinese Debug
+
+    func debugJumpToChineseLevel(_ level: ChineseBoxLevel) {
+        guard let idx = ChineseBoxLevel.allLevels.firstIndex(where: { $0.id == level.id }) else { return }
+        loadChineseLevel(idx)
+        currentScreen = .chineseGame
+    }
+
+    func debugSolveChineseLevel(_ level: ChineseBoxLevel) {
+        guard let idx = ChineseBoxLevel.allLevels.firstIndex(where: { $0.id == level.id }) else { return }
+        loadChineseLevel(idx)
+        chinesePlacedPieces = ChineseBoxLevel.allLevels[idx].solutionPlacements
+        completeChineseLevel()
+    }
+
     // MARK: Progress Persistence
 
     private func saveProgress() {
@@ -853,6 +1147,8 @@ final class GameState: ObservableObject {
         UserDefaults.standard.set(messagesDict, forKey: "EOA_chronicle")
         UserDefaults.standard.set(showIntroOnLaunch, forKey: "EOA_showIntro")
         UserDefaults.standard.set(Array(norseUnlockedLevels), forKey: "EOA_norseUnlocked")
+        UserDefaults.standard.set(Array(mayanUnlockedLevels), forKey: "EOA_mayanUnlocked")
+        UserDefaults.standard.set(Array(chineseUnlockedLevels), forKey: "EOA_chineseUnlocked")
         UserDefaults.standard.set(lastActiveCivilization?.rawValue, forKey: "EOA_lastCiv")
         // Only persist the Mandu grid when all six civilizations are complete.
         // Until then symbols fall off — clearing here ensures a fresh slate on next open.
@@ -884,6 +1180,12 @@ final class GameState: ObservableObject {
 
         let sumerianIds = UserDefaults.standard.array(forKey: "EOA_sumerianUnlocked") as? [Int] ?? []
         sumerianUnlockedLevels = Set(sumerianIds)
+
+        mayanUnlockedLevels = Set(UserDefaults.standard.array(forKey: "EOA_mayanUnlocked") as? [Int] ?? [])
+        mayanCurrentLevelIndex = min(mayanUnlockedLevels.count, MayanLevel.allLevels.count - 1)
+
+        chineseUnlockedLevels = Set(UserDefaults.standard.array(forKey: "EOA_chineseUnlocked") as? [Int] ?? [])
+        chineseCurrentLevelIndex = min(chineseUnlockedLevels.count, ChineseBoxLevel.allLevels.count - 1)
 
         let rawMandu = UserDefaults.standard.dictionary(forKey: "EOA_manduGrid") as? [String: String] ?? [:]
         manduPlayerGrid = rawMandu.reduce(into: [Int: String]()) {
