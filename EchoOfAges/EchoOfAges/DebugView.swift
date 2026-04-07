@@ -583,8 +583,8 @@ struct DebugView: View {
     private var celticExpandableSection: some View {
         let key = "celtic_section"
         let isExpanded = !collapsedSections.contains(key)
-        let allLevels = CelticLevel.allLevels
-        let nSolved = allLevels.filter { gameState.celticUnlockedLevels.contains($0.id) }.count
+        let allDifficulties = CelticDifficulty.all
+        let nSolved = allDifficulties.filter { gameState.celticUnlockedLevels.contains($0.id) }.count
         let accentColor = Color(red: 0.30, green: 0.55, blue: 0.22)
 
         return VStack(alignment: .leading, spacing: 0) {
@@ -597,7 +597,7 @@ struct DebugView: View {
                         .font(EgyptFont.titleBold(16))
                         .foregroundStyle(.white)
                     Spacer()
-                    Text("\(nSolved)/\(allLevels.count)")
+                    Text("\(nSolved)/\(allDifficulties.count)")
                         .font(EgyptFont.body(13))
                         .foregroundStyle(accentColor.opacity(0.8))
                     Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
@@ -612,8 +612,8 @@ struct DebugView: View {
 
             if isExpanded {
                 VStack(spacing: 8) {
-                    ForEach(allLevels) { level in
-                        celticLevelRow(level)
+                    ForEach(allDifficulties) { difficulty in
+                        celticLevelRow(difficulty)
                     }
                 }
                 .padding(.top, 8)
@@ -621,30 +621,29 @@ struct DebugView: View {
         }
     }
 
-    private func celticLevelRow(_ level: CelticLevel) -> some View {
-        let isSolved  = gameState.celticUnlockedLevels.contains(level.id)
-        let isCurrent = gameState.celticCurrentLevelIndex == (CelticLevel.allLevels.firstIndex(where: { $0.id == level.id }) ?? -1)
-        let blanks    = level.rows * level.cols - level.fixedCells.count
+    private func celticLevelRow(_ difficulty: CelticDifficulty) -> some View {
+        let isSolved  = gameState.celticUnlockedLevels.contains(difficulty.id)
+        let isCurrent = gameState.celticCurrentLevelIndex == difficulty.id - 1
         let accent    = Color(red: 0.30, green: 0.55, blue: 0.22)
 
         return HStack(spacing: 14) {
-            Text(level.romanNumeral)
+            Text(difficulty.romanNumeral)
                 .font(EgyptFont.titleBold(18))
                 .foregroundStyle(isSolved ? Color(red: 0.30, green: 0.85, blue: 0.50) : accent.opacity(0.7))
                 .frame(width: 28)
 
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 8) {
-                    Text(level.title)
+                    Text(difficulty.title)
                         .font(EgyptFont.titleBold(15))
                         .foregroundStyle(.white)
                     if isCurrent { currentBadge }
                 }
                 HStack(spacing: 10) {
-                    Label("\(level.rows)×\(level.cols) grid", systemImage: "square.grid.3x3")
+                    Label("\(difficulty.rows)×\(difficulty.cols) grid", systemImage: "square.grid.3x3")
                         .font(EgyptFont.body(12))
                         .foregroundStyle(accent.opacity(0.55))
-                    goldBadge("\(blanks) blanks")
+                    goldBadge("~\(difficulty.targetBlanks) blanks")
                     if isSolved { solvedBadge }
                 }
             }
@@ -654,7 +653,7 @@ struct DebugView: View {
             HStack(spacing: 8) {
                 Button(action: {
                     HapticFeedback.tap()
-                    gameState.debugSolveCelticLevel(level)
+                    gameState.debugSolveCelticLevel(difficulty)
                 }) {
                     Image(systemName: "checkmark.circle")
                         .font(.system(size: 18))
@@ -664,7 +663,7 @@ struct DebugView: View {
 
                 Button(action: {
                     HapticFeedback.tap()
-                    gameState.debugJumpToCelticLevel(level)
+                    gameState.debugJumpToCelticLevel(difficulty)
                 }) {
                     Image(systemName: "play.circle.fill")
                         .font(.system(size: 24))

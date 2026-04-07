@@ -113,7 +113,7 @@ final class GameState: ObservableObject {
         resetSumerianDecoded(for: SumerianLevel.allLevels[0])
         resetMayanGrid(for: MayanLevel.allLevels[0])
         resetChinesePieces(for: ChineseBoxLevel.allLevels[0])
-        celticPlayerGrid = CelticLevel.allLevels[0].initialGrid()
+        // Celtic puzzle is generated lazily when startCelticGame() is called
     }
 
     // MARK: Navigation
@@ -637,8 +637,11 @@ final class GameState: ObservableObject {
     @Published var celticArmedGlyph: OghamGlyph? = nil
     @Published var celticErrorCells: Set<CelticCellCoord> = []
     @Published var celticPendingComplete: Bool = false
+    @Published var celticCurrentPuzzle: CelticPuzzle? = nil
 
-    var celticCurrentLevel: CelticLevel { CelticLevel.allLevels[celticCurrentLevelIndex] }
+    var celticCurrentDifficulty: CelticDifficulty {
+        CelticDifficulty.all[min(celticCurrentLevelIndex, CelticDifficulty.all.count - 1)]
+    }
 
     var sumerianCurrentLevel: SumerianLevel {
         SumerianLevel.allLevels[sumerianCurrentLevelIndex]
@@ -807,7 +810,7 @@ final class GameState: ObservableObject {
         if !ChineseBoxLevel.allLevels.isEmpty, ChineseBoxLevel.allLevels.allSatisfy({ chineseUnlockedLevels.contains($0.id) }) {
             done.insert(.chinese)
         }
-        if !CelticLevel.allLevels.isEmpty, CelticLevel.allLevels.allSatisfy({ celticUnlockedLevels.contains($0.id) }) {
+        if celticUnlockedLevels.count >= CelticDifficulty.all.count {
             done.insert(.celtic)
         }
         return done
@@ -917,7 +920,8 @@ final class GameState: ObservableObject {
         case .celtic:
             celticUnlockedLevels = []
             celticCurrentLevelIndex = 0
-            celticPlayerGrid = CelticLevel.allLevels[0].initialGrid()
+            celticCurrentPuzzle = nil
+            celticPlayerGrid = []
             celticArmedGlyph = nil
             celticErrorCells = []
             celticPendingComplete = false
@@ -1175,7 +1179,7 @@ final class GameState: ObservableObject {
 
     func startCelticGame() {
         lastActiveCivilization = .celtic
-        let idx = min(celticUnlockedLevels.count, CelticLevel.allLevels.count - 1)
+        let idx = min(celticUnlockedLevels.count, CelticDifficulty.all.count - 1)
         loadCelticLevel(idx)
         previousScreen = currentScreen
         currentScreen = .celticGame
@@ -1187,8 +1191,11 @@ final class GameState: ObservableObject {
     }
 
     func loadCelticLevel(_ index: Int) {
-        celticCurrentLevelIndex = index
-        celticPlayerGrid = CelticLevel.allLevels[index].initialGrid()
+        let safeIndex = max(0, min(index, CelticDifficulty.all.count - 1))
+        celticCurrentLevelIndex = safeIndex
+        let difficulty = CelticDifficulty.all[safeIndex]
+        celticCurrentPuzzle = CelticGenerator.generate(difficulty: difficulty)
+        celticPlayerGrid = celticCurrentPuzzle?.initialGrid() ?? []
         celticArmedGlyph = nil
         celticErrorCells = []
         celticPendingComplete = false
@@ -1200,8 +1207,9 @@ final class GameState: ObservableObject {
     }
 
     func tapCelticCell(row: Int, col: Int) {
+        guard let puzzle = celticCurrentPuzzle else { return }
         let coord = CelticCellCoord(row: row, col: col)
-        guard !celticCurrentLevel.fixedCells.contains(coord) else { return }
+        guard !puzzle.fixedCells.contains(coord) else { return }
         guard celticPlayerGrid.indices.contains(row),
               celticPlayerGrid[row].indices.contains(col) else { return }
 
@@ -1225,14 +1233,15 @@ final class GameState: ObservableObject {
         celticErrorCells.remove(coord)
         HapticFeedback.tap()
 
-        if celticCurrentLevel.isSolved(celticPlayerGrid) {
+        if puzzle.isSolved(celticPlayerGrid) {
             completeCelticLevel()
         }
     }
 
     func clearCelticCell(row: Int, col: Int) {
+        guard let puzzle = celticCurrentPuzzle else { return }
         let coord = CelticCellCoord(row: row, col: col)
-        guard !celticCurrentLevel.fixedCells.contains(coord),
+        guard !puzzle.fixedCells.contains(coord),
               celticPlayerGrid.indices.contains(row),
               celticPlayerGrid[row].indices.contains(col) else { return }
         celticPlayerGrid[row][col] = nil
@@ -1241,14 +1250,15 @@ final class GameState: ObservableObject {
     }
 
     func resetCelticGrid() {
-        celticPlayerGrid = celticCurrentLevel.initialGrid()
+        celticPlayerGrid = celticCurrentPuzzle?.initialGrid() ?? []
         celticArmedGlyph = nil
         celticErrorCells = []
         HapticFeedback.heavy()
     }
 
     func verifyCelticPlacement() {
-        let errors = celticCurrentLevel.errorCells(in: celticPlayerGrid)
+        guard let puzzle = celticCurrentPuzzle else { return }
+        let errors = puzzle.errorCells(in: celticPlayerGrid)
         celticErrorCells = errors
         if !errors.isEmpty {
             HapticFeedback.heavy()
@@ -1259,8 +1269,8 @@ final class GameState: ObservableObject {
     }
 
     func completeCelticLevel() {
-        let level = celticCurrentLevel
-        celticUnlockedLevels.insert(level.id)
+        let levelId = celticCurrentLevelIndex + 1   // IDs are 1-based
+        celticUnlockedLevels.insert(levelId)
         saveProgress()
         HapticFeedback.heavy()
         celticPendingComplete = true
@@ -1273,7 +1283,7 @@ final class GameState: ObservableObject {
 
     func advanceCelticToNextLevel() {
         let next = celticCurrentLevelIndex + 1
-        if next < CelticLevel.allLevels.count {
+        if next < CelticDifficulty.all.count {
             loadCelticLevel(next)
             celticPendingComplete = false
         } else {
@@ -1283,16 +1293,19 @@ final class GameState: ObservableObject {
 
     // MARK: Celtic Debug
 
-    func debugJumpToCelticLevel(_ level: CelticLevel) {
-        guard let idx = CelticLevel.allLevels.firstIndex(where: { $0.id == level.id }) else { return }
+    func debugJumpToCelticLevel(_ difficulty: CelticDifficulty) {
+        guard let idx = CelticDifficulty.all.firstIndex(where: { $0.id == difficulty.id }) else { return }
         loadCelticLevel(idx)
         currentScreen = .celticGame
     }
 
-    func debugSolveCelticLevel(_ level: CelticLevel) {
-        guard let idx = CelticLevel.allLevels.firstIndex(where: { $0.id == level.id }) else { return }
+    func debugSolveCelticLevel(_ difficulty: CelticDifficulty) {
+        guard let idx = CelticDifficulty.all.firstIndex(where: { $0.id == difficulty.id }) else { return }
         loadCelticLevel(idx)
-        celticPlayerGrid = level.solution.map { $0.map { Optional($0) } }
+        guard let puzzle = celticCurrentPuzzle else { return }
+        celticPlayerGrid = (0..<puzzle.rows).map { r in
+            (0..<puzzle.cols).map { c in OghamGlyph.from(value: puzzle.solution[r][c]) }
+        }
         completeCelticLevel()
     }
 
@@ -1347,7 +1360,7 @@ final class GameState: ObservableObject {
         chineseCurrentLevelIndex = min(chineseUnlockedLevels.count, ChineseBoxLevel.allLevels.count - 1)
 
         celticUnlockedLevels = Set(UserDefaults.standard.array(forKey: "EOA_celticUnlocked") as? [Int] ?? [])
-        celticCurrentLevelIndex = min(celticUnlockedLevels.count, CelticLevel.allLevels.count - 1)
+        celticCurrentLevelIndex = min(celticUnlockedLevels.count, CelticDifficulty.all.count - 1)
 
         let rawMandu = UserDefaults.standard.dictionary(forKey: "EOA_manduGrid") as? [String: String] ?? [:]
         manduPlayerGrid = rawMandu.reduce(into: [Int: String]()) {

@@ -2,8 +2,8 @@
 // EchoOfAges
 //
 // Game view for the Celtic / Druidic civilization.
-// Puzzle: fill a grid of Ogham letters so every row and
-// column is in non-decreasing Beith-Luis-Nion order.
+// Puzzle: fill a grid of Ogham letters so every row and column is
+// non-decreasing, AND every row/column sum matches the carved targets.
 
 import SwiftUI
 
@@ -12,16 +12,24 @@ import SwiftUI
 struct CelticGameView: View {
     @EnvironmentObject var gameState: GameState
 
-    @State private var showComplete  = false
+    @State private var showComplete    = false
     @State private var messageRevealed = false
     @State private var showInscriptions = false
 
-    private var level: CelticLevel { gameState.celticCurrentLevel }
+    private var difficulty: CelticDifficulty { gameState.celticCurrentDifficulty }
+    private var puzzle: CelticPuzzle?         { gameState.celticCurrentPuzzle }
 
     private var cellSize: CGFloat {
+        guard let p = puzzle else { return 80 }
         let screenW = UIScreen.main.bounds.width
-        let available = min(screenW - 40, 480.0)
-        return min(74, available / CGFloat(level.cols))
+        // 68 px for horizontal padding + row-sum column; max cell capped at 160
+        let available = min(screenW - 68, 800.0)
+        return min(160, floor(available / CGFloat(p.cols)))
+    }
+
+    /// Linear scale relative to iPhone 16 (390 pt wide), clamped 1–2.
+    private var uiScale: CGFloat {
+        min(2.0, max(1.0, UIScreen.main.bounds.width / 390.0))
     }
 
     var body: some View {
@@ -33,7 +41,9 @@ struct CelticGameView: View {
                 ScrollView {
                     VStack(spacing: 20) {
                         subtitleText
-                        gridView
+                        if let p = puzzle {
+                            gridView(p)
+                        }
                         inscriptionsSection
                         paletteView
                         actionButtons
@@ -44,7 +54,17 @@ struct CelticGameView: View {
                 }
             }
 
-            if showComplete { levelCompleteCard }
+            if showComplete {
+                Color.black.opacity(0.60).ignoresSafeArea()
+                    .transition(.opacity).zIndex(9)
+                levelCompleteCard
+                    .transition(.scale(scale: 0.92).combined(with: .opacity))
+                    .zIndex(10)
+            }
+        }
+        .onDisappear {
+            showComplete = false
+            messageRevealed = false
         }
         .onChange(of: gameState.celticPendingComplete) { _, newVal in
             if newVal {
@@ -80,21 +100,22 @@ struct CelticGameView: View {
                 }
                 Spacer()
                 VStack(spacing: 2) {
-                    Text(level.title)
+                    Text(difficulty.title)
                         .font(.custom("Cinzel-Regular", size: 15))
                         .foregroundStyle(Color.celticGold)
-                    Text("Stone \(level.romanNumeral)  ·  Celtic / Druidic")
+                    Text("Stone \(difficulty.romanNumeral)  ·  Celtic / Druidic")
                         .font(.system(size: 11))
                         .foregroundStyle(Color.celticParchment.opacity(0.6))
                 }
                 Spacer()
-                // Level progress dots
                 HStack(spacing: 5) {
                     ForEach(1...5, id: \.self) { i in
                         Circle()
                             .fill(gameState.celticUnlockedLevels.contains(i)
                                   ? Color.celticGold
-                                  : (i == level.id ? Color.celticGold.opacity(0.5) : Color.celticParchment.opacity(0.2)))
+                                  : (i == difficulty.id
+                                     ? Color.celticGold.opacity(0.5)
+                                     : Color.celticParchment.opacity(0.2)))
                             .frame(width: 6, height: 6)
                     }
                 }
@@ -110,10 +131,10 @@ struct CelticGameView: View {
     private var subtitleText: some View {
         VStack(spacing: 4) {
             Text("ᚁ · ᚂ · ᚃ · ᚄ · ᚅ")
-                .font(.system(size: 22, weight: .light))
+                .font(.system(size: 22 * uiScale, weight: .light))
                 .foregroundStyle(Color.celticGold.opacity(0.8))
-            Text(level.subtitle)
-                .font(.custom("Cinzel-Regular", size: 13))
+            Text(difficulty.subtitle)
+                .font(.custom("Cinzel-Regular", size: 13 * uiScale))
                 .foregroundStyle(Color.celticParchment.opacity(0.65))
                 .multilineTextAlignment(.center)
         }
@@ -122,15 +143,34 @@ struct CelticGameView: View {
 
     // MARK: - Grid
 
-    private var gridView: some View {
+    private func gridView(_ p: CelticPuzzle) -> some View {
         VStack(spacing: 3) {
-            ForEach(0..<level.rows, id: \.self) { r in
+            // Cell rows + row-sum labels on the right
+            ForEach(0..<p.rows, id: \.self) { r in
                 HStack(spacing: 3) {
-                    ForEach(0..<level.cols, id: \.self) { c in
-                        celticCell(row: r, col: c)
+                    ForEach(0..<p.cols, id: \.self) { c in
+                        celticCell(row: r, col: c, puzzle: p)
                     }
+                    // Row sum
+                    Text("\(p.rowSums[r])")
+                        .font(.system(size: 14 * uiScale, weight: .semibold, design: .monospaced))
+                        .foregroundStyle(Color.celticGold.opacity(0.85))
+                        .frame(width: 32 * uiScale, alignment: .leading)
+                        .padding(.leading, 6)
                 }
             }
+
+            // Column sum labels under each column
+            HStack(spacing: 3) {
+                ForEach(0..<p.cols, id: \.self) { c in
+                    Text("\(p.colSums[c])")
+                        .font(.system(size: 14 * uiScale, weight: .semibold, design: .monospaced))
+                        .foregroundStyle(Color.celticGold.opacity(0.85))
+                        .frame(width: cellSize, alignment: .center)
+                }
+                Spacer().frame(width: 38 * uiScale)   // align with row-sum column
+            }
+            .padding(.top, 6)
         }
         .padding(10)
         .background(
@@ -145,9 +185,9 @@ struct CelticGameView: View {
     }
 
     @ViewBuilder
-    private func celticCell(row: Int, col: Int) -> some View {
+    private func celticCell(row: Int, col: Int, puzzle p: CelticPuzzle) -> some View {
         let coord   = CelticCellCoord(row: row, col: col)
-        let isFixed = level.fixedCells.contains(coord)
+        let isFixed = p.fixedCells.contains(coord)
         let isError = gameState.celticErrorCells.contains(coord)
         let glyph   = gameState.celticPlayerGrid.indices.contains(row)
                    && gameState.celticPlayerGrid[row].indices.contains(col)
@@ -195,12 +235,12 @@ struct CelticGameView: View {
     // MARK: - Palette
 
     private var paletteView: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 8 * uiScale) {
             Text("Select a mark to place")
-                .font(.system(size: 11))
+                .font(.system(size: 11 * uiScale))
                 .foregroundStyle(Color.celticParchment.opacity(0.45))
 
-            HStack(spacing: 10) {
+            HStack(spacing: 10 * uiScale) {
                 ForEach(OghamGlyph.allCases) { glyph in
                     palettePieceButton(glyph)
                 }
@@ -215,21 +255,21 @@ struct CelticGameView: View {
         Button {
             gameState.armCelticGlyph(glyph)
         } label: {
-            VStack(spacing: 4) {
+            VStack(spacing: 4 * uiScale) {
                 Text(glyph.rawValue)
-                    .font(.system(size: 26, weight: .medium))
+                    .font(.system(size: 26 * uiScale, weight: .medium))
                     .foregroundStyle(isArmed ? Color.celticGold : Color.celticInk)
                 Text(glyph.treeMeaning)
-                    .font(.system(size: 10))
+                    .font(.system(size: 10 * uiScale))
                     .foregroundStyle(isArmed ? Color.celticGold.opacity(0.8) : Color.celticInk.opacity(0.55))
             }
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 10)
+            .padding(.vertical, 10 * uiScale)
             .background(
-                RoundedRectangle(cornerRadius: 8)
+                RoundedRectangle(cornerRadius: 8 * uiScale)
                     .fill(isArmed ? Color.celticGreen.opacity(0.35) : Color.celticStone.opacity(0.45))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 8)
+                        RoundedRectangle(cornerRadius: 8 * uiScale)
                             .stroke(isArmed ? Color.celticGold : Color.clear, lineWidth: 1.5)
                     )
             )
@@ -245,7 +285,7 @@ struct CelticGameView: View {
             } label: {
                 HStack {
                     Text(showInscriptions ? "▾  Druid's Notes" : "▸  Druid's Notes")
-                        .font(.custom("Cinzel-Regular", size: 13))
+                        .font(.custom("Cinzel-Regular", size: 13 * uiScale))
                         .foregroundStyle(Color.celticGold.opacity(0.8))
                     Spacer()
                 }
@@ -255,12 +295,12 @@ struct CelticGameView: View {
 
             if showInscriptions {
                 VStack(alignment: .leading, spacing: 10) {
-                    ForEach(level.inscriptions.indices, id: \.self) { i in
+                    ForEach(difficulty.inscriptions.indices, id: \.self) { i in
                         HStack(alignment: .top, spacing: 8) {
                             Text("·")
                                 .foregroundStyle(Color.celticGold.opacity(0.6))
-                            Text(level.inscriptions[i])
-                                .font(.system(size: 13, design: .serif))
+                            Text(difficulty.inscriptions[i])
+                                .font(.system(size: 13 * uiScale, design: .serif))
                                 .foregroundStyle(Color.celticParchment.opacity(0.75))
                                 .fixedSize(horizontal: false, vertical: true)
                         }
@@ -293,100 +333,83 @@ struct CelticGameView: View {
     // MARK: - Level Complete Card
 
     private var levelCompleteCard: some View {
-        ZStack {
-            Color.black.opacity(0.65).ignoresSafeArea()
+        VStack(spacing: 20) {
+            Text("ᚁ ᚂ ᚃ ᚄ ᚅ")
+                .font(.system(size: 52))
+                .foregroundStyle(Color.celticGold)
+                .shadow(color: Color.celticGold.opacity(0.55), radius: 14, x: 0, y: 0)
 
-            VStack(spacing: 0) {
-                // Header
-                ZStack {
-                    Color.celticGreen.opacity(0.85)
-                    VStack(spacing: 6) {
-                        Text("ᚁ ᚂ ᚃ ᚄ ᚅ")
-                            .font(.system(size: 24))
-                            .foregroundStyle(Color.celticGold)
-                        Text("Stone Decoded")
-                            .font(.custom("Cinzel-Regular", size: 20))
-                            .foregroundStyle(Color.celticGold)
-                        Text(level.title)
-                            .font(.system(size: 13, design: .serif))
-                            .foregroundStyle(Color.celticParchment.opacity(0.75))
-                    }
-                    .padding(.vertical, 20)
-                }
-                .cornerRadius(14, corners: [.topLeft, .topRight])
-
-                // Message
-                VStack(spacing: 16) {
-                    if messageRevealed {
-                        Text(level.decodedMessage)
-                            .font(.system(size: 15, design: .serif))
-                            .foregroundStyle(Color.celticParchment.opacity(0.9))
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 20)
-                            .transition(.opacity)
-                    } else {
-                        Text("Deciphering inscription…")
-                            .font(.system(size: 13, design: .serif))
-                            .foregroundStyle(Color.celticParchment.opacity(0.4))
-                            .italic()
-                    }
-                }
-                .frame(minHeight: 80)
-                .padding(.vertical, 20)
-                .background(Color(red: 0.10, green: 0.17, blue: 0.08))
-
-                // Buttons
-                HStack(spacing: 0) {
-                    Button {
-                        gameState.advanceCelticToNextLevel()
-                    } label: {
-                        Text(level.id < 5 ? "Next Stone" : "Complete")
-                            .font(.custom("Cinzel-Regular", size: 15))
-                            .foregroundStyle(Color.celticGold)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 16)
-                            .background(Color.celticGreen.opacity(0.6))
-                    }
-                    Divider().frame(width: 1).background(Color.celticGold.opacity(0.2))
-                    Button {
-                        gameState.advanceCelticToNextLevel()
-                        gameState.currentScreen = .journal
-                    } label: {
-                        Text("Field Diary")
-                            .font(.custom("Cinzel-Regular", size: 15))
-                            .foregroundStyle(Color.celticParchment.opacity(0.8))
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 16)
-                            .background(Color(red: 0.10, green: 0.17, blue: 0.08))
-                    }
-                }
-                .cornerRadius(14, corners: [.bottomLeft, .bottomRight])
+            VStack(spacing: 8) {
+                Text("Stone Decoded")
+                    .font(EgyptFont.titleBold(26))
+                    .foregroundStyle(Color.celticGold)
+                    .tracking(2)
+                Text(difficulty.title)
+                    .font(EgyptFont.bodyItalic(17))
+                    .foregroundStyle(Color.celticGold.opacity(0.75))
             }
-            .frame(maxWidth: 360)
-            .clipShape(RoundedRectangle(cornerRadius: 14))
-            .shadow(color: .black.opacity(0.5), radius: 20)
-            .padding(.horizontal, 24)
+
+            if messageRevealed {
+                Text(difficulty.decodedMessage)
+                    .font(EgyptFont.bodyItalic(15))
+                    .foregroundStyle(Color.celticParchment.opacity(0.85))
+                    .lineSpacing(5)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 8)
+                    .transition(.opacity)
+            } else {
+                Text("Deciphering inscription…")
+                    .font(EgyptFont.bodyItalic(14))
+                    .foregroundStyle(Color.celticParchment.opacity(0.35))
+                    .italic()
+            }
+
+            VStack(spacing: 10) {
+                Button {
+                    HapticFeedback.tap()
+                    gameState.advanceCelticToNextLevel()
+                } label: {
+                    StoneButton(title: difficulty.id < 5 ? "Next Stone" : "Complete",
+                                icon: difficulty.id < 5 ? "arrow.right" : "checkmark",
+                                style: .gold)
+                }
+                .buttonStyle(.plain)
+
+                Button {
+                    HapticFeedback.tap()
+                    gameState.advanceCelticToNextLevel()
+                    gameState.currentScreen = .journal
+                } label: {
+                    StoneButton(title: "Open Field Diary", icon: "book.fill", style: .muted)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 8)
         }
+        .padding(28)
+        .background(
+            RoundedRectangle(cornerRadius: 20)
+                .fill(Color.stoneDark)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20)
+                        .stroke(Color.celticGold.opacity(0.45), lineWidth: 1.2)
+                )
+        )
+        .shadow(color: .black.opacity(0.55), radius: 22, x: 0, y: 8)
+        .padding(.horizontal, 28)
     }
 }
 
 // MARK: - Celtic Color Palette
 
 private extension Color {
-    /// Dark forest green background
-    static let celticForest  = Color(red: 0.07, green: 0.12, blue: 0.05)
-    /// Stone grey for cells and borders
-    static let celticStone   = Color(red: 0.68, green: 0.64, blue: 0.56)
-    /// Celtic accent green (grove)
-    static let celticGreen   = Color(red: 0.30, green: 0.48, blue: 0.22)
-    /// Gold / bronze for title text and selected states
-    static let celticGold    = Color(red: 0.82, green: 0.70, blue: 0.38)
-    /// Cream/parchment for body text
+    static let celticForest    = Color(red: 0.07, green: 0.12, blue: 0.05)
+    static let celticStone     = Color(red: 0.68, green: 0.64, blue: 0.56)
+    static let celticGreen     = Color(red: 0.30, green: 0.48, blue: 0.22)
+    static let celticGold      = Color(red: 0.82, green: 0.70, blue: 0.38)
     static let celticParchment = Color(red: 0.88, green: 0.84, blue: 0.72)
-    /// Dark ink for glyphs on stone cells
-    static let celticInk     = Color(red: 0.10, green: 0.07, blue: 0.03)
-    /// Error red
-    static let celticRed     = Color(red: 0.62, green: 0.18, blue: 0.10)
+    static let celticInk       = Color(red: 0.10, green: 0.07, blue: 0.03)
+    static let celticRed       = Color(red: 0.62, green: 0.18, blue: 0.10)
 }
 
 // MARK: - Rounded corner helper (reused from other views)
