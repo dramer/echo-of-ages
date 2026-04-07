@@ -23,6 +23,13 @@ struct TitleView: View {
                     .shadow(color: Color.stoneDark.opacity(glowPulse ? 0.25 : 0.10),
                             radius: 12, x: 0, y: 4)
 
+                // Tribute line
+                Text("A Tribute to Cliff Johnson")
+                    .font(EgyptFont.bodyItalic(16))
+                    .foregroundStyle(Color(red: 0.22, green: 0.13, blue: 0.04).opacity(0.55))
+                    .tracking(1)
+                    .frame(maxWidth: .infinity, alignment: .center)
+
                 Spacer(minLength: 12)
 
                 // Hieroglyph row
