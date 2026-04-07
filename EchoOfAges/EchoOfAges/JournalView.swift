@@ -33,6 +33,9 @@ private enum DiaryPage: Equatable {
     case howToSolve
     case inspirationPage        // Why Echo of Ages was created — tribute to Cliff Johnson
     case settingsPage
+    #if DEBUG
+    case gameDesignNotes        // Full gameplay design reference — DEBUG only
+    #endif
 }
 
 // MARK: - Diary colors & font
@@ -80,6 +83,9 @@ struct JournalView: View {
         list.append(.howToSolve)
         list.append(.inspirationPage)
         list.append(.settingsPage)
+        #if DEBUG
+        list.append(.gameDesignNotes)
+        #endif
         return list
     }
 
@@ -314,6 +320,9 @@ private struct BookPage: View {
         case .howToSolve:          HowToSolveContent()
         case .inspirationPage:     InspirationPageContent()
         case .settingsPage:        SettingsJournalContent()
+        #if DEBUG
+        case .gameDesignNotes:     GameDesignNotesContent()
+        #endif
         }
     }
 }
@@ -1551,6 +1560,142 @@ private func puzzlePageHeader(emblem: String, civ: String, puzzle: String, tagli
     }
     .padding(.bottom, 4)
 }
+
+// MARK: - Game Design Notes (DEBUG only)
+
+#if DEBUG
+private struct GameDesignNotesContent: View {
+    var body: some View {
+        ScrollView(showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 16) {
+
+                HandTitle(text: "⚙ Game Design Notes")
+                HandNote(text: "Debug reference only — not visible in release builds.", color: Color.inkRed.opacity(0.7))
+                SectionRule()
+
+                // MARK: Tree of Life — Part Mapping
+                HandTitle(text: "Tree of Life — Civilization Roles")
+                designRow(symbol: "𓊽", civ: "Egypt", role: "TRUNK", note: "World Pillar — axis connecting heaven and underworld")
+                designRow(symbol: "𒀭", civ: "Sumerian", role: "ROOTS", note: "Oldest, buried underground, existed before the flood")
+                designRow(symbol: "ᛉ", civ: "Norse", role: "BRANCHES", note: "Yggdrasil reaches nine worlds — the rune path IS branches")
+                designRow(symbol: "ᚅ", civ: "Celtic", role: "LEAVES", note: "Each Ogham letter a leaf, each leaf a word")
+                designRow(symbol: "〄", civ: "Maya", role: "WATER", note: "Ceiba grows from primordial sea — calendar tracks water cycles")
+                designRow(symbol: "☰", civ: "China", role: "SUN", note: "Form only visible in light — Qian trigram, heaven")
+
+                SectionRule()
+
+                // MARK: Mandu Tablet — Correct Order
+                HandTitle(text: "Mandu Tablet — Correct Left-to-Right Order")
+                HandNote(text: "Sumerian · Maya · Egypt · Norse · Celtic · China", color: Color.inkBlue)
+                HandNote(text: "Roots → Water → Trunk → Branches → Leaves → Sun", color: Color.inkSepia.opacity(0.7))
+                HandNote(text: "Logic: roots drink water, trunk rises, branches spread, leaves speak, sun reveals.", color: Color.inkSepia.opacity(0.55))
+
+                SectionRule()
+
+                // MARK: The Six Keys — Relay Chain
+                HandTitle(text: "The Six Keys — Relay Chain")
+                keyRow(from: "Egypt 𓊽", to: "Norse Level 5 + Sumerian Level 5", note: "Djed pillar — the mark that holds")
+                keyRow(from: "Norse ᛚ", to: "Maya Level 5", note: "Laguz (water rune) — branches reach the well")
+                keyRow(from: "Sumerian 𒀭", to: "Celtic Level 5", note: "AN mark (heaven/divine) — what was above before the flood")
+                keyRow(from: "Maya ᚅ", to: "China Level 5 slot 1", note: "Nion/Ash — the water was always reaching upward")
+                keyRow(from: "Celtic ᚅ", to: "China Level 5 slot 2", note: "Nion/Ash — same symbol from two sources (the player's aha moment)")
+                keyRow(from: "China ☰", to: "Mandu Tablet", note: "Qian trigram — the completed form")
+
+                SectionRule()
+
+                // MARK: Decoy Sets
+                HandTitle(text: "Choice Picker — Decoy Sets")
+                decoyRow(puzzle: "Norse L5", correct: "𓊽", choices: "𓊽 · 𓅱 · 𓆑 · 𓇳 · 𓈖 · 𓊪")
+                decoyRow(puzzle: "Sumerian L5", correct: "𓊽", choices: "𓊽 · 𓏏 · 𓂀 · 𓇌 · 𓊹 · 𓃭")
+                decoyRow(puzzle: "Maya L5", correct: "ᛚ", choices: "ᛚ · ᚠ · ᚢ · ᛟ · ᛏ · ᚾ")
+                decoyRow(puzzle: "Celtic L5", correct: "𒀭", choices: "𒀭 · 𒀯 · 𒆷 · 𒄑 · 𒐈 · 𒀰")
+                decoyRow(puzzle: "China L5 slot 1", correct: "ᚅ", choices: "ᚅ · ᚁ · ᚂ · ᚃ · ᚄ · ᛚ")
+                decoyRow(puzzle: "China L5 slot 2", correct: "ᚅ", choices: "ᚅ · 𒀭 · 𓊽 · ᛚ · 𓇳 · 𒆷")
+
+                SectionRule()
+
+                // MARK: Tier Progression
+                HandTitle(text: "Tier Progression")
+                HandNote(text: "Tier 1 — Egypt (unlocked at start)", color: Color.inkSepia)
+                HandNote(text: "Tier 2 — Norse + Sumerian (after Egypt complete)", color: Color.inkSepia)
+                HandNote(text: "Tier 3 — Maya + Celtic (after Norse AND Sumerian complete)", color: Color.inkSepia)
+                HandNote(text: "Tier 4 — China (after Maya OR Celtic complete)", color: Color.inkSepia)
+                HandNote(text: "Mandu Tablet — accessible always, completable after all six", color: Color.inkSepia)
+
+                SectionRule()
+
+                // MARK: Build Phases
+                HandTitle(text: "Build Phases")
+                HandNote(text: "✅ Phase 1 — Content (keys, diary entries, final message)", color: Color.inkSepia)
+                HandNote(text: "◻ Phase 2 — GameState: discoveredKeys system", color: Color.inkSepia.opacity(0.6))
+                HandNote(text: "◻ Phase 3 — Mandu Tablet: row UI + placement logic", color: Color.inkSepia.opacity(0.6))
+                HandNote(text: "◻ Phase 4 — Mandu Tablet: oak tree growth animation", color: Color.inkSepia.opacity(0.6))
+                HandNote(text: "◻ Phase 5 — Level 5 key-selection UI per civilization", color: Color.inkSepia.opacity(0.6))
+                HandNote(text: "◻ Phase 6 — Journal post-Level 5 diary entries", color: Color.inkSepia.opacity(0.6))
+                HandNote(text: "◻ Phase 7 — Integration + polish", color: Color.inkSepia.opacity(0.6))
+
+                Spacer(minLength: 24)
+            }
+            .padding(.horizontal, 4)
+        }
+    }
+
+    private func designRow(symbol: String, civ: String, role: String, note: String) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Text(symbol)
+                .font(handFont(18))
+                .foregroundStyle(Color.inkBlue)
+                .frame(width: 28)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("\(civ) — \(role)")
+                    .font(handFont(13, bold: true))
+                    .foregroundStyle(Color.inkSepia)
+                Text(note)
+                    .font(handFont(11))
+                    .foregroundStyle(Color.inkSepia.opacity(0.65))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    private func keyRow(from: String, to: String, note: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            HStack(spacing: 6) {
+                Text(from)
+                    .font(handFont(13, bold: true))
+                    .foregroundStyle(Color.inkBlue)
+                Text("→")
+                    .font(handFont(13))
+                    .foregroundStyle(Color.inkSepia.opacity(0.5))
+                Text(to)
+                    .font(handFont(13))
+                    .foregroundStyle(Color.inkSepia)
+            }
+            Text(note)
+                .font(handFont(11))
+                .foregroundStyle(Color.inkSepia.opacity(0.55))
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private func decoyRow(puzzle: String, correct: String, choices: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(puzzle)
+                .font(handFont(12, bold: true))
+                .foregroundStyle(Color.inkSepia)
+            HStack(spacing: 4) {
+                Text("✓")
+                    .font(handFont(11))
+                    .foregroundStyle(Color.inkRed)
+                Text(choices)
+                    .font(handFont(13))
+                    .foregroundStyle(Color.inkBlue)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+}
+#endif
 
 // MARK: - Preview
 
