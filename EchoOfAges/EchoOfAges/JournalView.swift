@@ -996,6 +996,7 @@ private struct SettingsJournalContent: View {
                 Spacer()
                 Toggle("", isOn: $gameState.showIntroOnLaunch)
                     .labelsHidden()
+                    .toggleStyle(GreenRedToggleStyle())
                     .onChange(of: gameState.showIntroOnLaunch) { _, _ in gameState.saveSettings() }
             }
             Spacer(minLength: 4)
@@ -1083,6 +1084,35 @@ private struct SettingsJournalContent: View {
             }
 
             SectionRule()
+
+            // Debug — only visible in DEBUG builds
+            #if DEBUG
+            HandTitle(text: "Developer", size: 17, color: .inkBlue)
+            HandNote(text: "Jump to any puzzle, mark levels solved, and test all civilizations.", size: 12, color: Color.inkSepia.opacity(0.55))
+            Spacer(minLength: 6)
+            Button {
+                HapticFeedback.tap()
+                gameState.closeJournal()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                    gameState.openDebug()
+                }
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "ladybug.fill").font(.system(size: 16))
+                    Text("Open Puzzle Debug Panel").font(handFont(14, bold: true))
+                }
+                .foregroundStyle(Color(red: 0.10, green: 0.35, blue: 0.60))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .background(
+                    RoundedRectangle(cornerRadius: 7)
+                        .fill(Color(red: 0.10, green: 0.28, blue: 0.55).opacity(0.10))
+                        .overlay(RoundedRectangle(cornerRadius: 7)
+                            .stroke(Color(red: 0.10, green: 0.35, blue: 0.60).opacity(0.40), lineWidth: 1))
+                )
+            }
+            SectionRule()
+            #endif
 
             // Version
             HandTitle(text: "About", size: 17, color: .inkBlue)

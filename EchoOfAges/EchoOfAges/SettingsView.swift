@@ -411,7 +411,7 @@ struct SettingsView: View {
 
 // MARK: - Green / Red Toggle Style
 
-private struct GreenRedToggleStyle: ToggleStyle {
+struct GreenRedToggleStyle: ToggleStyle {
     func makeBody(configuration: Configuration) -> some View {
         let isOn = configuration.isOn
         RoundedRectangle(cornerRadius: 16)
