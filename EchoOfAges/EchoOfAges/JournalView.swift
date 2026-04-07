@@ -997,7 +997,7 @@ private struct InspirationPageContent: View {
 
             // Image floated right alongside first paragraph
             HStack(alignment: .top, spacing: 10) {
-                HandBody(text: "In 1987 a game arrived on the Macintosh that stopped me cold. The Fool's Errand was unlike anything I had encountered — a world woven entirely out of puzzles, where tarot cards, word games, mazes, and logic grids were not obstacles between story beats but the story itself. Every solved puzzle was a sentence in a larger sentence. Cliff Johnson had built a cathedral out of cardboard and ink, and I walked through every room of it.")
+                HandBody(text: "In 1987 a game arrived on the Macintosh that captured someone very close to me completely. The Fool's Errand was unlike anything they had encountered — a world woven entirely out of puzzles, where tarot cards, word games, mazes, and logic grids were not obstacles between story beats but the story itself. Every solved puzzle was a sentence in a larger sentence. Cliff Johnson had built a cathedral out of cardboard and ink, and watching someone I loved walk through every room of it planted something in me.")
 
                 VStack(spacing: 4) {
                     Image("fools_errand")
@@ -1017,17 +1017,23 @@ private struct InspirationPageContent: View {
             }
 
             Spacer(minLength: 12)
-            HandBody(text: "I was young then, just finding my footing as a software developer. I was working at Intuit with a remarkable team, helping build the Macintosh version of Quicken. It was the early days of the Mac — small tight teams, every line of code mattered, and the machine itself felt like a living thing. We worked hard and we cared deeply about the craft.")
-            Spacer(minLength: 12)
-            HandBody(text: "But The Fool's Errand lived in a different part of my mind. It planted a question I never stopped asking: what would it feel like to build something like that? A puzzle that was also a journey. A mystery that rewarded patience, not reflexes.")
+            HandBody(text: "I was finding my footing as a software developer then, working at Intuit with a remarkable team on the Macintosh version of Quicken. It was the early days of the Mac — small tight teams, every line of code mattered, and the machine itself felt like a living thing. We cared deeply about the craft. But that question — what would it feel like to build something like The Fool's Errand? — never left me.")
 
             SectionRule()
 
-            HandTitle(text: "Decades Later", size: 18, color: .inkBlue)
+            HandTitle(text: "Kings in the Corner", size: 18, color: .inkBlue)
             Spacer(minLength: 10)
-            HandBody(text: "Echo of Ages is my answer to that question. An expedition through ancient civilizations, each culture hiding its knowledge inside a different kind of puzzle. Latin squares, rune paths, substitution ciphers — and eventually, if you follow all six threads, a final stone that only speaks when every voice has been heard.")
+            HandBody(text: "Years later I started building games of my own. First came Kings in the Corner — a classic card game I turned into a web app, just to see if I could. People played it. More people found it. When the pandemic arrived and the world went quiet, I turned it into a proper iOS app. Suddenly there was time to build something real, and an audience that needed something to do.")
             Spacer(minLength: 12)
-            HandBody(text: "Cliff never knew a young programmer in the 80s would carry his game forward into the next century. This one's for him.")
+            HandBody(text: "That experience taught me the whole shape of it — design, code, polish, ship. And it reminded me that the question from 1987 was still sitting there, unanswered.")
+
+            SectionRule()
+
+            HandTitle(text: "Echo of Ages", size: 18, color: .inkBlue)
+            Spacer(minLength: 10)
+            HandBody(text: "This is where that question leads. Six ancient civilizations, each one hiding its knowledge inside a different kind of puzzle. A stone tablet that only reveals itself when every voice has been heard. A journey that rewards patience, not reflexes — exactly the kind of game that family member fell in love with all those years ago.")
+            Spacer(minLength: 12)
+            HandBody(text: "Cliff Johnson never knew his game would travel this far. This one is for him — and for the person who showed me why it mattered.")
             Spacer(minLength: 12)
 
             // Signature
