@@ -86,6 +86,11 @@ struct ChineseGameView: View {
                     try? await Task.sleep(nanoseconds: 700_000_000)
                     withAnimation(.easeOut(duration: 0.6)) { messageRevealed = true }
                 }
+            } else {
+                withAnimation(.easeOut(duration: 0.25)) {
+                    showComplete = false
+                    messageRevealed = false
+                }
             }
         }
         .onDisappear {
