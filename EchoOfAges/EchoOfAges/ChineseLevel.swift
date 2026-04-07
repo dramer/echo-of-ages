@@ -11,11 +11,11 @@
 // normalize so top-left = (0,0).
 //
 // Level progression:
-//   L1 — 2×4 tray, 2 pieces   (tutorial: two squares)
-//   L2 — 3×4 tray, 3 pieces   (strip + two squares)
-//   L3 — 3×4 tray, 4 pieces   (four corners — same L-shape, four rotations)
-//   L4 — 4×4 tray, 4 pieces   (four nails — same T-shape, four rotations)
-//   L5 — 4×5 tray, 5 pieces   (master: five distinct shapes)
+//   L1 — 3×4 tray, 3 pieces   (strip + two hooks, two rotations)
+//   L2 — 3×5 tray, 4 pieces   (four different shapes including short strip)
+//   L3 — 4×4 tray, 4 pieces   (four nails — same T-shape, four rotations)
+//   L4 — 4×5 tray, 5 pieces   (five distinct shapes)
+//   L5 — 4×6 tray, 6 pieces   (master: two pillars + four nails)
 
 import Foundation
 
@@ -153,148 +153,166 @@ extension ChineseBoxLevel {
     static let allLevels: [ChineseBoxLevel] = [level1, level2, level3, level4, level5]
 
     // ── LEVEL 1 ─────────────────────────────────────────────────────────────
-    // 2×4 tray, 2 pieces — two 2×2 squares
-    //   A A B B
-    //   A A B B
+    // 3×4 tray, 3 pieces — I-4 strip + two L-hooks (same shape, two rotations)
+    //
+    //   A A A A
+    //   B B B C
+    //   B C C C
+    //
+    // Pieces:
+    //   A = I-4  baseCells [(0,0),(0,1),(0,2),(0,3)]
+    //   B = L-4  baseCells [(0,0),(1,0),(2,0),(2,1)]  — placed at rot1
+    //   C = L-4  baseCells [(0,0),(1,0),(2,0),(2,1)]  — placed at rot3
+    //
+    // Rotation verification:
+    //   L rot1 = [(0,0),(0,1),(0,2),(1,0)]
+    //   L rot3 = [(0,2),(1,0),(1,1),(1,2)]
+    //
+    // Solution placements:
+    //   A@(0,0)rot0 → (0,0)(0,1)(0,2)(0,3)
+    //   B@(1,0)rot1 → (1,0)(1,1)(1,2)(2,0)
+    //   C@(1,1)rot3 → (1,3)(2,1)(2,2)(2,3)
+    //
+    // Verified cell map (all 12 cells):
+    //   (0,0)=A (0,1)=A (0,2)=A (0,3)=A
+    //   (1,0)=B (1,1)=B (1,2)=B (1,3)=C
+    //   (2,0)=B (2,1)=C (2,2)=C (2,3)=C  ✓
     static let level1 = ChineseBoxLevel(
         id: 1,
-        title: "The Apprentice's Tray",
-        subtitle: "Two squares fill the box",
-        lore: "The first lesson of the master craftsman: every shape has its place. Begin with the simplest fit.",
+        title: "The Turning Pieces",
+        subtitle: "One shape, two facings",
+        lore: "The master sets a long plank above the tray and two hook-pieces beside it. They are the same hook — one faces dawn, one faces dusk. Only by turning do they reveal their place.",
         inscriptions: [
-            "Two squares, one tray — the first lesson needs no words.",
-            "Find where each piece rests and the wood speaks for itself."
-        ],
-        rows: 2, cols: 4,
-        pieces: [
-            ChineseBoxPiece(id: "A", name: "方", meaning: "Square",
-                            colorHex: "9A6B2E",
-                            baseCells: [(0,0),(0,1),(1,0),(1,1)]),
-            ChineseBoxPiece(id: "B", name: "方", meaning: "Square",
-                            colorHex: "C4924A",
-                            baseCells: [(0,0),(0,1),(1,0),(1,1)])
-        ],
-        solutionPlacements: [
-            "A": ChinesePiecePlacement(row: 0, col: 0, rotation: 0),
-            "B": ChinesePiecePlacement(row: 0, col: 2, rotation: 0)
-        ],
-        decodedMessage: "The sun rises. Order begins with the simplest form.",
-        artifactSymbol: "square.split.2x2",
-        journalTitle: "The Wooden Tray",
-        journalBody: "Found among the ruins of a Han dynasty workshop — a child's puzzle tray. The simplest lessons endure the longest."
-    )
-
-    // ── LEVEL 2 ─────────────────────────────────────────────────────────────
-    // 3×4 tray, 3 pieces — I-strip + two 2×2 squares
-    //   A A A A
-    //   B B C C
-    //   B B C C
-    static let level2 = ChineseBoxLevel(
-        id: 2,
-        title: "The Craftsman's Test",
-        subtitle: "Strip and squares",
-        lore: "The long plank anchors the top. Two equal squares fill what remains. Study the edge before the center.",
-        inscriptions: [
-            "Lay the long piece first — it commands the row above all.",
-            "What the strip cannot reach, the squares will complete."
+            "The strip claims the top. Study what it leaves behind.",
+            "Two hooks, one shape — yet they cannot face the same direction.",
+            "Turn the hook until the corner it seeks becomes clear."
         ],
         rows: 3, cols: 4,
         pieces: [
             ChineseBoxPiece(id: "A", name: "條", meaning: "Strip",
                             colorHex: "B5813A",
                             baseCells: [(0,0),(0,1),(0,2),(0,3)]),
-            ChineseBoxPiece(id: "B", name: "方", meaning: "Square",
+            ChineseBoxPiece(id: "B", name: "鉤", meaning: "Hook",
                             colorHex: "9A6B2E",
-                            baseCells: [(0,0),(0,1),(1,0),(1,1)]),
-            ChineseBoxPiece(id: "C", name: "方", meaning: "Square",
+                            baseCells: [(0,0),(1,0),(2,0),(2,1)]),
+            ChineseBoxPiece(id: "C", name: "鉤", meaning: "Hook",
                             colorHex: "C4924A",
-                            baseCells: [(0,0),(0,1),(1,0),(1,1)])
+                            baseCells: [(0,0),(1,0),(2,0),(2,1)])
         ],
         // A@(0,0)rot0 → (0,0)(0,1)(0,2)(0,3)
-        // B@(1,0)rot0 → (1,0)(1,1)(2,0)(2,1)
-        // C@(1,2)rot0 → (1,2)(1,3)(2,2)(2,3)
+        // B@(1,0)rot1 → (1,0)(1,1)(1,2)(2,0)
+        // C@(1,1)rot3 → (1,3)(2,1)(2,2)(2,3)
         solutionPlacements: [
             "A": ChinesePiecePlacement(row: 0, col: 0, rotation: 0),
-            "B": ChinesePiecePlacement(row: 1, col: 0, rotation: 0),
-            "C": ChinesePiecePlacement(row: 1, col: 2, rotation: 0)
+            "B": ChinesePiecePlacement(row: 1, col: 0, rotation: 1),
+            "C": ChinesePiecePlacement(row: 1, col: 1, rotation: 3)
         ],
-        decodedMessage: "The moon follows. What is long guides what is equal.",
-        artifactSymbol: "rectangle.split.3x1",
-        journalTitle: "The Scholar's Desk",
-        journalBody: "Ivory and sandalwood pieces recovered from a Confucian academy. The long piece is always placed first — so wrote the master to his student."
+        decodedMessage: "Turning reveals what standing still conceals. The hook finds its home only when it faces the right direction.",
+        artifactSymbol: "rotate.right",
+        journalTitle: "The Hook Pieces",
+        journalBody: "Two carved elm pieces, identical in every measurement. The tray accepts them only when they face opposite corners. The workshop inscription: 'Same wood, same shape — yet each has only one true place.'"
+    )
+
+    // ── LEVEL 2 ─────────────────────────────────────────────────────────────
+    // 3×5 tray, 4 pieces — I-4 + T-4 + L-4 + I-3 (four different shapes)
+    //
+    //   A A A A B
+    //   C C C B B
+    //   C D D D B
+    //
+    // Pieces:
+    //   A = I-4  baseCells [(0,0),(0,1),(0,2),(0,3)]
+    //   B = T-4  baseCells [(0,0),(0,1),(0,2),(1,1)]  — placed at rot1
+    //   C = L-4  baseCells [(0,0),(1,0),(2,0),(2,1)]  — placed at rot1
+    //   D = I-3  baseCells [(0,0),(0,1),(0,2)]        — placed at rot0
+    //
+    // Rotation verification:
+    //   T rot1 = [(0,1),(1,0),(1,1),(2,1)]
+    //   L rot1 = [(0,0),(0,1),(0,2),(1,0)]
+    //
+    // Solution placements:
+    //   A@(0,0)rot0 → (0,0)(0,1)(0,2)(0,3)
+    //   B@(0,3)rot1 → (0,4)(1,3)(1,4)(2,4)
+    //   C@(1,0)rot1 → (1,0)(1,1)(1,2)(2,0)
+    //   D@(2,1)rot0 → (2,1)(2,2)(2,3)
+    //
+    // Verified cell map (all 15 cells):
+    //   (0,0)=A (0,1)=A (0,2)=A (0,3)=A (0,4)=B
+    //   (1,0)=C (1,1)=C (1,2)=C (1,3)=B (1,4)=B
+    //   (2,0)=C (2,1)=D (2,2)=D (2,3)=D (2,4)=B  ✓
+    static let level2 = ChineseBoxLevel(
+        id: 2,
+        title: "The Four Shapes",
+        subtitle: "No two pieces alike",
+        lore: "Four distinct pieces of wood rest beside the tray. Each has a different name, a different length, a different turning. The tray accepts all four — but only in one arrangement.",
+        inscriptions: [
+            "The long strip lies flat. Where it ends, the nail-piece begins its descent.",
+            "The hook sweeps the second row. The small strip fills what remains.",
+            "Four shapes, one tray. Each piece knows one corner it cannot reach without the others."
+        ],
+        rows: 3, cols: 5,
+        pieces: [
+            ChineseBoxPiece(id: "A", name: "條", meaning: "Strip",
+                            colorHex: "B5813A",
+                            baseCells: [(0,0),(0,1),(0,2),(0,3)]),
+            ChineseBoxPiece(id: "B", name: "丁", meaning: "Nail",
+                            colorHex: "6B3D25",
+                            baseCells: [(0,0),(0,1),(0,2),(1,1)]),
+            ChineseBoxPiece(id: "C", name: "鉤", meaning: "Hook",
+                            colorHex: "9A6B2E",
+                            baseCells: [(0,0),(1,0),(2,0),(2,1)]),
+            ChineseBoxPiece(id: "D", name: "短", meaning: "Short",
+                            colorHex: "C4924A",
+                            baseCells: [(0,0),(0,1),(0,2)])
+        ],
+        // A@(0,0)rot0 → (0,0)(0,1)(0,2)(0,3)
+        // B@(0,3)rot1 → (0,4)(1,3)(1,4)(2,4)
+        // C@(1,0)rot1 → (1,0)(1,1)(1,2)(2,0)
+        // D@(2,1)rot0 → (2,1)(2,2)(2,3)
+        solutionPlacements: [
+            "A": ChinesePiecePlacement(row: 0, col: 0, rotation: 0),
+            "B": ChinesePiecePlacement(row: 0, col: 3, rotation: 1),
+            "C": ChinesePiecePlacement(row: 1, col: 0, rotation: 1),
+            "D": ChinesePiecePlacement(row: 2, col: 1, rotation: 0)
+        ],
+        decodedMessage: "Four shapes, one harmony. Difference does not prevent unity — it enables it.",
+        artifactSymbol: "square.grid.2x2",
+        journalTitle: "The Mixed Tray",
+        journalBody: "A craftsman's teaching tray from the Warring States period. Four different pieces of wood — cedar, elm, pine, and oak — each a different size. The note accompanying them: 'Unlike things may still complete one another.'"
     )
 
     // ── LEVEL 3 ─────────────────────────────────────────────────────────────
-    // 3×4 tray, 4 pieces — four L-trominoes (same shape, four rotations)
-    //   A A B B
-    //   A C B D
-    //   C C D D
-    //
-    // L3 rot0 = [(0,0),(0,1),(1,0)]   rot2 = [(0,1),(1,0),(1,1)]
-    static let level3 = ChineseBoxLevel(
-        id: 3,
-        title: "The Four Corners",
-        subtitle: "Four corners fill the box",
-        lore: "Each corner piece is identical — only its facing changes. The box has four corners; the piece has four rotations. This is not coincidence.",
-        inscriptions: [
-            "One shape, four turnings. The tray asks which way each corner faces.",
-            "Two pieces crown the top. Two pieces anchor the base. Mirror one side to find the other."
-        ],
-        rows: 3, cols: 4,
-        pieces: [
-            ChineseBoxPiece(id: "A", name: "角", meaning: "Corner",
-                            colorHex: "B5813A",
-                            baseCells: [(0,0),(0,1),(1,0)]),
-            ChineseBoxPiece(id: "B", name: "角", meaning: "Corner",
-                            colorHex: "9A6B2E",
-                            baseCells: [(0,0),(0,1),(1,0)]),
-            ChineseBoxPiece(id: "C", name: "角", meaning: "Corner",
-                            colorHex: "C4924A",
-                            baseCells: [(0,0),(0,1),(1,0)]),
-            ChineseBoxPiece(id: "D", name: "角", meaning: "Corner",
-                            colorHex: "A07030",
-                            baseCells: [(0,0),(0,1),(1,0)])
-        ],
-        // A@(0,0)rot0 → (0,0)(0,1)(1,0)
-        // B@(0,2)rot0 → (0,2)(0,3)(1,2)
-        // C@(1,0)rot2: rot2=[(0,1),(1,0),(1,1)] → @(1,0): (1,1)(2,0)(2,1)
-        // D@(1,2)rot2: rot2=[(0,1),(1,0),(1,1)] → @(1,2): (1,3)(2,2)(2,3)
-        solutionPlacements: [
-            "A": ChinesePiecePlacement(row: 0, col: 0, rotation: 0),
-            "B": ChinesePiecePlacement(row: 0, col: 2, rotation: 0),
-            "C": ChinesePiecePlacement(row: 1, col: 0, rotation: 2),
-            "D": ChinesePiecePlacement(row: 1, col: 2, rotation: 2)
-        ],
-        decodedMessage: "Water finds the lowest place. Four turnings, one truth.",
-        artifactSymbol: "rotate.right",
-        journalTitle: "The Corner Pieces",
-        journalBody: "Four identical pieces of polished elm. The inscription on the tray reads: 'One shape becomes four when you learn to see what it faces.'"
-    )
-
-    // ── LEVEL 4 ─────────────────────────────────────────────────────────────
     // 4×4 tray, 4 pieces — four T-tetrominoes (same shape, all four rotations)
+    //
     //   A A A B
     //   C A B B
-    //   C C B D   (B is T-rot1 pointing right; D is T-rot2 pointing up)
+    //   C C B D
     //   C D D D
     //
     // T rot0=[(0,0),(0,1),(0,2),(1,1)]  rot1=[(0,1),(1,0),(1,1),(2,1)]
     // T rot2=[(0,1),(1,0),(1,1),(1,2)]  rot3=[(0,0),(1,0),(1,1),(2,0)]
     //
-    // Verified cell map:
+    // Solution placements:
+    //   A@(0,0)rot0 → (0,0)(0,1)(0,2)(1,1)
+    //   B@(0,2)rot1 → (0,3)(1,2)(1,3)(2,3)
+    //   C@(1,0)rot3 → (1,0)(2,0)(2,1)(3,0)
+    //   D@(2,1)rot2 → (2,2)(3,1)(3,2)(3,3)
+    //
+    // Verified cell map (all 16 cells):
     //   (0,0)=A (0,1)=A (0,2)=A (0,3)=B
     //   (1,0)=C (1,1)=A (1,2)=B (1,3)=B
     //   (2,0)=C (2,1)=C (2,2)=D (2,3)=B
-    //   (3,0)=C (3,1)=D (3,2)=D (3,3)=D
-    static let level4 = ChineseBoxLevel(
-        id: 4,
+    //   (3,0)=C (3,1)=D (3,2)=D (3,3)=D  ✓
+    static let level3 = ChineseBoxLevel(
+        id: 3,
         title: "The Four Nails",
         subtitle: "Four T-shapes, four directions",
-        lore: "The nail piece points in four directions. Each nail must face a different wall of the box. When all four directions are honoured, the tray is complete.",
+        lore: "The nail piece is named for the character 丁 — a head and a stem. It can point toward any of the four walls. When each nail faces a different wall, they lock together and the tray is filled.",
         inscriptions: [
-            "The T-piece points down, right, left, and up — one for each wall of the tray.",
-            "Each nail interlocks with the others. Find where one points and the next will follow.",
-            "The center of the tray is always shared. No nail owns it alone."
+            "One nail points down from the top, its head spanning three columns.",
+            "A second nail descends from the right. A third rises from the left.",
+            "The fourth nail points upward from below, its stem buried in the corner.",
+            "No two nails face the same wall. Together they share the center."
         ],
         rows: 4, cols: 4,
         pieces: [
@@ -311,24 +329,24 @@ extension ChineseBoxLevel {
                             colorHex: "A07030",
                             baseCells: [(0,0),(0,1),(0,2),(1,1)])
         ],
-        // A@(0,0)rot0: [(0,0),(0,1),(0,2),(1,1)] → (0,0)(0,1)(0,2)(1,1)
-        // B@(0,2)rot1: [(0,1),(1,0),(1,1),(2,1)] → (0,3)(1,2)(1,3)(2,3)
-        // C@(1,0)rot3: [(0,0),(1,0),(1,1),(2,0)] → (1,0)(2,0)(2,1)(3,0)
-        // D@(2,1)rot2: [(0,1),(1,0),(1,1),(1,2)] → (2,2)(3,1)(3,2)(3,3)
+        // A@(0,0)rot0 → (0,0)(0,1)(0,2)(1,1)
+        // B@(0,2)rot1 → (0,3)(1,2)(1,3)(2,3)
+        // C@(1,0)rot3 → (1,0)(2,0)(2,1)(3,0)
+        // D@(2,1)rot2 → (2,2)(3,1)(3,2)(3,3)
         solutionPlacements: [
             "A": ChinesePiecePlacement(row: 0, col: 0, rotation: 0),
             "B": ChinesePiecePlacement(row: 0, col: 2, rotation: 1),
             "C": ChinesePiecePlacement(row: 1, col: 0, rotation: 3),
             "D": ChinesePiecePlacement(row: 2, col: 1, rotation: 2)
         ],
-        decodedMessage: "Fire transforms. What points in all directions consumes nothing and loses nothing.",
+        decodedMessage: "What points in all directions loses nothing and gains everything. The four nails hold the box together from within.",
         artifactSymbol: "arrow.up.arrow.down.circle",
         journalTitle: "The Scholar's Lock",
         journalBody: "A puzzle box from the Song dynasty. Four identical pieces of hardwood — the challenge is not identifying the shapes, but discovering which direction each one must face."
     )
 
-    // ── LEVEL 5 ─────────────────────────────────────────────────────────────
-    // 4×5 tray, 5 pieces — five distinct tetromino shapes
+    // ── LEVEL 4 ─────────────────────────────────────────────────────────────
+    // 4×5 tray, 5 pieces — I-4 + J + L + L + J (five distinct instances)
     //
     //   A A A A B
     //   C D D D B
@@ -336,34 +354,41 @@ extension ChineseBoxLevel {
     //   C C E E E
     //
     // Pieces:
-    //   A = I-tetromino  baseCells [(0,0),(0,1),(0,2),(0,3)]
-    //   B = J-tetromino  baseCells [(0,1),(1,1),(2,0),(2,1)]
-    //   C = L-tetromino  baseCells [(0,0),(1,0),(2,0),(2,1)]
-    //   D = L-tetromino (different instance, placed at rot1)
-    //   E = J-tetromino (different instance, placed at rot1)
+    //   A = I-4  baseCells [(0,0),(0,1),(0,2),(0,3)]
+    //   B = J    baseCells [(0,1),(1,1),(2,0),(2,1)]  — placed at rot0
+    //   C = L    baseCells [(0,0),(1,0),(2,0),(2,1)]  — placed at rot0
+    //   D = L    baseCells [(0,0),(1,0),(2,0),(2,1)]  — placed at rot1
+    //   E = J    baseCells [(0,1),(1,1),(2,0),(2,1)]  — placed at rot1
+    //
+    // Rotation verification:
+    //   J rot0 = [(0,1),(1,1),(2,0),(2,1)]
+    //   L rot0 = [(0,0),(1,0),(2,0),(2,1)]
+    //   L rot1 = [(0,0),(0,1),(0,2),(1,0)]
+    //   J rot1 = [(0,0),(1,0),(1,1),(1,2)]
     //
     // Solution placements:
     //   A@(0,0)rot0 → (0,0)(0,1)(0,2)(0,3)
-    //   B@(0,3)rot0: [(0,1),(1,1),(2,0),(2,1)] → (0,4)(1,4)(2,3)(2,4)
-    //   C@(1,0)rot0: [(0,0),(1,0),(2,0),(2,1)] → (1,0)(2,0)(3,0)(3,1)
-    //   D@(1,1)rot1: L rot1=[(0,0),(0,1),(0,2),(1,0)] → (1,1)(1,2)(1,3)(2,1)
-    //   E@(2,2)rot1: J rot1=[(0,0),(1,0),(1,1),(1,2)] → (2,2)(3,2)(3,3)(3,4)
+    //   B@(0,3)rot0 → (0,4)(1,4)(2,3)(2,4)
+    //   C@(1,0)rot0 → (1,0)(2,0)(3,0)(3,1)
+    //   D@(1,1)rot1 → (1,1)(1,2)(1,3)(2,1)
+    //   E@(2,2)rot1 → (2,2)(3,2)(3,3)(3,4)
     //
-    // Verified cell map:
+    // Verified cell map (all 20 cells):
     //   (0,0)=A (0,1)=A (0,2)=A (0,3)=A (0,4)=B
     //   (1,0)=C (1,1)=D (1,2)=D (1,3)=D (1,4)=B
     //   (2,0)=C (2,1)=D (2,2)=E (2,3)=B (2,4)=B
-    //   (3,0)=C (3,1)=C (3,2)=E (3,3)=E (3,4)=E  ✓ all 20 cells
-    static let level5 = ChineseBoxLevel(
-        id: 5,
-        title: "The Master's Tray",
-        subtitle: "Five shapes, one tray",
-        lore: "Five different pieces of wood. No two are the same. Yet together they fill the tray without a gap. The master saw this and said: difference is not disorder.",
+    //   (3,0)=C (3,1)=C (3,2)=E (3,3)=E (3,4)=E  ✓
+    static let level4 = ChineseBoxLevel(
+        id: 4,
+        title: "The Five Wood Spirits",
+        subtitle: "Five shapes seek their home",
+        lore: "Five pieces of ancient wood, each carved by a different hand in a different dynasty. The long strip remembers the river's straightness. The two bends remember the willow's curve. Only together can they fill the carpenter's tray.",
         inscriptions: [
-            "The long strip claims the top. What remains is shaped by what surrounds it.",
-            "The hook on the left grows downward. The hook on the right folds inward.",
-            "The center piece bridges what the outer pieces cannot reach alone.",
-            "When the last piece drops into place, no corner is left empty."
+            "The strip spans the entire top. Nothing reaches beyond it.",
+            "A bend descends from the right, folding inward at the base.",
+            "The left hook grows downward, its foot extending right.",
+            "The broad piece sweeps three cells across the second row, anchored at the left.",
+            "The final bend curls from the center downward, claiming the far corner."
         ],
         rows: 4, cols: 5,
         pieces: [
@@ -383,6 +408,11 @@ extension ChineseBoxLevel {
                             colorHex: "8C6228",
                             baseCells: [(0,1),(1,1),(2,0),(2,1)])
         ],
+        // A@(0,0)rot0 → (0,0)(0,1)(0,2)(0,3)
+        // B@(0,3)rot0 → (0,4)(1,4)(2,3)(2,4)
+        // C@(1,0)rot0 → (1,0)(2,0)(3,0)(3,1)
+        // D@(1,1)rot1 → (1,1)(1,2)(1,3)(2,1)
+        // E@(2,2)rot1 → (2,2)(3,2)(3,3)(3,4)
         solutionPlacements: [
             "A": ChinesePiecePlacement(row: 0, col: 0, rotation: 0),
             "B": ChinesePiecePlacement(row: 0, col: 3, rotation: 0),
@@ -390,9 +420,99 @@ extension ChineseBoxLevel {
             "D": ChinesePiecePlacement(row: 1, col: 1, rotation: 1),
             "E": ChinesePiecePlacement(row: 2, col: 2, rotation: 1)
         ],
-        decodedMessage: "Wood remembers every ring of every year. Five pieces, one truth: difference is not disorder — it is completion.",
+        decodedMessage: "Five pieces, five woods, five dynasties — yet the tray holds them all. What is different may still be complete.",
         artifactSymbol: "puzzlepiece.fill",
-        journalTitle: "The Master Craftsman's Box",
-        journalBody: "Found sealed inside a lacquered chest from the Tang dynasty. Five puzzle pieces, each a different wood: pine, cedar, elm, oak, and sandalwood. The inscription on the lid: 'Only together do they remember the shape of the tree.'"
+        journalTitle: "The Five-Piece Tray",
+        journalBody: "Recovered from a Tang dynasty chest: five puzzle pieces, each a different wood — pine, cedar, elm, oak, and sandalwood. The lid inscription reads: 'Only together do they remember the shape of the tree.'"
+    )
+
+    // ── LEVEL 5 ─────────────────────────────────────────────────────────────
+    // 4×6 tray, 6 pieces — I-4 (vert) × 2 + T-4 × 4
+    //
+    //   A C C C D B
+    //   A E C D D B
+    //   A E E F D B
+    //   A E F F F B
+    //
+    // Pieces:
+    //   A = I-4  baseCells [(0,0),(0,1),(0,2),(0,3)]  — placed vertical (rot1)
+    //   B = I-4  baseCells [(0,0),(0,1),(0,2),(0,3)]  — placed vertical (rot1)
+    //   C = T-4  baseCells [(0,0),(0,1),(0,2),(1,1)]  — placed at rot0
+    //   D = T-4  baseCells [(0,0),(0,1),(0,2),(1,1)]  — placed at rot1
+    //   E = T-4  baseCells [(0,0),(0,1),(0,2),(1,1)]  — placed at rot3
+    //   F = T-4  baseCells [(0,0),(0,1),(0,2),(1,1)]  — placed at rot2
+    //
+    // Rotation verification:
+    //   I-4 rot1 = [(0,0),(1,0),(2,0),(3,0)]  (vertical pillar)
+    //   T   rot0 = [(0,0),(0,1),(0,2),(1,1)]  (T pointing down)
+    //   T   rot1 = [(0,1),(1,0),(1,1),(2,1)]  (T pointing right)
+    //   T   rot2 = [(0,1),(1,0),(1,1),(1,2)]  (T pointing up)
+    //   T   rot3 = [(0,0),(1,0),(1,1),(2,0)]  (T pointing left)
+    //
+    // Solution placements:
+    //   A@(0,0)rot1 → (0,0)(1,0)(2,0)(3,0)
+    //   B@(0,5)rot1 → (0,5)(1,5)(2,5)(3,5)
+    //   C@(0,1)rot0 → (0,1)(0,2)(0,3)(1,2)
+    //   D@(0,3)rot1 → (0,4)(1,3)(1,4)(2,4)
+    //   E@(1,1)rot3 → (1,1)(2,1)(2,2)(3,1)
+    //   F@(2,2)rot2 → (2,3)(3,2)(3,3)(3,4)
+    //
+    // Verified cell map (all 24 cells):
+    //   (0,0)=A (0,1)=C (0,2)=C (0,3)=C (0,4)=D (0,5)=B
+    //   (1,0)=A (1,1)=E (1,2)=C (1,3)=D (1,4)=D (1,5)=B
+    //   (2,0)=A (2,1)=E (2,2)=E (2,3)=F (2,4)=D (2,5)=B
+    //   (3,0)=A (3,1)=E (3,2)=F (3,3)=F (3,4)=F (3,5)=B  ✓
+    static let level5 = ChineseBoxLevel(
+        id: 5,
+        title: "The Master's Creation",
+        subtitle: "Two pillars, four nails",
+        lore: "The master craftsman's final tray is the widest. Two long pillars stand at the edges. Between them, four nail-pieces interlock in a pattern that took the master thirty years to discover. No shortcut exists. The wood will only speak to those who have learned to listen.",
+        inscriptions: [
+            "Two pillars guard the left and right edges — place them first.",
+            "A nail-piece crowns the top, its head spanning three columns.",
+            "A second nail descends from the upper right, its stem at the far edge.",
+            "A third nail rises from the left of center, its foot touching the second row.",
+            "The fourth nail points upward from below, its head in the final row.",
+            "When all six pieces are placed, the tray is silent. The work is complete."
+        ],
+        rows: 4, cols: 6,
+        pieces: [
+            ChineseBoxPiece(id: "A", name: "柱", meaning: "Pillar",
+                            colorHex: "4A2C1A",
+                            baseCells: [(0,0),(0,1),(0,2),(0,3)]),
+            ChineseBoxPiece(id: "B", name: "柱", meaning: "Pillar",
+                            colorHex: "6B3D25",
+                            baseCells: [(0,0),(0,1),(0,2),(0,3)]),
+            ChineseBoxPiece(id: "C", name: "丁", meaning: "Nail",
+                            colorHex: "B5813A",
+                            baseCells: [(0,0),(0,1),(0,2),(1,1)]),
+            ChineseBoxPiece(id: "D", name: "丁", meaning: "Nail",
+                            colorHex: "9A6B2E",
+                            baseCells: [(0,0),(0,1),(0,2),(1,1)]),
+            ChineseBoxPiece(id: "E", name: "丁", meaning: "Nail",
+                            colorHex: "C4924A",
+                            baseCells: [(0,0),(0,1),(0,2),(1,1)]),
+            ChineseBoxPiece(id: "F", name: "丁", meaning: "Nail",
+                            colorHex: "A07030",
+                            baseCells: [(0,0),(0,1),(0,2),(1,1)])
+        ],
+        // A@(0,0)rot1 → (0,0)(1,0)(2,0)(3,0)
+        // B@(0,5)rot1 → (0,5)(1,5)(2,5)(3,5)
+        // C@(0,1)rot0 → (0,1)(0,2)(0,3)(1,2)
+        // D@(0,3)rot1 → (0,4)(1,3)(1,4)(2,4)
+        // E@(1,1)rot3 → (1,1)(2,1)(2,2)(3,1)
+        // F@(2,2)rot2 → (2,3)(3,2)(3,3)(3,4)
+        solutionPlacements: [
+            "A": ChinesePiecePlacement(row: 0, col: 0, rotation: 1),
+            "B": ChinesePiecePlacement(row: 0, col: 5, rotation: 1),
+            "C": ChinesePiecePlacement(row: 0, col: 1, rotation: 0),
+            "D": ChinesePiecePlacement(row: 0, col: 3, rotation: 1),
+            "E": ChinesePiecePlacement(row: 1, col: 1, rotation: 3),
+            "F": ChinesePiecePlacement(row: 2, col: 2, rotation: 2)
+        ],
+        decodedMessage: "The Tao that can be named is not the eternal Tao. Yet here, in wood and silence, you have touched its shape.",
+        artifactSymbol: "seal.fill",
+        journalTitle: "The Master's Final Tray",
+        journalBody: "Found locked in a sealed chamber beneath the workshop. Six pieces of the darkest hardwood, worn smooth by decades of handling. The inscription on the tray's underside: 'Thirty years I sought this arrangement. Now it is yours to find in an afternoon — or a lifetime.'"
     )
 }
