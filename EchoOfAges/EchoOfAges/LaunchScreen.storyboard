@@ -18,6 +18,12 @@
                             <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" image="banner" translatesAutoresizingMaskIntoConstraints="NO" id="bannerImg">
                                 <rect key="frame" x="0.0" y="-86" width="393" height="1024"/>
                             </imageView>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="A Tribute to Cliff Johnson" textAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="tributeLbl">
+                                <rect key="frame" x="0.0" y="800" width="393" height="28"/>
+                                <fontDescription type="system" pointSize="18"/>
+                                <color key="textColor" red="0" green="0" blue="0" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                <nil key="highlightedColor"/>
+                            </label>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="Bcu-3y-fUS"/>
                         <color key="backgroundColor" red="0.93" green="0.87" blue="0.73" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
@@ -25,6 +31,10 @@
                             <constraint firstItem="bannerImg" firstAttribute="leading" secondItem="Ze5-6b-2t3" secondAttribute="leading" id="c1"/>
                             <constraint firstItem="bannerImg" firstAttribute="trailing" secondItem="Ze5-6b-2t3" secondAttribute="trailing" id="c2"/>
                             <constraint firstItem="bannerImg" firstAttribute="centerY" secondItem="Ze5-6b-2t3" secondAttribute="centerY" id="c3"/>
+                            <constraint firstItem="tributeLbl" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="c4"/>
+                            <constraint firstItem="Bcu-3y-fUS" firstAttribute="bottom" secondItem="tributeLbl" secondAttribute="bottom" constant="24" id="c5"/>
+                            <constraint firstItem="tributeLbl" firstAttribute="leading" secondItem="Ze5-6b-2t3" secondAttribute="leading" constant="24" id="c6"/>
+                            <constraint firstItem="Ze5-6b-2t3" firstAttribute="trailing" secondItem="tributeLbl" secondAttribute="trailing" constant="24" id="c7"/>
                         </constraints>
                     </view>
                 </viewController>

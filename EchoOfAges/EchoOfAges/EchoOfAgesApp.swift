@@ -9,23 +9,9 @@ import SwiftUI
 
 @main
 struct EchoOfAgesApp: App {
-    @State private var splashDone = false
-
     var body: some Scene {
         WindowGroup {
-            ZStack {
-                ContentView()
-
-                if !splashDone {
-                    SplashView {
-                        withAnimation(.easeOut(duration: 0.5)) {
-                            splashDone = true
-                        }
-                    }
-                    .transition(.opacity)
-                    .zIndex(1)
-                }
-            }
+            ContentView()
         }
     }
 }
