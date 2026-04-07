@@ -5,12 +5,11 @@
 // Accessible from Settings → Developer → Open Puzzle Debug Panel.
 //
 // Features:
-//   • All civilizations listed, unlocked or not
-//   • All levels per civilization with solved status, variant badge, grid size
-//   • Norse pathfinding levels shown separately with path progress
+//   • All civilizations in one scrollable list — each section expands / collapses
+//   • Egyptian levels: Play + Solve buttons, filter bar
+//   • Norse pathfinding and Sumerian cipher levels each get their own section
 //   • "Play" — jump directly to that puzzle
 //   • "Solve" — instantly mark the level complete and award the journal entry
-//   • Filter bar to show All / Unsolved / Solved
 
 import SwiftUI
 
@@ -20,7 +19,7 @@ struct DebugView: View {
     @EnvironmentObject var gameState: GameState
     @State private var filter: DebugFilter = .all
     @State private var confirmingSolve: Level? = nil
-    @State private var selectedTab: DebugTab = .egyptian
+    @State private var collapsedSections: Set<String> = []
 
     enum DebugFilter: String, CaseIterable {
         case all      = "All"
@@ -28,15 +27,8 @@ struct DebugView: View {
         case solved   = "Solved"
     }
 
-    enum DebugTab: String, CaseIterable {
-        case egyptian = "Egyptian"
-        case norse    = "Norse"
-        case sumerian = "Sumerian"
-    }
-
     var body: some View {
         ZStack {
-            // Background — dark stone, slightly different tint so it reads as "dev"
             Color(red: 0.04, green: 0.06, blue: 0.10).ignoresSafeArea()
             RadialGradient(
                 colors: [Color(red: 0.08, green: 0.18, blue: 0.32).opacity(0.6), .clear],
@@ -46,29 +38,25 @@ struct DebugView: View {
 
             VStack(spacing: 0) {
                 topBar
-                tabBar
+
+                filterBar
                     .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
+                    .padding(.vertical, 8)
                     .background(Color(red: 0.06, green: 0.09, blue: 0.15))
-                if selectedTab == .egyptian {
-                    filterBar
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
-                        .background(Color(red: 0.06, green: 0.09, blue: 0.15))
-                }
 
                 ScrollView(showsIndicators: false) {
-                    VStack(spacing: 24) {
-                        switch selectedTab {
-                        case .egyptian:
-                            ForEach(Civilization.all) { civ in
-                                civSection(civ)
-                            }
-                        case .norse:
-                            norseSection
-                        case .sumerian:
-                            sumerianSection
+                    VStack(spacing: 10) {
+                        // Egyptian + other future Latin-square civs
+                        ForEach(Civilization.all) { civ in
+                            civExpandableSection(civ)
                         }
+
+                        // Norse pathfinding
+                        norseExpandableSection
+
+                        // Sumerian cipher
+                        sumerianExpandableSection
+
                         Spacer(minLength: 40)
                     }
                     .padding(.horizontal, 16)
@@ -123,7 +111,6 @@ struct DebugView: View {
 
             Spacer()
 
-            // Balance spacer matching "Back" button width
             Color.clear.frame(width: 60, height: 30)
         }
         .padding(.horizontal, 20)
@@ -139,38 +126,7 @@ struct DebugView: View {
         )
     }
 
-    // MARK: Tab Bar
-
-    private var tabBar: some View {
-        HStack(spacing: 8) {
-            ForEach(DebugTab.allCases, id: \.self) { tab in
-                Button(action: {
-                    HapticFeedback.tap()
-                    selectedTab = tab
-                }) {
-                    Text(tab.rawValue)
-                        .font(EgyptFont.titleBold(14))
-                        .tracking(1)
-                        .foregroundStyle(selectedTab == tab
-                            ? Color(red: 0.04, green: 0.06, blue: 0.10)
-                            : Color(red: 0.45, green: 0.75, blue: 1.0))
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 8)
-                        .background(
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(selectedTab == tab
-                                    ? Color(red: 0.45, green: 0.75, blue: 1.0)
-                                    : Color(red: 0.45, green: 0.75, blue: 1.0).opacity(0.12))
-                                .overlay(RoundedRectangle(cornerRadius: 8)
-                                    .stroke(Color(red: 0.45, green: 0.75, blue: 1.0).opacity(0.35), lineWidth: 0.8))
-                        )
-                }
-            }
-            Spacer()
-        }
-    }
-
-    // MARK: Filter Bar
+    // MARK: Filter Bar (applies to Latin-square levels)
 
     private var filterBar: some View {
         HStack(spacing: 8) {
@@ -198,55 +154,236 @@ struct DebugView: View {
             }
             Spacer()
 
-            // Quick stats
-            let total   = Level.allLevels.count
-            let solved  = Level.allLevels.filter { gameState.unlockedJournalEntries.contains($0.journalEntry.id) }.count
+            let total  = Level.allLevels.count
+            let solved = Level.allLevels.filter { gameState.unlockedJournalEntries.contains($0.journalEntry.id) }.count
             Text("\(solved)/\(total) solved")
                 .font(EgyptFont.body(13))
                 .foregroundStyle(Color(red: 0.45, green: 0.75, blue: 1.0).opacity(0.55))
         }
     }
 
-    // MARK: Norse Section
+    // MARK: Expandable Civilization Section (Latin-square)
 
-    private var norseSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            // Section header
-            HStack(spacing: 10) {
-                Text("ᚠ")
-                    .font(.system(size: 22))
-                Text("NORSE · PATHFINDING")
-                    .font(EgyptFont.titleBold(15))
-                    .tracking(2)
-                    .foregroundStyle(Color(red: 0.45, green: 0.75, blue: 1.0))
-                Spacer()
-                let nSolved = PathLevel.allLevels.filter { gameState.norseUnlockedLevels.contains($0.id) }.count
-                Text("\(nSolved)/\(PathLevel.allLevels.count) solved")
-                    .font(EgyptFont.body(13))
-                    .foregroundStyle(Color(red: 0.45, green: 0.75, blue: 1.0).opacity(0.55))
+    @ViewBuilder
+    private func civExpandableSection(_ civ: Civilization) -> some View {
+        let key = civ.name
+        let isExpanded = !collapsedSections.contains(key)
+        let civLevels = Level.allLevels.filter { $0.civilization == civ.id }
+        let filteredLevels = civLevels.filter { level in
+            switch filter {
+            case .all:      return true
+            case .solved:   return  gameState.unlockedJournalEntries.contains(level.journalEntry.id)
+            case .unsolved: return !gameState.unlockedJournalEntries.contains(level.journalEntry.id)
             }
-            .padding(.horizontal, 4)
+        }
 
-            Text("Hamiltonian path puzzles — trace a route that visits every stone exactly once, guided by rune waypoints.")
-                .font(EgyptFont.bodyItalic(13))
-                .foregroundStyle(Color(red: 0.45, green: 0.75, blue: 1.0).opacity(0.5))
-                .padding(.horizontal, 4)
-
-            VStack(spacing: 8) {
-                ForEach(PathLevel.allLevels) { level in
-                    norsePathRow(level)
+        if filteredLevels.isEmpty && filter != .all {
+            EmptyView()
+        } else {
+            VStack(alignment: .leading, spacing: 0) {
+                // Tappable section header
+                Button { toggleSection(key) } label: {
+                    HStack(spacing: 10) {
+                        Text(civ.emblem).font(.system(size: 22))
+                        Text(civ.name.uppercased())
+                            .font(EgyptFont.titleBold(15))
+                            .tracking(2)
+                            .foregroundStyle(Color(red: 0.45, green: 0.75, blue: 1.0))
+                        if !civ.isUnlocked {
+                            lockBadge
+                        }
+                        Spacer()
+                        let nSolved = civLevels.filter { gameState.unlockedJournalEntries.contains($0.journalEntry.id) }.count
+                        Text("\(nSolved)/\(civLevels.count)")
+                            .font(EgyptFont.body(13))
+                            .foregroundStyle(Color(red: 0.45, green: 0.75, blue: 1.0).opacity(0.55))
+                        Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(Color(red: 0.45, green: 0.75, blue: 1.0).opacity(0.6))
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 12)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(Color(red: 0.45, green: 0.75, blue: 1.0).opacity(0.08))
+                            .overlay(RoundedRectangle(cornerRadius: 10)
+                                .stroke(Color(red: 0.45, green: 0.75, blue: 1.0).opacity(0.22), lineWidth: 0.8))
+                    )
                 }
+                .buttonStyle(.plain)
+
+                // Collapsible puzzle rows
+                if isExpanded {
+                    VStack(spacing: 8) {
+                        if civLevels.isEmpty {
+                            HStack(spacing: 10) {
+                                Image(systemName: "clock").font(.system(size: 13))
+                                Text("No puzzles defined yet.")
+                                    .font(EgyptFont.bodyItalic(14))
+                            }
+                            .foregroundStyle(Color(red: 0.45, green: 0.75, blue: 1.0).opacity(0.35))
+                            .padding(14)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .fill(Color.white.opacity(0.04))
+                                    .overlay(RoundedRectangle(cornerRadius: 10)
+                                        .stroke(Color(red: 0.45, green: 0.75, blue: 1.0).opacity(0.12), lineWidth: 0.7))
+                            )
+                        } else {
+                            ForEach(filteredLevels) { level in
+                                levelRow(level, civ: civ)
+                            }
+                        }
+                    }
+                    .padding(.top, 8)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+                }
+            }
+            .animation(.easeInOut(duration: 0.22), value: isExpanded)
+        }
+    }
+
+    // MARK: Expandable Norse Section
+
+    private var norseExpandableSection: some View {
+        let key = "norse_section"
+        let isExpanded = !collapsedSections.contains(key)
+        let allLevels = PathLevel.allLevels
+        let nSolved = allLevels.filter { gameState.norseUnlockedLevels.contains($0.id) }.count
+
+        return VStack(alignment: .leading, spacing: 0) {
+            Button { toggleSection(key) } label: {
+                HStack(spacing: 10) {
+                    Text("ᚠ").font(.system(size: 22))
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text("NORSE")
+                            .font(EgyptFont.titleBold(15))
+                            .tracking(2)
+                            .foregroundStyle(Color(red: 0.45, green: 0.75, blue: 1.0))
+                        Text("Pathfinding")
+                            .font(EgyptFont.bodyItalic(12))
+                            .foregroundStyle(Color(red: 0.45, green: 0.75, blue: 1.0).opacity(0.45))
+                    }
+                    Spacer()
+                    Text("\(nSolved)/\(allLevels.count)")
+                        .font(EgyptFont.body(13))
+                        .foregroundStyle(Color(red: 0.45, green: 0.75, blue: 1.0).opacity(0.55))
+                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Color(red: 0.45, green: 0.75, blue: 1.0).opacity(0.6))
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 12)
+                .background(
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(Color(red: 0.45, green: 0.75, blue: 1.0).opacity(0.08))
+                        .overlay(RoundedRectangle(cornerRadius: 10)
+                            .stroke(Color(red: 0.45, green: 0.75, blue: 1.0).opacity(0.22), lineWidth: 0.8))
+                )
+            }
+            .buttonStyle(.plain)
+
+            if isExpanded {
+                VStack(spacing: 8) {
+                    ForEach(allLevels) { level in
+                        norsePathRow(level)
+                    }
+                }
+                .padding(.top, 8)
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+        .animation(.easeInOut(duration: 0.22), value: isExpanded)
+    }
+
+    // MARK: Expandable Sumerian Section
+
+    private var sumerianExpandableSection: some View {
+        let key = "sumerian_section"
+        let isExpanded = !collapsedSections.contains(key)
+        let allLevels = SumerianLevel.allLevels
+        let nSolved = allLevels.filter { gameState.sumerianUnlockedLevels.contains($0.id) }.count
+
+        return VStack(alignment: .leading, spacing: 0) {
+            Button { toggleSection(key) } label: {
+                HStack(spacing: 10) {
+                    Text("𒀭").font(.system(size: 22))
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text("SUMERIAN")
+                            .font(EgyptFont.titleBold(15))
+                            .tracking(2)
+                            .foregroundStyle(Color(red: 0.45, green: 0.75, blue: 1.0))
+                        Text("Substitution Cipher")
+                            .font(EgyptFont.bodyItalic(12))
+                            .foregroundStyle(Color(red: 0.45, green: 0.75, blue: 1.0).opacity(0.45))
+                    }
+                    Spacer()
+                    Text("\(nSolved)/\(allLevels.count)")
+                        .font(EgyptFont.body(13))
+                        .foregroundStyle(Color(red: 0.45, green: 0.75, blue: 1.0).opacity(0.55))
+                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Color(red: 0.45, green: 0.75, blue: 1.0).opacity(0.6))
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 12)
+                .background(
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(Color(red: 0.45, green: 0.75, blue: 1.0).opacity(0.08))
+                        .overlay(RoundedRectangle(cornerRadius: 10)
+                            .stroke(Color(red: 0.45, green: 0.75, blue: 1.0).opacity(0.22), lineWidth: 0.8))
+                )
+            }
+            .buttonStyle(.plain)
+
+            if isExpanded {
+                VStack(spacing: 8) {
+                    ForEach(allLevels) { level in
+                        sumerianCipherRow(level)
+                    }
+                }
+                .padding(.top, 8)
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+        .animation(.easeInOut(duration: 0.22), value: isExpanded)
+    }
+
+    // MARK: Toggle helper
+
+    private func toggleSection(_ key: String) {
+        HapticFeedback.tap()
+        withAnimation(.easeInOut(duration: 0.22)) {
+            if collapsedSections.contains(key) {
+                collapsedSections.remove(key)
+            } else {
+                collapsedSections.insert(key)
             }
         }
     }
+
+    // MARK: Lock Badge
+
+    private var lockBadge: some View {
+        Text("LOCKED")
+            .font(EgyptFont.body(11))
+            .foregroundStyle(Color(red: 0.45, green: 0.75, blue: 1.0).opacity(0.4))
+            .padding(.horizontal, 7)
+            .padding(.vertical, 3)
+            .background(
+                RoundedRectangle(cornerRadius: 4)
+                    .stroke(Color(red: 0.45, green: 0.75, blue: 1.0).opacity(0.25), lineWidth: 0.7)
+            )
+    }
+
+    // MARK: Norse Path Row
 
     private func norsePathRow(_ level: PathLevel) -> some View {
         let isSolved  = gameState.norseUnlockedLevels.contains(level.id)
         let isCurrent = gameState.norseCurrentLevelIndex == (PathLevel.allLevels.firstIndex(where: { $0.id == level.id }) ?? -1)
 
         return HStack(spacing: 14) {
-
-            // Roman numeral
             Text(level.romanNumeral)
                 .font(EgyptFont.titleBold(18))
                 .foregroundStyle(isSolved
@@ -254,58 +391,29 @@ struct DebugView: View {
                     : Color(red: 0.45, green: 0.75, blue: 1.0).opacity(0.7))
                 .frame(width: 28)
 
-            // Level info
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 8) {
                     Text(level.title)
                         .font(EgyptFont.titleBold(15))
                         .foregroundStyle(.white)
                     if isCurrent {
-                        Text("CURRENT")
-                            .font(EgyptFont.body(10))
-                            .tracking(1)
-                            .foregroundStyle(Color.goldBright)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(RoundedRectangle(cornerRadius: 3).fill(Color.goldDark.opacity(0.3)))
+                        currentBadge
                     }
                 }
                 HStack(spacing: 10) {
-                    // Grid size
                     Label("\(level.rows)×\(level.cols)", systemImage: "grid")
                         .font(EgyptFont.body(12))
                         .foregroundStyle(Color(red: 0.45, green: 0.75, blue: 1.0).opacity(0.55))
-
-                    // Cells
                     Label("\(level.totalCells) cells", systemImage: "dot.circle")
                         .font(EgyptFont.body(12))
                         .foregroundStyle(Color(red: 0.45, green: 0.75, blue: 1.0).opacity(0.55))
-
-                    // Waypoints count
-                    Text("\(level.waypoints.count) runes")
-                        .font(EgyptFont.body(11))
-                        .foregroundStyle(Color(red: 1.0, green: 0.80, blue: 0.35).opacity(0.8))
-                        .padding(.horizontal, 7)
-                        .padding(.vertical, 2)
-                        .background(
-                            RoundedRectangle(cornerRadius: 4)
-                                .fill(Color(red: 1.0, green: 0.80, blue: 0.35).opacity(0.12))
-                                .overlay(RoundedRectangle(cornerRadius: 4)
-                                    .stroke(Color(red: 1.0, green: 0.80, blue: 0.35).opacity(0.35), lineWidth: 0.7))
-                        )
-
-                    // Solved badge
-                    if isSolved {
-                        Label("Solved", systemImage: "checkmark.seal.fill")
-                            .font(EgyptFont.body(11))
-                            .foregroundStyle(Color(red: 0.30, green: 0.85, blue: 0.50))
-                    }
+                    goldBadge("\(level.waypoints.count) runes")
+                    if isSolved { solvedBadge }
                 }
             }
 
             Spacer()
 
-            // Play button
             Button(action: {
                 HapticFeedback.tap()
                 gameState.debugJumpToNorseLevel(level)
@@ -317,101 +425,16 @@ struct DebugView: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
-        .background(
-            RoundedRectangle(cornerRadius: 10)
-                .fill(isSolved
-                    ? Color(red: 0.12, green: 0.22, blue: 0.14).opacity(0.6)
-                    : Color.white.opacity(0.05))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 10)
-                        .stroke(isCurrent
-                            ? Color.goldDark.opacity(0.6)
-                            : Color(red: 0.45, green: 0.75, blue: 1.0).opacity(0.15),
-                                lineWidth: isCurrent ? 1.2 : 0.7)
-                )
-        )
+        .background(levelBackground(solved: isSolved, current: isCurrent))
     }
 
-    // MARK: Civilization Section
-
-    @ViewBuilder
-    private func civSection(_ civ: Civilization) -> some View {
-        let civLevels = Level.allLevels.filter { $0.civilization == civ.id }
-        let filteredLevels = civLevels.filter { level in
-            switch filter {
-            case .all:      return true
-            case .solved:   return gameState.unlockedJournalEntries.contains(level.journalEntry.id)
-            case .unsolved: return !gameState.unlockedJournalEntries.contains(level.journalEntry.id)
-            }
-        }
-
-        // If filtering hides all levels of this civ, hide the whole section
-        if filteredLevels.isEmpty && filter != .all { EmptyView() } else {
-            VStack(alignment: .leading, spacing: 10) {
-
-                // Civ header
-                HStack(spacing: 10) {
-                    Text(civ.emblem)
-                        .font(.system(size: 22))
-                    Text(civ.name.uppercased())
-                        .font(EgyptFont.titleBold(15))
-                        .tracking(2)
-                        .foregroundStyle(Color(red: 0.45, green: 0.75, blue: 1.0))
-                    if !civ.isUnlocked {
-                        Text("LOCKED")
-                            .font(EgyptFont.body(11))
-                            .foregroundStyle(Color(red: 0.45, green: 0.75, blue: 1.0).opacity(0.4))
-                            .padding(.horizontal, 7)
-                            .padding(.vertical, 3)
-                            .background(
-                                RoundedRectangle(cornerRadius: 4)
-                                    .stroke(Color(red: 0.45, green: 0.75, blue: 1.0).opacity(0.25), lineWidth: 0.7)
-                            )
-                    }
-                    Spacer()
-                    Text(civ.scriptName)
-                        .font(EgyptFont.bodyItalic(12))
-                        .foregroundStyle(Color(red: 0.45, green: 0.75, blue: 1.0).opacity(0.4))
-                }
-                .padding(.horizontal, 4)
-
-                if civLevels.isEmpty {
-                    // No levels defined yet for this civ
-                    HStack(spacing: 10) {
-                        Image(systemName: "clock")
-                            .font(.system(size: 13))
-                        Text("No puzzles defined yet — coming in a future expedition phase.")
-                            .font(EgyptFont.bodyItalic(14))
-                    }
-                    .foregroundStyle(Color(red: 0.45, green: 0.75, blue: 1.0).opacity(0.35))
-                    .padding(14)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(
-                        RoundedRectangle(cornerRadius: 10)
-                            .fill(Color.white.opacity(0.04))
-                            .overlay(RoundedRectangle(cornerRadius: 10)
-                                .stroke(Color(red: 0.45, green: 0.75, blue: 1.0).opacity(0.12), lineWidth: 0.7))
-                    )
-                } else {
-                    VStack(spacing: 8) {
-                        ForEach(filteredLevels) { level in
-                            levelRow(level, civ: civ)
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    // MARK: Level Row
+    // MARK: Egyptian Level Row
 
     private func levelRow(_ level: Level, civ: Civilization) -> some View {
-        let isSolved = gameState.unlockedJournalEntries.contains(level.journalEntry.id)
+        let isSolved  = gameState.unlockedJournalEntries.contains(level.journalEntry.id)
         let isCurrent = gameState.currentLevelIndex == (Level.allLevels.firstIndex(where: { $0.id == level.id }) ?? -1)
 
         return HStack(spacing: 14) {
-
-            // Roman numeral
             Text(level.romanNumeral)
                 .font(EgyptFont.titleBold(18))
                 .foregroundStyle(isSolved
@@ -419,55 +442,25 @@ struct DebugView: View {
                     : Color(red: 0.45, green: 0.75, blue: 1.0).opacity(0.7))
                 .frame(width: 28)
 
-            // Level info
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 8) {
                     Text(level.title)
                         .font(EgyptFont.titleBold(15))
                         .foregroundStyle(.white)
-                    if isCurrent {
-                        Text("CURRENT")
-                            .font(EgyptFont.body(10))
-                            .tracking(1)
-                            .foregroundStyle(Color.goldBright)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(RoundedRectangle(cornerRadius: 3).fill(Color.goldDark.opacity(0.3)))
-                    }
+                    if isCurrent { currentBadge }
                 }
                 HStack(spacing: 10) {
-                    // Grid size
                     Label("\(level.rows)×\(level.cols)", systemImage: "grid")
                         .font(EgyptFont.body(12))
                         .foregroundStyle(Color(red: 0.45, green: 0.75, blue: 1.0).opacity(0.55))
-
-                    // Variant badge
-                    Text(variantLabel(level.variant))
-                        .font(EgyptFont.body(11))
-                        .foregroundStyle(variantColor(level.variant))
-                        .padding(.horizontal, 7)
-                        .padding(.vertical, 2)
-                        .background(
-                            RoundedRectangle(cornerRadius: 4)
-                                .fill(variantColor(level.variant).opacity(0.15))
-                                .overlay(RoundedRectangle(cornerRadius: 4)
-                                    .stroke(variantColor(level.variant).opacity(0.4), lineWidth: 0.7))
-                        )
-
-                    // Solved badge
-                    if isSolved {
-                        Label("Solved", systemImage: "checkmark.seal.fill")
-                            .font(EgyptFont.body(11))
-                            .foregroundStyle(Color(red: 0.30, green: 0.85, blue: 0.50))
-                    }
+                    variantBadge(level.variant)
+                    if isSolved { solvedBadge }
                 }
             }
 
             Spacer()
 
-            // Action buttons
             HStack(spacing: 8) {
-                // Solve button
                 Button(action: {
                     HapticFeedback.tap()
                     confirmingSolve = level
@@ -478,7 +471,6 @@ struct DebugView: View {
                 }
                 .disabled(isSolved)
 
-                // Play button
                 Button(action: {
                     HapticFeedback.tap()
                     gameState.debugJumpToLevel(level)
@@ -491,60 +483,16 @@ struct DebugView: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
-        .background(
-            RoundedRectangle(cornerRadius: 10)
-                .fill(isSolved
-                    ? Color(red: 0.12, green: 0.22, blue: 0.14).opacity(0.6)
-                    : Color.white.opacity(0.05))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 10)
-                        .stroke(isCurrent
-                            ? Color.goldDark.opacity(0.6)
-                            : Color(red: 0.45, green: 0.75, blue: 1.0).opacity(0.15),
-                                lineWidth: isCurrent ? 1.2 : 0.7)
-                )
-        )
+        .background(levelBackground(solved: isSolved, current: isCurrent))
     }
 
-    // MARK: Sumerian Section
-
-    private var sumerianSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 10) {
-                Text("𒀭")
-                    .font(.system(size: 22))
-                Text("SUMERIAN · CIPHER")
-                    .font(EgyptFont.titleBold(15))
-                    .tracking(2)
-                    .foregroundStyle(Color(red: 0.45, green: 0.75, blue: 1.0))
-                Spacer()
-                let nSolved = SumerianLevel.allLevels.filter { gameState.sumerianUnlockedLevels.contains($0.id) }.count
-                Text("\(nSolved)/\(SumerianLevel.allLevels.count) solved")
-                    .font(EgyptFont.body(13))
-                    .foregroundStyle(Color(red: 0.45, green: 0.75, blue: 1.0).opacity(0.55))
-            }
-            .padding(.horizontal, 4)
-
-            Text("Substitution cipher puzzles — deduce the hidden bijection from anchor positions, then decode the full inscription.")
-                .font(EgyptFont.bodyItalic(13))
-                .foregroundStyle(Color(red: 0.45, green: 0.75, blue: 1.0).opacity(0.5))
-                .padding(.horizontal, 4)
-
-            VStack(spacing: 8) {
-                ForEach(SumerianLevel.allLevels) { level in
-                    sumerianCipherRow(level)
-                }
-            }
-        }
-    }
+    // MARK: Sumerian Cipher Row
 
     private func sumerianCipherRow(_ level: SumerianLevel) -> some View {
         let isSolved  = gameState.sumerianUnlockedLevels.contains(level.id)
         let isCurrent = gameState.sumerianCurrentLevelIndex == (SumerianLevel.allLevels.firstIndex(where: { $0.id == level.id }) ?? -1)
 
         return HStack(spacing: 14) {
-
-            // Roman numeral
             Text(level.romanNumeral)
                 .font(EgyptFont.titleBold(18))
                 .foregroundStyle(isSolved
@@ -552,57 +500,27 @@ struct DebugView: View {
                     : Color(red: 0.45, green: 0.75, blue: 1.0).opacity(0.7))
                 .frame(width: 28)
 
-            // Level info
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 8) {
                     Text(level.title)
                         .font(EgyptFont.titleBold(15))
                         .foregroundStyle(.white)
-                    if isCurrent {
-                        Text("CURRENT")
-                            .font(EgyptFont.body(10))
-                            .tracking(1)
-                            .foregroundStyle(Color.goldBright)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(RoundedRectangle(cornerRadius: 3).fill(Color.goldDark.opacity(0.3)))
-                    }
+                    if isCurrent { currentBadge }
                 }
                 HStack(spacing: 10) {
-                    // Symbol count
                     Label("\(level.symbols.count) symbols", systemImage: "character.cursor.ibeam")
                         .font(EgyptFont.body(12))
                         .foregroundStyle(Color(red: 0.45, green: 0.75, blue: 1.0).opacity(0.55))
-
-                    // Sequence length
                     Label("\(level.encodedSequence.count) signs", systemImage: "list.number")
                         .font(EgyptFont.body(12))
                         .foregroundStyle(Color(red: 0.45, green: 0.75, blue: 1.0).opacity(0.55))
-
-                    // Anchors badge
-                    Text("\(level.revealedPositions.count) anchors")
-                        .font(EgyptFont.body(11))
-                        .foregroundStyle(Color(red: 1.0, green: 0.80, blue: 0.35).opacity(0.8))
-                        .padding(.horizontal, 7)
-                        .padding(.vertical, 2)
-                        .background(
-                            RoundedRectangle(cornerRadius: 4)
-                                .fill(Color(red: 1.0, green: 0.80, blue: 0.35).opacity(0.12))
-                                .overlay(RoundedRectangle(cornerRadius: 4)
-                                    .stroke(Color(red: 1.0, green: 0.80, blue: 0.35).opacity(0.35), lineWidth: 0.7))
-                        )
-
-                    if isSolved {
-                        Label("Solved", systemImage: "checkmark.seal.fill")
-                            .font(EgyptFont.body(11))
-                            .foregroundStyle(Color(red: 0.30, green: 0.85, blue: 0.50))
-                    }
+                    goldBadge("\(level.revealedPositions.count) anchors")
+                    if isSolved { solvedBadge }
                 }
             }
 
             Spacer()
 
-            // Play button
             Button(action: {
                 HapticFeedback.tap()
                 gameState.debugJumpToSumerianLevel(level)
@@ -614,19 +532,67 @@ struct DebugView: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
-        .background(
-            RoundedRectangle(cornerRadius: 10)
-                .fill(isSolved
-                    ? Color(red: 0.12, green: 0.22, blue: 0.14).opacity(0.6)
-                    : Color.white.opacity(0.05))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 10)
-                        .stroke(isCurrent
-                            ? Color.goldDark.opacity(0.6)
-                            : Color(red: 0.45, green: 0.75, blue: 1.0).opacity(0.15),
-                                lineWidth: isCurrent ? 1.2 : 0.7)
-                )
-        )
+        .background(levelBackground(solved: isSolved, current: isCurrent))
+    }
+
+    // MARK: Shared badge / background helpers
+
+    private var currentBadge: some View {
+        Text("CURRENT")
+            .font(EgyptFont.body(10))
+            .tracking(1)
+            .foregroundStyle(Color.goldBright)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(RoundedRectangle(cornerRadius: 3).fill(Color.goldDark.opacity(0.3)))
+    }
+
+    private var solvedBadge: some View {
+        Label("Solved", systemImage: "checkmark.seal.fill")
+            .font(EgyptFont.body(11))
+            .foregroundStyle(Color(red: 0.30, green: 0.85, blue: 0.50))
+    }
+
+    private func goldBadge(_ text: String) -> some View {
+        Text(text)
+            .font(EgyptFont.body(11))
+            .foregroundStyle(Color(red: 1.0, green: 0.80, blue: 0.35).opacity(0.8))
+            .padding(.horizontal, 7)
+            .padding(.vertical, 2)
+            .background(
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(Color(red: 1.0, green: 0.80, blue: 0.35).opacity(0.12))
+                    .overlay(RoundedRectangle(cornerRadius: 4)
+                        .stroke(Color(red: 1.0, green: 0.80, blue: 0.35).opacity(0.35), lineWidth: 0.7))
+            )
+    }
+
+    private func variantBadge(_ variant: PuzzleVariant) -> some View {
+        Text(variantLabel(variant))
+            .font(EgyptFont.body(11))
+            .foregroundStyle(variantColor(variant))
+            .padding(.horizontal, 7)
+            .padding(.vertical, 2)
+            .background(
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(variantColor(variant).opacity(0.15))
+                    .overlay(RoundedRectangle(cornerRadius: 4)
+                        .stroke(variantColor(variant).opacity(0.4), lineWidth: 0.7))
+            )
+    }
+
+    private func levelBackground(solved: Bool, current: Bool) -> some View {
+        RoundedRectangle(cornerRadius: 10)
+            .fill(solved
+                ? Color(red: 0.12, green: 0.22, blue: 0.14).opacity(0.6)
+                : Color.white.opacity(0.05))
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(current
+                        ? Color.goldDark.opacity(0.6)
+                        : Color(red: 0.45, green: 0.75, blue: 1.0).opacity(0.15),
+                            lineWidth: current ? 1.2 : 0.7)
+            )
     }
 
     // MARK: Variant helpers

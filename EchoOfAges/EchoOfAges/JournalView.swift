@@ -1092,10 +1092,7 @@ private struct SettingsJournalContent: View {
             Spacer(minLength: 6)
             Button {
                 HapticFeedback.tap()
-                gameState.closeJournal()
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-                    gameState.openDebug()
-                }
+                gameState.openDebug()
             } label: {
                 HStack(spacing: 8) {
                     Image(systemName: "ladybug.fill").font(.system(size: 16))
