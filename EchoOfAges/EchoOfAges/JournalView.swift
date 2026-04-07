@@ -997,7 +997,7 @@ private struct InspirationPageContent: View {
 
             // Image floated right alongside first paragraph
             HStack(alignment: .top, spacing: 10) {
-                HandBody(text: "In 1987 a game arrived on the Macintosh that captured someone very close to me completely. The Fool's Errand was unlike anything they had encountered — a world woven entirely out of puzzles, where tarot cards, word games, mazes, and logic grids were not obstacles between story beats but the story itself. Every solved puzzle was a sentence in a larger sentence. Cliff Johnson had built a cathedral out of cardboard and ink, and watching someone I loved walk through every room of it planted something in me.")
+                HandBody(text: "In 1987 a game arrived on the Macintosh that captured someone very close to me completely. The Fool's Errand was unlike anything they had encountered — a world woven entirely out of puzzles, where tarot cards, word games, mazes, and logic grids were not obstacles between story beats but the story itself. Every solved puzzle was a sentence in a larger sentence. Cliff Johnson had conjured a cathedral from monochrome pixels on a nine-inch screen — assembled from nothing but bits and bytes — and watching someone I loved walk through every room of it planted something in me.")
 
                 VStack(spacing: 4) {
                     Image("fools_errand")
