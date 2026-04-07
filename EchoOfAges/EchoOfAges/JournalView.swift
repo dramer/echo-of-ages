@@ -992,26 +992,30 @@ private struct InspirationPageContent: View {
 
             SectionRule()
 
-            // The Fool's Errand image
-            Image("fools_errand")
-                .resizable()
-                .scaledToFit()
-                .frame(maxWidth: .infinity)
-                .clipShape(RoundedRectangle(cornerRadius: 6))
-                .overlay(RoundedRectangle(cornerRadius: 6)
-                    .stroke(Color.inkSepia.opacity(0.35), lineWidth: 1))
-                .shadow(color: .black.opacity(0.25), radius: 4, x: 2, y: 2)
-
-            Spacer(minLength: 4)
-            HandNote(text: "The Fool's Errand — Cliff Johnson, 1987", size: 12,
-                     color: Color.inkSepia.opacity(0.45))
-                .frame(maxWidth: .infinity, alignment: .center)
-
-            SectionRule()
-
             HandTitle(text: "A Tribute to Cliff Johnson", size: 18, color: .inkBlue)
             Spacer(minLength: 10)
-            HandBody(text: "In 1987 a game arrived on the Macintosh that stopped me cold. The Fool's Errand was unlike anything I had encountered — a world woven entirely out of puzzles, where tarot cards, word games, mazes, and logic grids were not obstacles between story beats but the story itself. Every solved puzzle was a sentence in a larger sentence. Cliff Johnson had built a cathedral out of cardboard and ink, and I walked through every room of it.")
+
+            // Image floated right alongside first paragraph
+            HStack(alignment: .top, spacing: 10) {
+                HandBody(text: "In 1987 a game arrived on the Macintosh that stopped me cold. The Fool's Errand was unlike anything I had encountered — a world woven entirely out of puzzles, where tarot cards, word games, mazes, and logic grids were not obstacles between story beats but the story itself. Every solved puzzle was a sentence in a larger sentence. Cliff Johnson had built a cathedral out of cardboard and ink, and I walked through every room of it.")
+
+                VStack(spacing: 4) {
+                    Image("fools_errand")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 86)
+                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                        .overlay(RoundedRectangle(cornerRadius: 4)
+                            .stroke(Color.inkSepia.opacity(0.35), lineWidth: 1))
+                        .shadow(color: .black.opacity(0.22), radius: 3, x: 1, y: 2)
+                    Text("The Fool's Errand\nCliff Johnson, 1987")
+                        .font(handFont(10))
+                        .foregroundStyle(Color.inkSepia.opacity(0.45))
+                        .multilineTextAlignment(.center)
+                        .frame(width: 86)
+                }
+            }
+
             Spacer(minLength: 12)
             HandBody(text: "I was young then, just finding my footing as a software developer. I was working at Intuit with a remarkable team, helping build the Macintosh version of Quicken. It was the early days of the Mac — small tight teams, every line of code mattered, and the machine itself felt like a living thing. We worked hard and we cared deeply about the craft.")
             Spacer(minLength: 12)
