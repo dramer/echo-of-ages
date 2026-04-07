@@ -169,7 +169,7 @@ extension Civilization {
             ScriptSymbol(id: "sail",  character: "ᚄ", transliteration: "s", meaning: "Sail — Willow, Flow",           civilization: .celtic),
             ScriptSymbol(id: "nion",  character: "ᚅ", transliteration: "n", meaning: "Nion — Ash, World Connection",  civilization: .celtic),
         ],
-        isUnlocked: false,
+        isUnlocked: true,
         levelCount: 5,
         tabletLine: "The Druids named every tree sacred, for every tree is the same tree — reflected in water, carved in stone, whispered in wind from grove to grove across all the cold seas of the world."
     )

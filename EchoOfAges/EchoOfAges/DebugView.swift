@@ -60,8 +60,11 @@ struct DebugView: View {
                         // Maya calendar patterns
                         mayanExpandableSection
 
-                        // Chinese I Ching hexagrams
+                        // Chinese wooden box puzzles
                         chineseExpandableSection
+
+                        // Celtic Ogham ordering
+                        celticExpandableSection
 
                         Spacer(minLength: 40)
                     }
@@ -567,6 +570,105 @@ struct DebugView: View {
                     Image(systemName: "play.circle.fill")
                         .font(.system(size: 24))
                         .foregroundStyle(Color(red: 0.86, green: 0.17, blue: 0.10))
+                }
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .background(levelBackground(solved: isSolved, current: isCurrent))
+    }
+
+    // MARK: Expandable Celtic Section
+
+    private var celticExpandableSection: some View {
+        let key = "celtic_section"
+        let isExpanded = !collapsedSections.contains(key)
+        let allLevels = CelticLevel.allLevels
+        let nSolved = allLevels.filter { gameState.celticUnlockedLevels.contains($0.id) }.count
+        let accentColor = Color(red: 0.30, green: 0.55, blue: 0.22)
+
+        return VStack(alignment: .leading, spacing: 0) {
+            Button { toggleSection(key) } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: "tree.fill")
+                        .font(.system(size: 16))
+                        .foregroundStyle(accentColor)
+                    Text("Celtic — Ogham Ordering")
+                        .font(EgyptFont.titleBold(16))
+                        .foregroundStyle(.white)
+                    Spacer()
+                    Text("\(nSolved)/\(allLevels.count)")
+                        .font(EgyptFont.body(13))
+                        .foregroundStyle(accentColor.opacity(0.8))
+                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 13))
+                        .foregroundStyle(.white.opacity(0.5))
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 12)
+            }
+            .background(Color.white.opacity(0.05))
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+
+            if isExpanded {
+                VStack(spacing: 8) {
+                    ForEach(allLevels) { level in
+                        celticLevelRow(level)
+                    }
+                }
+                .padding(.top, 8)
+            }
+        }
+    }
+
+    private func celticLevelRow(_ level: CelticLevel) -> some View {
+        let isSolved  = gameState.celticUnlockedLevels.contains(level.id)
+        let isCurrent = gameState.celticCurrentLevelIndex == (CelticLevel.allLevels.firstIndex(where: { $0.id == level.id }) ?? -1)
+        let blanks    = level.rows * level.cols - level.fixedCells.count
+        let accent    = Color(red: 0.30, green: 0.55, blue: 0.22)
+
+        return HStack(spacing: 14) {
+            Text(level.romanNumeral)
+                .font(EgyptFont.titleBold(18))
+                .foregroundStyle(isSolved ? Color(red: 0.30, green: 0.85, blue: 0.50) : accent.opacity(0.7))
+                .frame(width: 28)
+
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 8) {
+                    Text(level.title)
+                        .font(EgyptFont.titleBold(15))
+                        .foregroundStyle(.white)
+                    if isCurrent { currentBadge }
+                }
+                HStack(spacing: 10) {
+                    Label("\(level.rows)×\(level.cols) grid", systemImage: "square.grid.3x3")
+                        .font(EgyptFont.body(12))
+                        .foregroundStyle(accent.opacity(0.55))
+                    goldBadge("\(blanks) blanks")
+                    if isSolved { solvedBadge }
+                }
+            }
+
+            Spacer()
+
+            HStack(spacing: 8) {
+                Button(action: {
+                    HapticFeedback.tap()
+                    gameState.debugSolveCelticLevel(level)
+                }) {
+                    Image(systemName: "checkmark.circle")
+                        .font(.system(size: 18))
+                        .foregroundStyle(Color(red: 0.30, green: 0.85, blue: 0.50).opacity(isSolved ? 0.35 : 0.85))
+                }
+                .disabled(isSolved)
+
+                Button(action: {
+                    HapticFeedback.tap()
+                    gameState.debugJumpToCelticLevel(level)
+                }) {
+                    Image(systemName: "play.circle.fill")
+                        .font(.system(size: 24))
+                        .foregroundStyle(accent)
                 }
             }
         }

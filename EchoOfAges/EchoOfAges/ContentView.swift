@@ -86,6 +86,13 @@ struct ContentView: View {
                             removal: .opacity
                         ))
 
+                case .celticGame:
+                    CelticGameView()
+                        .transition(.asymmetric(
+                            insertion: .move(edge: .trailing).combined(with: .opacity),
+                            removal: .opacity
+                        ))
+
                 case .manduTablet:
                     ManduTabletView()
                         .transition(.asymmetric(

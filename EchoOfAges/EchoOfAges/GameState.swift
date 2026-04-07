@@ -19,6 +19,7 @@ enum GameScreen: Equatable {
     case sumerianGame
     case mayanGame
     case chineseGame
+    case celticGame
     case manduTablet
 }
 
@@ -112,6 +113,7 @@ final class GameState: ObservableObject {
         resetSumerianDecoded(for: SumerianLevel.allLevels[0])
         resetMayanGrid(for: MayanLevel.allLevels[0])
         resetChinesePieces(for: ChineseBoxLevel.allLevels[0])
+        celticPlayerGrid = CelticLevel.allLevels[0].initialGrid()
     }
 
     // MARK: Navigation
@@ -140,10 +142,15 @@ final class GameState: ObservableObject {
             startSumerianGame()
             return
         }
-        // Tier 3+: Maya
+        // Tier 3: Maya + Celtic
         if unlocked.contains(.maya), !done.contains(.maya) {
             lastActiveCivilization = .maya
             startMayanGame()
+            return
+        }
+        if unlocked.contains(.celtic), !done.contains(.celtic) {
+            lastActiveCivilization = .celtic
+            startCelticGame()
             return
         }
         // Tier 4: Chinese
@@ -169,6 +176,8 @@ final class GameState: ObservableObject {
             startSumerianGame()
         case .maya:
             startMayanGame()
+        case .celtic:
+            startCelticGame()
         case .chinese:
             startChineseGame()
         default:
@@ -190,6 +199,8 @@ final class GameState: ObservableObject {
             startSumerianGame()
         case .maya:
             startMayanGame()
+        case .celtic:
+            startCelticGame()
         case .chinese:
             startChineseGame()
         default:
@@ -619,6 +630,16 @@ final class GameState: ObservableObject {
 
     var chineseCurrentLevel: ChineseBoxLevel { ChineseBoxLevel.allLevels[chineseCurrentLevelIndex] }
 
+    // Celtic Ogham Ordering
+    @Published var celticCurrentLevelIndex: Int = 0
+    @Published var celticUnlockedLevels: Set<Int> = []
+    @Published var celticPlayerGrid: [[OghamGlyph?]] = []
+    @Published var celticArmedGlyph: OghamGlyph? = nil
+    @Published var celticErrorCells: Set<CelticCellCoord> = []
+    @Published var celticPendingComplete: Bool = false
+
+    var celticCurrentLevel: CelticLevel { CelticLevel.allLevels[celticCurrentLevelIndex] }
+
     var sumerianCurrentLevel: SumerianLevel {
         SumerianLevel.allLevels[sumerianCurrentLevelIndex]
     }
@@ -786,6 +807,9 @@ final class GameState: ObservableObject {
         if !ChineseBoxLevel.allLevels.isEmpty, ChineseBoxLevel.allLevels.allSatisfy({ chineseUnlockedLevels.contains($0.id) }) {
             done.insert(.chinese)
         }
+        if !CelticLevel.allLevels.isEmpty, CelticLevel.allLevels.allSatisfy({ celticUnlockedLevels.contains($0.id) }) {
+            done.insert(.celtic)
+        }
         return done
     }
 
@@ -889,6 +913,15 @@ final class GameState: ObservableObject {
             resetChinesePieces(for: ChineseBoxLevel.allLevels[0])
             chinesePendingComplete = false
             UserDefaults.standard.removeObject(forKey: "EOA_chineseUnlocked")
+            return
+        case .celtic:
+            celticUnlockedLevels = []
+            celticCurrentLevelIndex = 0
+            celticPlayerGrid = CelticLevel.allLevels[0].initialGrid()
+            celticArmedGlyph = nil
+            celticErrorCells = []
+            celticPendingComplete = false
+            UserDefaults.standard.removeObject(forKey: "EOA_celticUnlocked")
             return
         default:
             break
@@ -1138,6 +1171,131 @@ final class GameState: ObservableObject {
         completeChineseLevel()
     }
 
+    // MARK: - Celtic Ogham Ordering
+
+    func startCelticGame() {
+        lastActiveCivilization = .celtic
+        let idx = min(celticUnlockedLevels.count, CelticLevel.allLevels.count - 1)
+        loadCelticLevel(idx)
+        previousScreen = currentScreen
+        currentScreen = .celticGame
+    }
+
+    func closeCelticGame() {
+        celticPendingComplete = false
+        currentScreen = previousScreen == .celticGame ? .title : previousScreen
+    }
+
+    func loadCelticLevel(_ index: Int) {
+        celticCurrentLevelIndex = index
+        celticPlayerGrid = CelticLevel.allLevels[index].initialGrid()
+        celticArmedGlyph = nil
+        celticErrorCells = []
+        celticPendingComplete = false
+    }
+
+    func armCelticGlyph(_ glyph: OghamGlyph) {
+        celticArmedGlyph = (celticArmedGlyph == glyph) ? nil : glyph
+        HapticFeedback.tap()
+    }
+
+    func tapCelticCell(row: Int, col: Int) {
+        let coord = CelticCellCoord(row: row, col: col)
+        guard !celticCurrentLevel.fixedCells.contains(coord) else { return }
+        guard celticPlayerGrid.indices.contains(row),
+              celticPlayerGrid[row].indices.contains(col) else { return }
+
+        if let armed = celticArmedGlyph {
+            if celticPlayerGrid[row][col] == armed {
+                celticPlayerGrid[row][col] = nil
+            } else {
+                celticPlayerGrid[row][col] = armed
+            }
+        } else {
+            // No palette selection — cycle through glyphs
+            let current = celticPlayerGrid[row][col]
+            let all = OghamGlyph.allCases
+            if let c = current, let idx = all.firstIndex(of: c) {
+                celticPlayerGrid[row][col] = (idx + 1 < all.count) ? all[idx + 1] : nil
+            } else {
+                celticPlayerGrid[row][col] = all.first
+            }
+        }
+
+        celticErrorCells.remove(coord)
+        HapticFeedback.tap()
+
+        if celticCurrentLevel.isSolved(celticPlayerGrid) {
+            completeCelticLevel()
+        }
+    }
+
+    func clearCelticCell(row: Int, col: Int) {
+        let coord = CelticCellCoord(row: row, col: col)
+        guard !celticCurrentLevel.fixedCells.contains(coord),
+              celticPlayerGrid.indices.contains(row),
+              celticPlayerGrid[row].indices.contains(col) else { return }
+        celticPlayerGrid[row][col] = nil
+        celticErrorCells.remove(coord)
+        HapticFeedback.tap()
+    }
+
+    func resetCelticGrid() {
+        celticPlayerGrid = celticCurrentLevel.initialGrid()
+        celticArmedGlyph = nil
+        celticErrorCells = []
+        HapticFeedback.heavy()
+    }
+
+    func verifyCelticPlacement() {
+        let errors = celticCurrentLevel.errorCells(in: celticPlayerGrid)
+        celticErrorCells = errors
+        if !errors.isEmpty {
+            HapticFeedback.heavy()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+                self.celticErrorCells = []
+            }
+        }
+    }
+
+    func completeCelticLevel() {
+        let level = celticCurrentLevel
+        celticUnlockedLevels.insert(level.id)
+        saveProgress()
+        HapticFeedback.heavy()
+        celticPendingComplete = true
+        if allSixCivsComplete {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3.5) {
+                self.openManduTablet()
+            }
+        }
+    }
+
+    func advanceCelticToNextLevel() {
+        let next = celticCurrentLevelIndex + 1
+        if next < CelticLevel.allLevels.count {
+            loadCelticLevel(next)
+            celticPendingComplete = false
+        } else {
+            closeCelticGame()
+        }
+    }
+
+    // MARK: Celtic Debug
+
+    func debugJumpToCelticLevel(_ level: CelticLevel) {
+        guard let idx = CelticLevel.allLevels.firstIndex(where: { $0.id == level.id }) else { return }
+        loadCelticLevel(idx)
+        currentScreen = .celticGame
+    }
+
+    func debugSolveCelticLevel(_ level: CelticLevel) {
+        guard let idx = CelticLevel.allLevels.firstIndex(where: { $0.id == level.id }) else { return }
+        loadCelticLevel(idx)
+        celticPlayerGrid = level.solution.map { $0.map { Optional($0) } }
+        completeCelticLevel()
+    }
+
     // MARK: Progress Persistence
 
     private func saveProgress() {
@@ -1149,6 +1307,7 @@ final class GameState: ObservableObject {
         UserDefaults.standard.set(Array(norseUnlockedLevels), forKey: "EOA_norseUnlocked")
         UserDefaults.standard.set(Array(mayanUnlockedLevels), forKey: "EOA_mayanUnlocked")
         UserDefaults.standard.set(Array(chineseUnlockedLevels), forKey: "EOA_chineseUnlocked")
+        UserDefaults.standard.set(Array(celticUnlockedLevels),  forKey: "EOA_celticUnlocked")
         UserDefaults.standard.set(lastActiveCivilization?.rawValue, forKey: "EOA_lastCiv")
         // Only persist the Mandu grid when all six civilizations are complete.
         // Until then symbols fall off — clearing here ensures a fresh slate on next open.
@@ -1186,6 +1345,9 @@ final class GameState: ObservableObject {
 
         chineseUnlockedLevels = Set(UserDefaults.standard.array(forKey: "EOA_chineseUnlocked") as? [Int] ?? [])
         chineseCurrentLevelIndex = min(chineseUnlockedLevels.count, ChineseBoxLevel.allLevels.count - 1)
+
+        celticUnlockedLevels = Set(UserDefaults.standard.array(forKey: "EOA_celticUnlocked") as? [Int] ?? [])
+        celticCurrentLevelIndex = min(celticUnlockedLevels.count, CelticLevel.allLevels.count - 1)
 
         let rawMandu = UserDefaults.standard.dictionary(forKey: "EOA_manduGrid") as? [String: String] ?? [:]
         manduPlayerGrid = rawMandu.reduce(into: [Int: String]()) {
