@@ -618,81 +618,103 @@ private struct TabletGridContent: View {
     @EnvironmentObject var gameState: GameState
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        let foundCount = Civilization.all.filter { gameState.discoveredKeys[$0.id] != nil }.count
+
+        return VStack(alignment: .leading, spacing: 14) {
             HandTitle(text: "The Partial Tablet")
-            HandNote(text: "6 empty spaces — one per civilization. Symbols are revealed as each civilization's partial tablets are deciphered.", color: Color.inkSepia.opacity(0.7))
+            HandNote(
+                text: "Dr. Mandu's partially carved stone has six deliberate gaps — one for each civilization on the island. Each gap holds a symbol that does not belong to that civilization's own script.",
+                color: Color.inkSepia.opacity(0.70)
+            )
             SectionRule()
 
-            let slots = TabletSlot.all
-            let decoded = gameState.decodedTabletSlots
+            HandTitle(text: "The Six Missing Symbols", size: 16, color: .inkBlue)
+            HandNote(
+                text: "Solve a civilization's five puzzles and the final tablet reveals a foreign mark — a symbol left by a different people. That is the missing symbol for this row.",
+                color: Color.inkSepia.opacity(0.65)
+            )
+            Spacer(minLength: 6)
 
-            VStack(spacing: 4) {
+            // Six symbol slots — one per civilization
+            VStack(spacing: 8) {
                 ForEach(Civilization.all) { civ in
-                    let row = slots.filter { $0.civilization == civ.id }
-                    let isCivDone = gameState.completedCivilizations.contains(civ.id)
+                    let key = gameState.discoveredKeys[civ.id]
+                    let isFound = key != nil
 
-                    HStack(spacing: 4) {
+                    HStack(spacing: 12) {
+                        // Civilization emblem
                         Text(civ.emblem)
-                            .font(.system(size: 14))
-                            .foregroundStyle(isCivDone ? civ.accentColor : Color.inkSepia.opacity(0.25))
-                            .frame(width: 22)
+                            .font(.system(size: 20))
+                            .foregroundStyle(isFound ? civ.accentColor : Color.inkSepia.opacity(0.22))
+                            .frame(width: 28)
 
-                        ForEach(row) { slot in
-                            let isDecoded = decoded.contains(slot.id)
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 5)
-                                    .fill(isDecoded ? civ.accentColor.opacity(0.15) : Color.paperDark.opacity(0.7))
-                                    .overlay(RoundedRectangle(cornerRadius: 5)
-                                        .stroke(isDecoded ? civ.accentColor.opacity(0.6) : Color.inkSepia.opacity(0.18), lineWidth: isDecoded ? 1 : 0.5))
-                                if isDecoded {
-                                    VStack(spacing: 1) {
-                                        Text(slot.character).font(.system(size: 17)).foregroundStyle(civ.accentColor)
-                                        Text(slot.decoded).font(handFont(9)).foregroundStyle(Color.inkSepia.opacity(0.7)).lineLimit(1)
-                                    }
-                                } else {
-                                    Text("?").font(handFont(16, bold: true)).foregroundStyle(Color.inkSepia.opacity(0.18))
-                                }
+                        // Civilization name
+                        HandBody(text: civ.name, size: 14)
+                            .foregroundStyle(isFound ? Color.inkSepia.opacity(0.85) : Color.inkSepia.opacity(0.38))
+
+                        Spacer()
+
+                        // Symbol slot
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 7)
+                                .fill(isFound
+                                    ? civ.accentColor.opacity(0.14)
+                                    : Color.paperDark.opacity(0.55))
+                                .overlay(RoundedRectangle(cornerRadius: 7)
+                                    .stroke(isFound
+                                        ? civ.accentColor.opacity(0.55)
+                                        : Color.inkSepia.opacity(0.15),
+                                            lineWidth: isFound ? 1.2 : 0.6))
+
+                            if let symbol = key {
+                                Text(symbol)
+                                    .font(.system(size: 22))
+                                    .foregroundStyle(civ.accentColor)
+                            } else {
+                                Text("?")
+                                    .font(handFont(18, bold: true))
+                                    .foregroundStyle(Color.inkSepia.opacity(0.18))
                             }
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 46)
                         }
+                        .frame(width: 48, height: 48)
                     }
                 }
             }
 
             SectionRule()
-            let count = gameState.decodedTabletSlots.count
-            HandNote(text: "\(count) of 30 symbols decoded.", color: count == 30 ? Color.inkBlue : Color.inkSepia.opacity(0.6))
 
-            SectionRule()
-            if gameState.allSixCivsComplete {
-                HandNote(text: "All six symbols identified. The partial tablet can finally be completed.", color: Color.inkBlue.opacity(0.9))
+            // Progress note
+            if foundCount == 6 {
+                HandNote(text: "All six symbols identified. The partial tablet can now be completed.", color: Color.inkBlue.opacity(0.9))
             } else {
                 HandNote(
-                    text: "Decipher each civilization's partial tablets and the missing symbol for that row will be revealed. All six must be found before the stone can be completed.",
-                    color: Color.inkSepia.opacity(0.70)
+                    text: "\(foundCount) of 6 symbols identified. Complete a civilization's five puzzles to reveal its missing mark.",
+                    color: foundCount > 0 ? Color.inkSepia.opacity(0.75) : Color.inkSepia.opacity(0.55)
                 )
             }
+
             Spacer(minLength: 8)
+
+            // Open the stone button
             Button {
                 gameState.openManduTablet()
             } label: {
-                    HStack {
-                        Spacer()
-                        Text(gameState.allSixCivsComplete ? "Read the Stone" : "Open the Stone")
-                            .font(handFont(16, bold: true))
-                            .foregroundStyle(Color.paperCream)
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 10)
-                            .background(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .fill(Color(red: 0.22, green: 0.16, blue: 0.06))
-                                    .overlay(RoundedRectangle(cornerRadius: 8)
-                                        .stroke(Color(red: 0.65, green: 0.50, blue: 0.20), lineWidth: 1))
-                            )
-                        Spacer()
-                    }
+                HStack {
+                    Spacer()
+                    Text(gameState.allSixCivsComplete ? "Read the Stone" : "Open the Stone")
+                        .font(handFont(16, bold: true))
+                        .foregroundStyle(Color.paperCream)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 10)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(Color(red: 0.22, green: 0.16, blue: 0.06))
+                                .overlay(RoundedRectangle(cornerRadius: 8)
+                                    .stroke(Color(red: 0.65, green: 0.50, blue: 0.20), lineWidth: 1))
+                        )
+                    Spacer()
                 }
+            }
         }
     }
 }
