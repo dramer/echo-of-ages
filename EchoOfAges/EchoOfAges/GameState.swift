@@ -38,6 +38,12 @@ final class GameState: ObservableObject {
     @Published var errorCells: Set<GridPosition> = []
     @Published var isAnimatingCompletion: Bool = false
 
+    // Decipher penalty (Egyptian puzzle only)
+    // After 2 failed decipher attempts the grid resets with new fixed positions.
+    @Published var egyptDecipherFailCount: Int = 0
+    @Published var egyptPenaltyFixedPositions: Set<GridPosition>? = nil
+    @Published var egyptPenaltyMessage: String? = nil
+
     // Progress
     @Published var unlockedJournalEntries: Set<Int> = []
 
@@ -339,6 +345,9 @@ final class GameState: ObservableObject {
         currentLevelIndex = index
         selectedGlyph = nil
         errorCells = []
+        egyptDecipherFailCount = 0
+        egyptPenaltyFixedPositions = nil
+        egyptPenaltyMessage = nil
         resetGrid(for: Level.allLevels[index])
         lastActiveCivilization = .egyptian
     }
@@ -367,7 +376,7 @@ final class GameState: ObservableObject {
 
     func tapCell(at position: GridPosition) {
         let level = currentLevel
-        guard !level.isFixed(position) else {
+        guard !isEgyptianFixed(position) else {
             HapticFeedback.error()
             return
         }
@@ -394,7 +403,7 @@ final class GameState: ObservableObject {
     }
 
     func clearCell(at position: GridPosition) {
-        guard !currentLevel.isFixed(position) else { return }
+        guard !isEgyptianFixed(position) else { return }
         playerGrid[position.row][position.col] = nil
         HapticFeedback.tap()
     }
@@ -415,12 +424,50 @@ final class GameState: ObservableObject {
             HapticFeedback.success()
         } else {
             HapticFeedback.error()
+            egyptDecipherFailCount += 1
             errorCells = mistakes
             Task {
                 try? await Task.sleep(nanoseconds: 1_200_000_000)
                 errorCells = []
+                if self.egyptDecipherFailCount >= 2 {
+                    self.applyDecipherPenalty()
+                }
             }
         }
+    }
+
+    /// Resets the Egyptian grid with a fresh random set of fixed positions — same solution, new anchors.
+    private func applyDecipherPenalty() {
+        let level = currentLevel
+        let allPositions = (0..<level.rows).flatMap { row in
+            (0..<level.cols).map { col in GridPosition(row: row, col: col) }
+        }
+        // Keep the same number of fixed cells as the original level, placed in new spots
+        let fixedCount = level.fixedPositions.count
+        let shuffled = allPositions.shuffled()
+        let newFixed = Set(shuffled.prefix(fixedCount))
+
+        egyptPenaltyFixedPositions = newFixed
+        egyptDecipherFailCount = 0
+
+        // Rebuild the player grid: fixed cells show the solution value, rest are nil
+        var newGrid: [[Glyph?]] = Array(repeating: Array(repeating: nil, count: level.cols), count: level.rows)
+        for pos in newFixed {
+            newGrid[pos.row][pos.col] = level.solution[pos.row][pos.col]
+        }
+        playerGrid = newGrid
+        selectedGlyph = nil
+        errorCells = []
+
+        egyptPenaltyMessage = "Cheaters never prosper.\nThe stones have been rearranged."
+    }
+
+    /// Returns true if the given position is a fixed (pre-placed) cell, accounting for any penalty reshuffle.
+    func isEgyptianFixed(_ pos: GridPosition) -> Bool {
+        if let penalty = egyptPenaltyFixedPositions {
+            return penalty.contains(pos)
+        }
+        return currentLevel.isFixed(pos)
     }
 
     // MARK: Solution Check

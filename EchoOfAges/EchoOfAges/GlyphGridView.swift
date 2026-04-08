@@ -80,6 +80,14 @@ struct GameView: View {
                 scheduleIdleHint()
             }
         }
+        .onChange(of: gameState.egyptPenaltyMessage) { _, message in
+            guard let msg = message else { return }
+            showToast(msg, duration: 6.0)
+            gameState.egyptPenaltyMessage = nil
+            levelInitialGrid = gameState.playerGrid
+            hasInteracted = false
+            scheduleIdleHint()
+        }
     }
 
     // MARK: Portrait Layout
@@ -361,7 +369,7 @@ struct GlyphGridView: View {
                         let pos = GridPosition(row: row, col: col)
                         GlyphCellView(
                             glyph:    gameState.playerGrid[row][col],
-                            isFixed:  level.isFixed(pos),
+                            isFixed:  gameState.isEgyptianFixed(pos),
                             isError:  gameState.errorCells.contains(pos),
                             isComplete: gameState.isAnimatingCompletion,
                             size:     cellSize,
