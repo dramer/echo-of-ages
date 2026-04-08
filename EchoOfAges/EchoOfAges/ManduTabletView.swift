@@ -162,14 +162,6 @@ struct ManduTabletView: View {
 
         return Button { gameState.tapManduSlot(slot.index) } label: {
             VStack(spacing: 3) {
-                // Part name label
-                Text(slot.part)
-                    .font(EgyptFont.title(10))
-                    .tracking(0.5)
-                    .foregroundStyle(ink.opacity(0.55))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-
                 // Stone cell body
                 ZStack {
                     RoundedRectangle(cornerRadius: 8)
@@ -182,11 +174,9 @@ struct ManduTabletView: View {
                         )
 
                     if let civ = civInfo {
-                        VStack(spacing: 2) {
-                            Text(civ.emblem)
-                                .font(.system(size: 24))
-                                .foregroundStyle(isCorrect ? civ.accentColor : ink.opacity(0.80))
-                        }
+                        Text(civ.emblem)
+                            .font(.system(size: 24))
+                            .foregroundStyle(isCorrect ? civ.accentColor : ink.opacity(0.80))
                     } else {
                         Text("+")
                             .font(.system(size: 18, weight: .light))
@@ -195,7 +185,7 @@ struct ManduTabletView: View {
                 }
                 .frame(height: 54)
 
-                // Subtitle label
+                // Subtitle below the slot
                 Text(slot.subtitle)
                     .font(EgyptFont.bodyItalic(9))
                     .foregroundStyle(ink.opacity(0.38))
@@ -323,26 +313,6 @@ struct ManduTabletView: View {
             )
             .transition(.move(edge: .top).combined(with: .opacity))
             .animation(.spring(response: 0.4, dampingFraction: 0.75), value: civ.rawValue)
-        } else if !gameState.allSixCivsComplete {
-            let done = gameState.civilizationsCompletedForMandu.count
-            HStack(spacing: 10) {
-                Image(systemName: done == 0 ? "lock.fill" : "arrow.down.to.line")
-                    .font(.system(size: 16))
-                    .foregroundStyle(ink.opacity(0.45))
-                Text(done == 0
-                     ? "Decipher Egypt's tablets first to unlock your first stone."
-                     : "Stones fall away when you leave until all six civilizations are deciphered. \(done) of 6 complete.")
-                    .font(EgyptFont.bodyItalic(17))
-                    .foregroundStyle(ink.opacity(0.70))
-                    .lineSpacing(3)
-            }
-            .padding(.horizontal, 14).padding(.vertical, 12)
-            .background(
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(ink.opacity(0.06))
-                    .overlay(RoundedRectangle(cornerRadius: 10)
-                        .stroke(ink.opacity(0.16), lineWidth: 1))
-            )
         } else {
             Text("Tap a civilization stone, then tap where it belongs on the tree.")
                 .font(EgyptFont.bodyItalic(17))
@@ -395,7 +365,7 @@ struct ManduTabletView: View {
     // MARK: - Lore Note
 
     private var loreNote: some View {
-        Text("Six civilizations. One stone. One message.\n\nPlace every stone in the part of the tree it represents — but they fall away each time you leave. Only when all six civilizations are deciphered will the stone hold them forever.")
+        Text("Six civilizations. One stone. One message.")
             .font(EgyptFont.bodyItalic(17))
             .foregroundStyle(ink.opacity(0.60))
             .multilineTextAlignment(.center)
