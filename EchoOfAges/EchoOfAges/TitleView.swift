@@ -75,37 +75,27 @@ struct TitleView: View {
                         }
                     }
                 } else {
-                    // First launch — single prominent Begin button
-                    VStack(spacing: 20) {
-                        Button {
+                    // First launch — image buttons matching returning-player style
+                    HStack(spacing: 16) {
+                        landingButton(asset: "begin_journey", fallback: "arrow.right.circle.fill") {
                             HapticFeedback.heavy()
                             withAnimation(.easeInOut(duration: 0.4)) { gameState.startNewGame() }
-                        } label: {
-                            Text("Begin the Expedition")
-                                .font(EgyptFont.titleBold(24))
-                                .tracking(2)
-                                .foregroundStyle(Color(red: 0.96, green: 0.88, blue: 0.68))
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 18)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 14)
-                                        .fill(Color(red: 0.28, green: 0.17, blue: 0.05))
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 14)
-                                                .stroke(Color.goldDark.opacity(0.6), lineWidth: 1.5)
-                                        )
-                                        .shadow(color: Color.goldDark.opacity(glowPulse ? 0.45 : 0.15),
-                                                radius: 18, x: 0, y: 0)
-                                )
                         }
-
                         Button {
                             HapticFeedback.tap()
                             withAnimation(.easeInOut(duration: 0.4)) { gameState.openJournal() }
                         } label: {
-                            Text("Read the Field Diary")
-                                .font(EgyptFont.body(18))
-                                .foregroundStyle(Color(red: 0.22, green: 0.14, blue: 0.05).opacity(0.65))
+                            VStack(spacing: 14) {
+                                Image("diary")
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 160)
+                                Text("Read the Field Diary")
+                                    .font(EgyptFont.bodyItalic(28))
+                                    .foregroundStyle(Color(red: 0.22, green: 0.14, blue: 0.05).opacity(0.85))
+                                    .multilineTextAlignment(.center)
+                            }
                         }
                     }
                 }
