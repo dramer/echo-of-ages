@@ -36,10 +36,11 @@ private let treeSlots: [TreeSlotInfo] = [
 struct ManduTabletView: View {
     @EnvironmentObject var gameState: GameState
 
-    @State private var showReveal  = false
-    @State private var revealStep  = 0
-    @State private var showFullMsg = false
-    @State private var isAnimating = false
+    @State private var showReveal   = false
+    @State private var treeProgress: CGFloat = 0   // 0→1 drives oak tree growth
+    @State private var revealStep   = 0
+    @State private var showFullMsg  = false
+    @State private var isAnimating  = false
 
     var body: some View {
         ZStack {
@@ -407,50 +408,55 @@ struct ManduTabletView: View {
     private var revealOverlay: some View {
         ScrollView(showsIndicators: false) {
             VStack(spacing: 24) {
-                Spacer(minLength: 50)
+                Spacer(minLength: 40)
 
-                Text("𓇳")
-                    .font(.system(size: 100))
-                    .foregroundStyle(gold)
-                    .shadow(color: gold.opacity(0.85), radius: 50, x: 0, y: 0)
+                // Oak tree grows first — everything else appears after
+                OakTreeView(progress: treeProgress)
+                    .frame(maxWidth: 360)
+                    .frame(height: 290)
+                    .padding(.horizontal, 8)
 
-                VStack(spacing: 8) {
-                    Text("THE WORD IS")
-                        .font(EgyptFont.titleBold(20))
-                        .tracking(6)
-                        .foregroundStyle(gold.opacity(0.70))
-                    Text("REMEMBER")
-                        .font(EgyptFont.titleBold(36))
-                        .tracking(8)
-                        .foregroundStyle(gold)
-                        .shadow(color: gold.opacity(0.60), radius: 14)
-                }
-
-                goldRule
-
-                VStack(spacing: 12) {
-                    ForEach(Array(Civilization.all.enumerated()), id: \.offset) { i, civ in
-                        if revealStep > i {
-                            civRevealCard(civ)
-                                .transition(.move(edge: .bottom).combined(with: .opacity))
-                        }
-                    }
-                }
-                .animation(.easeOut(duration: 0.5), value: revealStep)
-
-                if showFullMsg {
-                    VStack(spacing: 16) {
-                        goldRule
-                        Text(TabletSlot.fullMessage)
-                            .font(EgyptFont.bodyItalic(20))
-                            .foregroundStyle(paper)
-                            .multilineTextAlignment(.center)
-                            .lineSpacing(9)
-                            .padding(.horizontal, 8)
-                        goldRule
+                // Text reveal appears only after the tree is grown
+                if revealStep > 0 || showFullMsg {
+                    VStack(spacing: 8) {
+                        Text("THE WORD IS")
+                            .font(EgyptFont.titleBold(20))
+                            .tracking(6)
+                            .foregroundStyle(gold.opacity(0.70))
+                        Text("REMEMBER")
+                            .font(EgyptFont.titleBold(36))
+                            .tracking(8)
+                            .foregroundStyle(gold)
+                            .shadow(color: gold.opacity(0.60), radius: 14)
                     }
                     .transition(.opacity)
-                    .animation(.easeOut(duration: 0.8), value: showFullMsg)
+
+                    goldRule
+
+                    VStack(spacing: 12) {
+                        ForEach(Array(Civilization.all.enumerated()), id: \.offset) { i, civ in
+                            if revealStep > i {
+                                civRevealCard(civ)
+                                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                            }
+                        }
+                    }
+                    .animation(.easeOut(duration: 0.5), value: revealStep)
+
+                    if showFullMsg {
+                        VStack(spacing: 16) {
+                            goldRule
+                            Text(TabletSlot.fullMessage)
+                                .font(EgyptFont.bodyItalic(20))
+                                .foregroundStyle(paper)
+                                .multilineTextAlignment(.center)
+                                .lineSpacing(9)
+                                .padding(.horizontal, 8)
+                            goldRule
+                        }
+                        .transition(.opacity)
+                        .animation(.easeOut(duration: 0.8), value: showFullMsg)
+                    }
                 }
 
                 Spacer(minLength: 20)
@@ -464,6 +470,7 @@ struct ManduTabletView: View {
                 Spacer(minLength: 50)
             }
             .padding(.horizontal, 22)
+            .animation(.easeOut(duration: 0.6), value: revealStep > 0)
         }
     }
 
@@ -496,13 +503,21 @@ struct ManduTabletView: View {
 
     private func startReveal() {
         guard !isAnimating else { return }
-        isAnimating = true
-        revealStep  = 0
-        showFullMsg = false
-        withAnimation(.easeIn(duration: 0.5)) { showReveal = true }
+        isAnimating  = true
+        revealStep   = 0
+        showFullMsg  = false
+        treeProgress = 0
+        withAnimation(.easeIn(duration: 0.55)) { showReveal = true }
         Task {
+            // Wait for dark overlay to settle, then grow the tree
+            try? await Task.sleep(nanoseconds: 550_000_000)
+            await MainActor.run {
+                withAnimation(.easeInOut(duration: 3.8)) { treeProgress = 1.0 }
+            }
+            // Wait for tree to finish growing, then reveal civ lines one by one
+            try? await Task.sleep(nanoseconds: 3_900_000_000)
             for step in 1...Civilization.all.count {
-                try? await Task.sleep(nanoseconds: 750_000_000)
+                try? await Task.sleep(nanoseconds: 700_000_000)
                 await MainActor.run {
                     withAnimation(.easeOut(duration: 0.5)) { revealStep = step }
                 }
