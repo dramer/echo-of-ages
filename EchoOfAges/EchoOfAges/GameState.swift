@@ -532,6 +532,10 @@ final class GameState: ObservableObject {
     @Published var norseIsAnimatingCompletion: Bool = false
     @Published var norseUnlockedLevels: Set<Int> = []
 
+    // Fail-penalty tracking: wrong path completions + manual clears combined
+    @Published var norseFailCount: Int = 0
+    @Published var norsePenaltyMessage: String? = nil
+
     /// The active variant of the current level — randomised path + runes.
     /// Replaced every time loadNorseLevel() or resetNorsePath() is called.
     private var norseActiveLevel: PathLevel?
@@ -561,15 +565,29 @@ final class GameState: ObservableObject {
         norseCurrentLevelIndex = max(0, min(index, PathLevel.allLevels.count - 1))
         norsePath = []
         norseErrorCells = []
+        norseFailCount = 0
+        norsePenaltyMessage = nil
         norseActiveLevel = generateNorseVariant(at: norseCurrentLevelIndex)
     }
 
     func resetNorsePath() {
+        norseFailCount += 1
         norsePath = []
         norseErrorCells = []
-        // Generate a fresh path layout — every reset gives a new puzzle
+        if norseFailCount >= 3 {
+            applyNorsePenalty()
+        } else {
+            // Generate a fresh path layout — every reset gives a new puzzle
+            norseActiveLevel = generateNorseVariant(at: norseCurrentLevelIndex)
+            HapticFeedback.heavy()
+        }
+    }
+
+    private func applyNorsePenalty() {
+        norseFailCount = 0
         norseActiveLevel = generateNorseVariant(at: norseCurrentLevelIndex)
         HapticFeedback.heavy()
+        norsePenaltyMessage = "The runes have shifted. Study the inscriptions — they hold the path's secret."
     }
 
     /// Generates a randomised variant of the level at `index`.
@@ -672,10 +690,17 @@ final class GameState: ObservableObject {
                         // Correct path, wrong mark — flash and reset so player knows to check the diary
                         flashMysteryMarkWrong()
                         norseErrorCells = Set(norsePath)
+                        norseFailCount += 1
+                        let triggerPenalty = norseFailCount >= 3
                         Task {
                             try? await Task.sleep(nanoseconds: 1_500_000_000)
                             norseErrorCells = []
                             norsePath = []
+                            if triggerPenalty {
+                                applyNorsePenalty()
+                            } else {
+                                norseActiveLevel = generateNorseVariant(at: norseCurrentLevelIndex)
+                            }
                         }
                     }
                 } else {
@@ -685,10 +710,17 @@ final class GameState: ObservableObject {
                 // Wrong path — flash all cells red then reset
                 norseErrorCells = Set(norsePath)
                 HapticFeedback.error()
+                norseFailCount += 1
+                let triggerPenalty = norseFailCount >= 3
                 Task {
                     try? await Task.sleep(nanoseconds: 1_500_000_000)
                     norseErrorCells = []
                     norsePath = []
+                    if triggerPenalty {
+                        applyNorsePenalty()
+                    } else {
+                        norseActiveLevel = generateNorseVariant(at: norseCurrentLevelIndex)
+                    }
                 }
             }
         }

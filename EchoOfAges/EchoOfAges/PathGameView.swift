@@ -67,6 +67,10 @@ struct PathGameView: View {
                 cancelIdleHint()
             }
         }
+        .onChange(of: gameState.norsePenaltyMessage) { _, message in
+            guard let message else { return }
+            showToast(message, duration: 6.0)
+        }
     }
 
     // MARK: Portrait Layout
