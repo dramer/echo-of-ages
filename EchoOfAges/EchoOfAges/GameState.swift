@@ -429,7 +429,7 @@ final class GameState: ObservableObject {
             Task {
                 try? await Task.sleep(nanoseconds: 1_200_000_000)
                 errorCells = []
-                if self.egyptDecipherFailCount >= 2 {
+                if self.egyptDecipherFailCount >= 3 {
                     self.applyDecipherPenalty()
                 }
             }
