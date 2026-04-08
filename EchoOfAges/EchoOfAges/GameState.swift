@@ -13,7 +13,6 @@ enum GameScreen: Equatable {
     case journal
     case levelComplete
     case gameComplete
-    case settings
     case debug
     case norseGame
     case sumerianGame
@@ -67,6 +66,9 @@ final class GameState: ObservableObject {
 
     // Set by the Table of Contents to jump to a specific diary page.
     @Published var journalTargetPage: Int? = nil
+
+    // When true, JournalView jumps straight to the settings page on appear.
+    @Published var journalOpeningToSettings: Bool = false
 
     // Tracks which civilization the player was last actively playing.
     // Used by Continue Journey to return to exactly where they left off.
@@ -262,12 +264,11 @@ final class GameState: ObservableObject {
     }
 
     func openSettings() {
+        // Open the journal and jump directly to the settings page (always last before debug).
+        // JournalView watches journalTargetPage and scrolls to it on appear.
+        journalOpeningToSettings = true
         previousScreen = currentScreen
-        currentScreen = .settings
-    }
-
-    func closeSettings() {
-        currentScreen = previousScreen
+        currentScreen = .journal
     }
 
     func openDebug() {

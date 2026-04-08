@@ -63,6 +63,29 @@ enum HapticFeedback {
     }
 }
 
+// MARK: - Toggle Style
+
+struct GreenRedToggleStyle: ToggleStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        let isOn = configuration.isOn
+        RoundedRectangle(cornerRadius: 16)
+            .fill(isOn ? Color(red: 0.18, green: 0.60, blue: 0.22) : Color(red: 0.75, green: 0.15, blue: 0.12))
+            .frame(width: 56, height: 32)
+            .overlay(
+                Circle()
+                    .fill(Color.white)
+                    .shadow(color: .black.opacity(0.25), radius: 3, x: 0, y: 1)
+                    .frame(width: 26, height: 26)
+                    .offset(x: isOn ? 12 : -12)
+                    .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isOn)
+            )
+            .onTapGesture {
+                HapticFeedback.tap()
+                configuration.isOn.toggle()
+            }
+    }
+}
+
 // MARK: - Toast
 
 struct ToastView: View {

@@ -46,10 +46,6 @@ struct ContentView: View {
                     GameCompleteView()
                         .transition(.scale(scale: 0.9).combined(with: .opacity))
 
-                case .settings:
-                    SettingsView()
-                        .transition(.move(edge: .trailing).combined(with: .opacity))
-
                 case .debug:
                     #if DEBUG
                     DebugView()

@@ -135,7 +135,12 @@ struct JournalView: View {
             }
         }
         .onAppear {
-            if let spotId = gameState.spotlightJournalId {
+            if gameState.journalOpeningToSettings {
+                gameState.journalOpeningToSettings = false
+                if let idx = pages.firstIndex(of: .settingsPage) {
+                    currentPageIndex = idx
+                }
+            } else if let spotId = gameState.spotlightJournalId {
                 gameState.spotlightJournalId = nil
                 if let idx = pages.firstIndex(of: .chronicle(spotId)) {
                     currentPageIndex = idx
@@ -1150,11 +1155,87 @@ private struct SettingsJournalContent: View {
     @EnvironmentObject var gameState: GameState
     @State private var confirmingReset: CivilizationID? = nil
     @State private var confirmingResetAll = false
+    @State private var editingName = false
+    @State private var nameInput: String = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HandTitle(text: "Expedition Settings")
             HandNote(text: "Field notes on how to configure your expedition.", color: Color.inkSepia.opacity(0.55))
+            SectionRule()
+
+            // Archaeologist Name
+            HandTitle(text: "Archaeologist", size: 17, color: .inkBlue)
+            Spacer(minLength: 2)
+
+            if editingName {
+                VStack(alignment: .leading, spacing: 8) {
+                    TextField("Enter your name", text: $nameInput)
+                        .font(handFont(15, bold: true))
+                        .foregroundStyle(Color.inkSepia)
+                        .tint(Color.inkBlue)
+                        .autocorrectionDisabled()
+                        .textInputAutocapitalization(.words)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 9)
+                        .background(
+                            RoundedRectangle(cornerRadius: 7)
+                                .fill(Color.paperCream)
+                                .overlay(RoundedRectangle(cornerRadius: 7)
+                                    .stroke(Color.inkSepia.opacity(0.35), lineWidth: 1))
+                        )
+                        .onSubmit { commitNameEdit() }
+
+                    HStack(spacing: 14) {
+                        Button(action: commitNameEdit) {
+                            Text("Save")
+                                .font(handFont(13, bold: true))
+                                .foregroundStyle(nameInput.trimmingCharacters(in: .whitespaces).isEmpty
+                                    ? Color.inkBlue.opacity(0.35)
+                                    : Color.inkBlue)
+                        }
+                        .disabled(nameInput.trimmingCharacters(in: .whitespaces).isEmpty)
+
+                        Button(action: { withAnimation { editingName = false } }) {
+                            Text("Cancel")
+                                .font(handFont(13, bold: false))
+                                .foregroundStyle(Color.inkSepia.opacity(0.6))
+                        }
+                    }
+                }
+            } else {
+                HStack(spacing: 10) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        HandBody(text: "Name", size: 15)
+                        HandNote(
+                            text: gameState.playerName.isEmpty ? "Not set" : gameState.playerName,
+                            size: 13,
+                            color: gameState.playerName.isEmpty
+                                ? Color.inkSepia.opacity(0.45)
+                                : Color.inkSepia.opacity(0.85)
+                        )
+                    }
+                    Spacer()
+                    Button(action: {
+                        HapticFeedback.tap()
+                        nameInput = gameState.playerName
+                        withAnimation { editingName = true }
+                    }) {
+                        Text(gameState.playerName.isEmpty ? "Set Name" : "Edit")
+                            .font(handFont(13, bold: true))
+                            .foregroundStyle(Color.inkBlue)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 5)
+                            .background(
+                                RoundedRectangle(cornerRadius: 5)
+                                    .fill(Color.paperDark)
+                                    .overlay(RoundedRectangle(cornerRadius: 5)
+                                        .stroke(Color.inkSepia.opacity(0.25), lineWidth: 1))
+                            )
+                    }
+                }
+            }
+
             SectionRule()
 
             // Introduction
@@ -1311,6 +1392,14 @@ private struct SettingsJournalContent: View {
             }
             Button("Cancel", role: .cancel) { confirmingResetAll = false }
         }
+    }
+
+    private func commitNameEdit() {
+        let trimmed = nameInput.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return }
+        HapticFeedback.tap()
+        gameState.savePlayerName(trimmed)
+        withAnimation { editingName = false }
     }
 }
 
