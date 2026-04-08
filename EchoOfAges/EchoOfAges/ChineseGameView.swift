@@ -58,6 +58,12 @@ struct ChineseGameView: View {
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 14) {
                         levelHeader
+                        if gameState.chineseCurrentLevelIndex == 0
+                            && gameState.needsKeyGate(for: .chinese) {
+                            MysteryMarkBanner(civ: .chinese,
+                                             accentColor: Color(red: 0.78, green: 0.16, blue: 0.09))
+                                .padding(.horizontal, 4)
+                        }
                         boardSection(cellSize: computedCellSize)
                         piecesPalette
                         actionRow
@@ -578,53 +584,161 @@ struct ChineseGameView: View {
     // MARK: - Level Complete Card
 
     private var levelCompleteCard: some View {
-        VStack(spacing: 20) {
-            Image(systemName: level.artifactSymbol)
-                .font(.system(size: 64))
-                .foregroundStyle(warmGold)
-                .shadow(color: warmGold.opacity(0.55), radius: 14, x: 0, y: 0)
+        let isLastLevel   = gameState.chineseCurrentLevelIndex == ChineseBoxLevel.allLevels.count - 1
+        let allComplete   = gameState.allSixCivsComplete
+        let newCivs       = isLastLevel ? gameState.newlyUnlockedCivs(completingLevel5Of: .chinese) : []
 
-            VStack(spacing: 8) {
-                Text("Box Complete")
-                    .font(EgyptFont.titleBold(26))
+        return ScrollView(showsIndicators: false) {
+            VStack(spacing: 20) {
+                Spacer(minLength: 20)
+
+                Image(systemName: level.artifactSymbol)
+                    .font(.system(size: 60))
                     .foregroundStyle(warmGold)
-                    .tracking(2)
-                Text(level.journalTitle)
-                    .font(EgyptFont.bodyItalic(17))
-                    .foregroundStyle(warmGold.opacity(0.75))
-            }
+                    .shadow(color: warmGold.opacity(0.55), radius: 14, x: 0, y: 0)
 
-            if messageRevealed {
-                Text(level.decodedMessage)
-                    .font(EgyptFont.bodyItalic(15))
-                    .foregroundStyle(Color.papyrus.opacity(0.85))
-                    .lineSpacing(5)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 8)
+                VStack(spacing: 8) {
+                    Text(isLastLevel && allComplete ? "All Six Keys Gathered" : "Box Complete")
+                        .font(EgyptFont.titleBold(26))
+                        .foregroundStyle(warmGold)
+                        .tracking(2)
+                    Text(level.journalTitle)
+                        .font(EgyptFont.bodyItalic(17))
+                        .foregroundStyle(warmGold.opacity(0.75))
+                }
+
+                if messageRevealed {
+                    Text(level.decodedMessage)
+                        .font(EgyptFont.bodyItalic(15))
+                        .foregroundStyle(Color.papyrus.opacity(0.85))
+                        .lineSpacing(5)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 8)
+                        .transition(.opacity)
+
+                    // Journal nudge
+                    HStack(spacing: 8) {
+                        Image(systemName: "book.fill").font(.system(size: 11))
+                            .foregroundStyle(warmGold.opacity(0.60))
+                        Text("A new entry has been written in your Field Diary.")
+                            .font(EgyptFont.bodyItalic(13))
+                            .foregroundStyle(warmGold.opacity(0.60))
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 4)
                     .transition(.opacity)
-            }
 
-            VStack(spacing: 10) {
-                Button(action: {
-                    HapticFeedback.tap()
-                    gameState.advanceChineseToNextLevel()
-                }) {
-                    StoneButton(title: "Next Chamber", icon: "arrow.right", style: .gold)
-                }
-                .buttonStyle(.plain)
+                    // Level 5 — key earned + Mandu call-to-action
+                    if isLastLevel {
+                        VStack(alignment: .leading, spacing: 10) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "key.fill").font(.system(size: 12))
+                                    .foregroundStyle(warmGold)
+                                Text("The Chinese key has been carved in your Field Diary.")
+                                    .font(EgyptFont.bodyItalic(13))
+                                    .foregroundStyle(warmGold)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
 
-                Button(action: {
-                    HapticFeedback.tap()
-                    gameState.closeChineseGame()
-                    gameState.openJournal()
-                }) {
-                    StoneButton(title: "Open Field Diary", icon: "book.fill", style: .muted)
+                            if allComplete {
+                                Rectangle()
+                                    .fill(warmGold.opacity(0.25))
+                                    .frame(height: 0.8)
+                                    .padding(.vertical, 4)
+
+                                HStack(spacing: 10) {
+                                    Image(systemName: "seal.fill")
+                                        .font(.system(size: 20))
+                                        .foregroundStyle(warmGold)
+                                    Text("Six peoples. Six keys.\nThe Mandu Tablet awaits.")
+                                        .font(EgyptFont.bodyItalic(14))
+                                        .foregroundStyle(Color.papyrus)
+                                        .lineSpacing(4)
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            } else if !newCivs.isEmpty {
+                                Text("NEW PATHS OPEN")
+                                    .font(EgyptFont.title(11))
+                                    .foregroundStyle(warmGold.opacity(0.55))
+                                    .tracking(2)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                ForEach(newCivs) { civ in
+                                    HStack(spacing: 12) {
+                                        Text(civ.emblem).font(.system(size: 24))
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(civ.name).font(EgyptFont.titleBold(14))
+                                                .foregroundStyle(civ.accentColor)
+                                            Text(civ.era).font(EgyptFont.bodyItalic(12))
+                                                .foregroundStyle(Color.papyrus.opacity(0.55))
+                                        }
+                                        Spacer()
+                                        Image(systemName: "lock.open.fill").font(.system(size: 12))
+                                            .foregroundStyle(warmGold)
+                                    }
+                                    .padding(10)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .fill(Color.stoneMid.opacity(0.18))
+                                            .overlay(RoundedRectangle(cornerRadius: 8)
+                                                .stroke(civ.accentColor.opacity(0.35), lineWidth: 1))
+                                    )
+                                }
+                            }
+                        }
+                        .padding(12)
+                        .background(
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(Color.stoneMid.opacity(0.20))
+                                .overlay(RoundedRectangle(cornerRadius: 10)
+                                    .stroke(warmGold.opacity(0.30), lineWidth: 1))
+                        )
+                        .transition(.opacity)
+                    }
                 }
-                .buttonStyle(.plain)
+
+                VStack(spacing: 10) {
+                    if isLastLevel && allComplete {
+                        Button {
+                            HapticFeedback.heavy()
+                            gameState.chinesePendingComplete = false
+                            withAnimation(.easeInOut(duration: 0.4)) { gameState.openManduTablet() }
+                        } label: {
+                            StoneButton(title: "Open the Mandu Tablet", icon: "seal.fill", style: .gold)
+                        }
+                        .buttonStyle(.plain)
+                    } else if isLastLevel {
+                        Button {
+                            HapticFeedback.heavy()
+                            gameState.chinesePendingComplete = false
+                            withAnimation(.easeInOut(duration: 0.4)) { gameState.startNewGame() }
+                        } label: {
+                            StoneButton(title: "Continue Expedition", icon: "arrow.right", style: .gold)
+                        }
+                        .buttonStyle(.plain)
+                    } else {
+                        Button {
+                            HapticFeedback.tap()
+                            gameState.advanceChineseToNextLevel()
+                        } label: {
+                            StoneButton(title: "Next Chamber", icon: "arrow.right", style: .gold)
+                        }
+                        .buttonStyle(.plain)
+                    }
+
+                    Button {
+                        HapticFeedback.tap()
+                        gameState.openJournal()
+                    } label: {
+                        StoneButton(title: "Open Field Diary", icon: "book.fill", style: .muted)
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, 8)
+
+                Spacer(minLength: 20)
             }
-            .padding(.horizontal, 8)
+            .padding(24)
         }
-        .padding(28)
         .background(
             RoundedRectangle(cornerRadius: 20)
                 .fill(Color.stoneDark)
@@ -634,7 +748,8 @@ struct ChineseGameView: View {
                 )
         )
         .shadow(color: .black.opacity(0.55), radius: 22, x: 0, y: 8)
-        .padding(.horizontal, 28)
+        .padding(.horizontal, 24)
+        .frame(maxHeight: UIScreen.main.bounds.height * 0.82)
     }
 
 }

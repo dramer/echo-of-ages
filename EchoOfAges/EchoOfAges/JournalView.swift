@@ -384,7 +384,10 @@ private struct SectionRule: View {
 // MARK: - Page Contents
 
 private struct FrontPageContent: View {
+    @EnvironmentObject var gameState: GameState
+
     var body: some View {
+        let name = gameState.playerName.trimmingCharacters(in: .whitespaces)
         VStack(alignment: .center, spacing: 16) {
             Spacer(minLength: 30)
             Text("𓏠")
@@ -406,10 +409,21 @@ private struct FrontPageContent: View {
                 .frame(width: 160, height: 1)
                 .frame(maxWidth: .infinity, alignment: .center)
             Spacer(minLength: 12)
-            Text("Property of the Expedition Archaeologist")
-                .font(handFont(13))
-                .foregroundStyle(Color.inkSepia.opacity(0.7))
-                .frame(maxWidth: .infinity, alignment: .center)
+            if name.isEmpty {
+                Text("Property of the Expedition Archaeologist")
+                    .font(handFont(13))
+                    .foregroundStyle(Color.inkSepia.opacity(0.7))
+                    .frame(maxWidth: .infinity, alignment: .center)
+            } else {
+                Text("Property of")
+                    .font(handFont(13))
+                    .foregroundStyle(Color.inkSepia.opacity(0.7))
+                    .frame(maxWidth: .infinity, alignment: .center)
+                Text(name)
+                    .font(handFont(20, bold: true))
+                    .foregroundStyle(Color.inkBlue.opacity(0.85))
+                    .frame(maxWidth: .infinity, alignment: .center)
+            }
             Text("If found, do not open.")
                 .font(handFont(13))
                 .foregroundStyle(Color.inkRed.opacity(0.8))
@@ -560,8 +574,10 @@ private struct MapPageContent: View {
                     .stroke(Color.inkSepia.opacity(0.4), lineWidth: 1))
                 .shadow(color: .black.opacity(0.3), radius: 4, x: 2, y: 2)
             SectionRule()
-            HandBody(text: "Equidistant between South America and Africa. Whatever trade route brought these objects here, we don't know it.")
+            HandBody(text: "Equidistant between South America and Africa. Six teaching tablets, each from a different ancient civilization — and beneath them, a seventh stone, partially carved, waiting to be completed.")
             Spacer(minLength: 8)
+            HandNote(text: "Whatever brought objects from six civilizations to one place, we don't know it yet.", color: Color.inkSepia.opacity(0.7))
+            Spacer(minLength: 4)
             HandNote(text: "Coordinates withheld pending further excavation. The team agreed.", color: Color.inkRed.opacity(0.7))
         }
     }
@@ -570,20 +586,25 @@ private struct MapPageContent: View {
 private struct TabletStoryContent: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            HandTitle(text: "The Tablet of Mandu")
-            HandBody(text: "Found it on the third day. Half-buried under two feet of black volcanic sand. The stone is unlike anything in our geological surveys — dense, dark, almost glassy.")
-            SectionRule()
-            HandBody(text: "30 symbols. I counted them four times. They come from six different writing systems — Egyptian hieroglyphs, Norse runes, Sumerian cuneiform, Maya glyphs, Celtic ogham, ancient Chinese oracle script.")
+            HandTitle(text: "The Discovery")
+            HandBody(text: "Found it on the third day. Six tablets, each carved in a different script. Egyptian hieroglyphs. Norse runes. Sumerian cuneiform. Maya glyphs. Celtic ogham. Ancient Chinese oracle script.")
             Spacer(minLength: 8)
-            HandBody(text: "No civilization could have traveled to meet all the others. The carbon dating came back — the tablet predates every script that appears on it.")
+            HandBody(text: "No civilization could have traveled to meet all the others. And yet — here they were, buried together on an island that appears on no map.")
             Spacer(minLength: 10)
-            HandNote(text: "It should not exist.", color: Color.inkRed)
+            HandNote(text: "Carbon dating says the stones predate every script on them. They should not exist.", color: Color.inkRed)
             SectionRule()
-            HandBody(text: "Around the main tablet: six smaller tablets, each in a single script. Teaching tools, I think. As if someone wanted whoever found these to be able to decode the main inscription.")
+            HandTitle(text: "The Partial Tablet", size: 17, color: .inkBlue)
+            HandBody(text: "Beneath the six teaching tablets — half-buried in volcanic stone — we found a seventh.")
             Spacer(minLength: 8)
-            HandBody(text: "The team named it the Tablet of Mandu. Nobody knows what Mandu means. We found no language it comes from.")
+            HandBody(text: "Partially carved. Most of its surface is worked smooth, but six spaces were left empty. Deliberately, I think. One space for each script. As if whoever made it knew that six symbols were still missing.")
+            Spacer(minLength: 10)
+            HandNote(text: "The question isn't what it says. The question is: what goes in the six empty spaces?", color: Color.inkRed)
+            SectionRule()
+            HandBody(text: "The six teaching tablets are the key. Each civilization left behind five partial tablets in its own script. Solve them. Learn the patterns. The answer to what belongs in the partial stone is hidden inside.")
             Spacer(minLength: 8)
-            HandNote(text: "Not yet.", color: Color.inkSepia.opacity(0.6))
+            HandNote(text: "The team named it the Tablet of Mandu. Nobody knows what Mandu means. We found no language it comes from.", color: Color.inkSepia.opacity(0.6))
+            Spacer(minLength: 8)
+            HandNote(text: "Not yet.", color: Color.inkSepia.opacity(0.45))
         }
     }
 }
@@ -593,8 +614,8 @@ private struct TabletGridContent: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            HandTitle(text: "The Tablet — Symbol Grid")
-            HandNote(text: "6 rows, 5 symbols each. Symbols light up as each civilization's partial tablets are deciphered.", color: Color.inkSepia.opacity(0.7))
+            HandTitle(text: "The Partial Tablet")
+            HandNote(text: "6 empty spaces — one per civilization. Symbols are revealed as each civilization's partial tablets are deciphered.", color: Color.inkSepia.opacity(0.7))
             SectionRule()
 
             let slots = TabletSlot.all
@@ -640,10 +661,10 @@ private struct TabletGridContent: View {
 
             SectionRule()
             if gameState.allSixCivsComplete {
-                HandNote(text: "All six civilizations deciphered. The stone holds its secrets forever.", color: Color.inkBlue.opacity(0.9))
+                HandNote(text: "All six symbols identified. The partial tablet can finally be completed.", color: Color.inkBlue.opacity(0.9))
             } else {
                 HandNote(
-                    text: "The stone is always open. Place the symbols you have learned — but they fall away each time you close it. They hold only when all six civilizations are complete.",
+                    text: "Decipher each civilization's partial tablets and the missing symbol for that row will be revealed. All six must be found before the stone can be completed.",
                     color: Color.inkSepia.opacity(0.70)
                 )
             }
@@ -982,7 +1003,7 @@ private struct HowToPlayContent: View {
         VStack(alignment: .leading, spacing: 14) {
 
             HandTitle(text: "How to Play")
-            HandBody(text: "Six ancient civilizations left behind partial tablets near the Tablet of Mandu — teaching tools, as if someone wanted whoever found them to be able to decode the main inscription.")
+            HandBody(text: "Dr. Mandu found a partially carved stone with six empty spaces — one for each ancient civilization. Solve each civilization's teaching tablets to discover which symbol belongs in its empty space.")
 
             SectionRule()
 
@@ -991,7 +1012,7 @@ private struct HowToPlayContent: View {
                 Text("I").font(handFont(15, bold: true)).foregroundStyle(Color.inkRed).frame(width: 18)
                 VStack(alignment: .leading, spacing: 4) {
                     HandTitle(text: "Start with Egypt", size: 15, color: .inkBlue)
-                    HandBody(text: "Egypt's partial tablets use hieroglyphs arranged in a grid. No symbol repeats in any row or column. Fill the grid using logic — no guessing required.", size: 14)
+                    HandBody(text: "Egypt's five teaching tablets use hieroglyphs arranged in a grid — no symbol repeats in any row or column. Solve all five and a symbol will be identified for Egypt's empty space on the partial stone.", size: 14)
                 }
             }
 
@@ -1002,8 +1023,8 @@ private struct HowToPlayContent: View {
                 Text("II").font(handFont(15, bold: true)).foregroundStyle(Color.inkRed).frame(width: 18)
                 VStack(alignment: .leading, spacing: 4) {
                     HandTitle(text: "Norse & Sumerian Unlock Together", size: 15, color: .inkBlue)
-                    HandBody(text: "Complete all five Egyptian tablets and two new civilizations open: Norse runes (a pathfinding puzzle — trace the correct route through the runestone) and Sumerian cuneiform (a substitution cipher — decode a message using symbols you uncover).", size: 14)
-                    HandNote(text: "You can play Norse and Sumerian in any order, or switch between them.", size: 12, color: Color.inkSepia.opacity(0.6))
+                    HandBody(text: "Complete Egypt and two new civilizations open: Norse runes (a pathfinding puzzle) and Sumerian cuneiform (a substitution cipher). Solve both to identify their missing symbols.", size: 14)
+                    HandNote(text: "You can play Norse and Sumerian in any order.", size: 12, color: Color.inkSepia.opacity(0.6))
                 }
             }
 
@@ -1014,7 +1035,7 @@ private struct HowToPlayContent: View {
                 Text("III").font(handFont(15, bold: true)).foregroundStyle(Color.inkRed).frame(width: 18)
                 VStack(alignment: .leading, spacing: 4) {
                     HandTitle(text: "Maya & Celtic Follow", size: 15, color: .inkBlue)
-                    HandBody(text: "Finish both Norse and Sumerian and two more civilizations appear: Maya glyphs and Celtic ogham. Complete either one to unlock the sixth and final civilization.", size: 14)
+                    HandBody(text: "Finish both Norse and Sumerian and Maya glyphs and Celtic ogham unlock. Complete either one to reveal the sixth and final civilization.", size: 14)
                 }
             }
 
@@ -1024,23 +1045,21 @@ private struct HowToPlayContent: View {
             HStack(alignment: .top, spacing: 10) {
                 Text("IV").font(handFont(15, bold: true)).foregroundStyle(Color.inkRed).frame(width: 18)
                 VStack(alignment: .leading, spacing: 4) {
-                    HandTitle(text: "Chinese Oracle Script — The Final Gate", size: 15, color: .inkBlue)
-                    HandBody(text: "Complete Maya or Celtic and the last civilization unlocks: ancient Chinese oracle bone script. Master all five of its tablets to complete your sixth and final row on the Tablet of Mandu.", size: 14)
+                    HandTitle(text: "Chinese Oracle Script", size: 15, color: .inkBlue)
+                    HandBody(text: "Complete Maya or Celtic and the last civilization unlocks: ancient Chinese oracle bone script. Solve all five tablets to identify the sixth and final missing symbol.", size: 14)
                 }
             }
 
             SectionRule()
 
-            // The Mandu Tablet
+            // The Partial Stone
             HStack(alignment: .top, spacing: 10) {
                 Text("𓇳").font(.system(size: 15)).foregroundStyle(Color(red: 0.60, green: 0.42, blue: 0.10)).frame(width: 18)
                 VStack(alignment: .leading, spacing: 4) {
-                    HandTitle(text: "The Tablet of Mandu — Always Open", size: 15, color: .inkBlue)
-                    HandBody(text: "The final puzzle is accessible from this diary at any time. As you complete each civilization, their symbols become available in the palette. Place them on the stone where they belong.", size: 14)
+                    HandTitle(text: "Complete the Partial Stone", size: 15, color: .inkBlue)
+                    HandBody(text: "Once all six symbols are identified, return to the Tablet of Mandu. Place each civilization's symbol in its empty space. All six must be correct for the stone to hold them.", size: 14)
                     Spacer(minLength: 4)
-                    HandNote(text: "But the stone does not hold your work. Every time you close it, the placed symbols fall away — they are only held in place when all six civilizations are fully deciphered.", size: 13, color: Color.inkRed.opacity(0.75))
-                    Spacer(minLength: 4)
-                    HandNote(text: "When all six are complete: return to the stone, place all thirty symbols, and the inscription will reveal itself.", size: 13, color: Color.inkSepia.opacity(0.65))
+                    HandNote(text: "The symbols fall away when you close the stone — until all six civilizations are fully solved. Then they are held in place forever.", size: 13, color: Color.inkRed.opacity(0.75))
                 }
             }
         }
@@ -1392,19 +1411,27 @@ private struct DrManduContent: View {
             HandTitle(text: "The Discovery", size: 17, color: .inkBlue)
                 .padding(.bottom, 6)
 
-            HandBody(text: "In the summer of 2024, Dr. Mandu was serving as a scientific advisor aboard the R/V Peregrine when sonar anomalies led the crew to a previously uncharted volcanic island in the Mid-Atlantic Ridge.")
+            HandBody(text: "In the summer of 2024, Dr. Mandu was serving as scientific advisor aboard the R/V Peregrine when sonar anomalies led the crew to a previously uncharted volcanic island in the Mid-Atlantic Ridge.")
 
             Spacer(minLength: 14)
 
-            HandBody(text: "It was Elena who first recognized the obsidian slab for what it was. She cleared the ash from its surface with her own hands, and when the first symbols emerged, she reportedly said nothing for four minutes.")
+            HandBody(text: "On the island she found six tablets — each carved in the ancient script of a different civilization. Egyptian hieroglyphs. Norse runes. Sumerian cuneiform. Maya glyphs. Celtic ogham. Ancient Chinese oracle script. Teaching stones, she called them. Each one holding five inscriptions in its own script.")
 
             Spacer(minLength: 14)
 
-            HandNote(text: "\"I have spent my whole career looking for proof that the ancient world was more connected than we think. I was not prepared to actually find it.\"", color: Color.inkBlue.opacity(0.8))
+            HandBody(text: "Beneath the six teaching tablets, half-buried in volcanic ash, she found a seventh stone. Partially carved. Six spaces left empty — one for each of the scripts above it.")
+
+            Spacer(minLength: 10)
+
+            HandNote(text: "\"Someone started this and stopped. Or left it unfinished on purpose. The empty spaces are not damage — the edges are too clean. They were meant to be filled.\"", color: Color.inkBlue.opacity(0.8))
+
+            Spacer(minLength: 8)
+
+            HandNote(text: "— Dr. Elena Mandu, field notes, July 2024", size: 12, color: Color.inkSepia.opacity(0.55))
 
             Spacer(minLength: 14)
 
-            HandNote(text: "— Dr. Elena Mandu, interview with Nature, September 2024", size: 12, color: Color.inkSepia.opacity(0.55))
+            HandNote(text: "Dr. Mandu's hypothesis: solve each civilization's teaching tablets to identify which symbol belongs in that civilization's empty space on the partial stone.", color: Color.inkRed.opacity(0.75))
 
             Spacer(minLength: 18)
             SectionRule()

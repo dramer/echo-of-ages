@@ -263,21 +263,21 @@ extension TabletSlot {
         TabletSlot(id: 29, character: "木", civilization: .chinese,  decoded: "remember"),
     ]
 
-    // The complete decoded message when all 6 civilizations are learned:
-    // "sky · eye · water · strength · wisdom
-    //  root · grows · through · nine · worlds
-    //  heaven · and · earth · are · one
-    //  the · tree · breathes · with · time
-    //  all · voices · speak · the · same
-    //  word · the · word · is · remember"
+    // The final message revealed when all 6 civilizations complete the Mandu Tablet.
     static let fullMessage = """
-    From the eternal sky, through the eye of wisdom,
-    where waters flow and strength stands guard —
-    the root grows through nine worlds.
-    Heaven and earth are one.
-    The tree breathes with time.
-    All voices speak the same word.
-    The word is: remember.
+    Roots hold.
+    Water rises.
+    The trunk stands.
+    Branches reach.
+    Leaves speak.
+    Sun reveals.
+
+    Six peoples. Six languages. One thing.
+
+    They did not know each other.
+    They knew the same tree.
+
+    So did you.
     """
 }
 

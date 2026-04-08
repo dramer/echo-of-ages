@@ -73,12 +73,14 @@ struct PathGameView: View {
 
     @ViewBuilder
     private func portraitLayout(geo: GeometryProxy) -> some View {
+        let showBanner  = gameState.norseCurrentLevelIndex == 0 && gameState.needsKeyGate(for: .norse)
+        let bannerH:    CGFloat = showBanner ? 158 : 0
         let barH:       CGFloat = 84
         let titleH:     CGFloat = 76
         let runeBarH:   CGFloat = 64
         let spacing:    CGFloat = 8 * 3
         let safeBottom: CGFloat = 16
-        let reserved    = barH + titleH + runeBarH + spacing + safeBottom
+        let reserved    = barH + titleH + runeBarH + spacing + safeBottom + bannerH
         let gridAvailH  = geo.size.height - reserved
         let gridAvailW  = geo.size.width - 32
 
@@ -90,6 +92,13 @@ struct PathGameView: View {
             Spacer(minLength: 8)
             levelTitle.padding(.horizontal, 16)
             Spacer(minLength: 8)
+
+            if showBanner {
+                MysteryMarkBanner(civ: .norse,
+                                  accentColor: Color(red: 0.45, green: 0.75, blue: 1.0))
+                    .padding(.horizontal, 16)
+                Spacer(minLength: 8)
+            }
 
             pathGrid(availableWidth: gridAvailW, availableHeight: max(gridAvailH, 100))
                 .padding(.horizontal, 16)
@@ -366,41 +375,167 @@ struct PathGameView: View {
     // MARK: Completion Overlay
 
     private var completionOverlay: some View {
-        ZStack {
-            Color.black.opacity(0.55)
-                .ignoresSafeArea()
+        let isLastLevel = gameState.norseCurrentLevelIndex == PathLevel.allLevels.count - 1
+        let newCivs     = isLastLevel ? gameState.newlyUnlockedCivs(completingLevel5Of: .norse) : []
+        let accentBlue  = Color(red: 0.45, green: 0.85, blue: 1.0)
+        let accentGreen = Color(red: 0.45, green: 0.85, blue: 0.65)
 
-            VStack(spacing: 18) {
-                Text("ᚠ")
-                    .font(.system(size: 64))
-                    .foregroundStyle(Color(red: 0.55, green: 0.95, blue: 0.65))
+        return ZStack {
+            Color.black.opacity(0.60).ignoresSafeArea()
 
-                Text("Path Complete")
-                    .font(EgyptFont.titleBold(30))
-                    .foregroundStyle(Color(red: 0.55, green: 0.95, blue: 0.65))
-                    .tracking(3)
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 0) {
+                    Spacer(minLength: 30)
 
-                Text(gameState.norseCurrentLevel.title)
-                    .font(EgyptFont.bodyItalic(18))
-                    .foregroundStyle(Color(red: 0.75, green: 0.90, blue: 1.0).opacity(0.8))
+                    VStack(spacing: 20) {
+                        // Header
+                        VStack(spacing: 10) {
+                            Text("ᚠ")
+                                .font(.system(size: 64))
+                                .foregroundStyle(accentGreen)
+                                .shadow(color: accentGreen.opacity(0.7), radius: 10, x: 0, y: 0)
 
-                Text(gameState.norseCurrentLevel.decodedMessage)
-                    .font(EgyptFont.bodyItalic(15))
-                    .foregroundStyle(Color(red: 0.80, green: 0.90, blue: 1.0).opacity(0.75))
-                    .lineSpacing(5)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 32)
-                    .padding(.top, 6)
+                            Text("Path Complete")
+                                .font(EgyptFont.titleBold(28))
+                                .foregroundStyle(accentGreen)
+                                .tracking(3)
+
+                            Text(gameState.norseCurrentLevel.title)
+                                .font(EgyptFont.bodyItalic(17))
+                                .foregroundStyle(accentBlue.opacity(0.8))
+                        }
+
+                        // Decoded message
+                        VStack(alignment: .leading, spacing: 8) {
+                            Label("Rune Message", systemImage: "scroll")
+                                .font(EgyptFont.title(11))
+                                .foregroundStyle(accentBlue.opacity(0.65))
+                                .tracking(1)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+
+                            Text(gameState.norseCurrentLevel.decodedMessage)
+                                .font(EgyptFont.bodyItalic(15))
+                                .foregroundStyle(Color(red: 0.85, green: 0.92, blue: 1.0).opacity(0.80))
+                                .lineSpacing(5)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        .padding(14)
+                        .background(
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(Color(red: 0.06, green: 0.12, blue: 0.22).opacity(0.80))
+                                .overlay(RoundedRectangle(cornerRadius: 10)
+                                    .stroke(accentBlue.opacity(0.30), lineWidth: 1))
+                        )
+
+                        // Journal nudge
+                        HStack(spacing: 8) {
+                            Image(systemName: "book.fill")
+                                .font(.system(size: 12))
+                                .foregroundStyle(accentBlue.opacity(0.65))
+                            Text("A new entry has been written in your Field Diary.")
+                                .font(EgyptFont.bodyItalic(13))
+                                .foregroundStyle(accentBlue.opacity(0.65))
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                        // Level 5 — key earned + newly unlocked civs
+                        if isLastLevel {
+                            VStack(alignment: .leading, spacing: 12) {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "key.fill")
+                                        .font(.system(size: 13))
+                                        .foregroundStyle(Color.goldMid)
+                                    Text("The Norse key has been carved in your Field Diary.")
+                                        .font(EgyptFont.bodyItalic(13))
+                                        .foregroundStyle(Color.goldMid)
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+
+                                if !newCivs.isEmpty {
+                                    Text("NEW PATHS OPEN")
+                                        .font(EgyptFont.title(11))
+                                        .foregroundStyle(accentBlue.opacity(0.55))
+                                        .tracking(2)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                    ForEach(newCivs) { civ in
+                                        HStack(spacing: 12) {
+                                            Text(civ.emblem).font(.system(size: 24))
+                                            VStack(alignment: .leading, spacing: 2) {
+                                                Text(civ.name)
+                                                    .font(EgyptFont.titleBold(14))
+                                                    .foregroundStyle(civ.accentColor)
+                                                Text(civ.era)
+                                                    .font(EgyptFont.bodyItalic(12))
+                                                    .foregroundStyle(Color(red: 0.80, green: 0.90, blue: 1.0).opacity(0.55))
+                                            }
+                                            Spacer()
+                                            Image(systemName: "lock.open.fill")
+                                                .font(.system(size: 13))
+                                                .foregroundStyle(Color.goldMid)
+                                        }
+                                        .padding(10)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 8)
+                                                .fill(Color(red: 0.06, green: 0.12, blue: 0.22).opacity(0.6))
+                                                .overlay(RoundedRectangle(cornerRadius: 8)
+                                                    .stroke(civ.accentColor.opacity(0.35), lineWidth: 1))
+                                        )
+                                    }
+                                }
+                            }
+                            .padding(14)
+                            .background(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .fill(Color(red: 0.05, green: 0.10, blue: 0.18).opacity(0.75))
+                                    .overlay(RoundedRectangle(cornerRadius: 10)
+                                        .stroke(Color.goldMid.opacity(0.35), lineWidth: 1))
+                            )
+                        }
+
+                        // Buttons
+                        VStack(spacing: 10) {
+                            if isLastLevel && gameState.allSixCivsComplete {
+                                Button {
+                                    HapticFeedback.heavy()
+                                    gameState.norseIsAnimatingCompletion = false
+                                    withAnimation(.easeInOut(duration: 0.4)) { gameState.openManduTablet() }
+                                } label: {
+                                    StoneButton(title: "Open the Mandu Tablet", icon: "seal.fill", style: .gold)
+                                }
+                            } else {
+                                Button {
+                                    HapticFeedback.tap()
+                                    gameState.advanceNorseToNextLevel()
+                                } label: {
+                                    StoneButton(title: isLastLevel ? "Return to Title" : "Next Runestone",
+                                                icon: isLastLevel ? "house.fill" : "arrow.right",
+                                                style: .gold)
+                                }
+                            }
+
+                            Button {
+                                HapticFeedback.tap()
+                                gameState.norseIsAnimatingCompletion = false
+                                gameState.openJournal()
+                            } label: {
+                                StoneButton(title: "Open Field Diary", icon: "book.fill", style: .muted)
+                            }
+                        }
+                        .padding(.horizontal, 4)
+                    }
+                    .padding(24)
+                    .background(
+                        RoundedRectangle(cornerRadius: 20)
+                            .fill(Color(red: 0.04, green: 0.08, blue: 0.16))
+                            .overlay(RoundedRectangle(cornerRadius: 20)
+                                .stroke(accentGreen.opacity(0.55), lineWidth: 1.5))
+                    )
+                    .padding(.horizontal, 22)
+                    .shadow(color: accentGreen.opacity(0.25), radius: 20, x: 0, y: 0)
+
+                    Spacer(minLength: 30)
+                }
             }
-            .padding(32)
-            .background(
-                RoundedRectangle(cornerRadius: 20)
-                    .fill(Color(red: 0.04, green: 0.08, blue: 0.16))
-                    .overlay(RoundedRectangle(cornerRadius: 20)
-                        .stroke(Color(red: 0.45, green: 0.85, blue: 0.65).opacity(0.6), lineWidth: 1.5))
-            )
-            .padding(.horizontal, 28)
-            .shadow(color: Color(red: 0.30, green: 0.75, blue: 0.50).opacity(0.35), radius: 20, x: 0, y: 0)
         }
     }
 

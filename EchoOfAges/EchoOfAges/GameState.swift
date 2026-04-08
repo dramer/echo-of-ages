@@ -21,7 +21,6 @@ enum GameScreen: Equatable {
     case chineseGame
     case celticGame
     case manduTablet
-    case civKeyGate(CivilizationID)   // key-identification gate before a new civilization
 }
 
 // MARK: - GameState
@@ -57,6 +56,14 @@ final class GameState: ObservableObject {
 
     // Settings
     @Published var showIntroOnLaunch: Bool = true
+
+    // Archaeologist name — prompted once on first launch, editable in Settings
+    @Published var playerName: String = ""
+
+    /// True when the player hasn't entered their name yet.
+    var needsPlayerName: Bool {
+        playerName.trimmingCharacters(in: .whitespaces).isEmpty
+    }
 
     // Set by the Table of Contents to jump to a specific diary page.
     @Published var journalTargetPage: Int? = nil
@@ -166,6 +173,11 @@ final class GameState: ObservableObject {
 
     /// Continue Journey — returns to the last civilization the player was actively working on.
     func continueGame() {
+        // If that civ is already fully completed, route to the next unsolved one instead.
+        if let last = lastActiveCivilization, civilizationsCompletedForMandu.contains(last) {
+            startNewGame()
+            return
+        }
         switch lastActiveCivilization {
         case .egyptian:
             let next = min(unlockedJournalEntries.count, Level.allLevels.count - 1)
@@ -184,6 +196,33 @@ final class GameState: ObservableObject {
         default:
             startNewGame() // no last session — route to next unsolved
         }
+    }
+
+    /// Civilizations that newly become available when a player finishes level 5 of `civId`.
+    /// The `done` set must already include `civId` (completion is recorded before showing the card).
+    func newlyUnlockedCivs(completingLevel5Of civId: CivilizationID) -> [Civilization] {
+        let done = civilizationsCompletedForMandu
+        let implemented = Set(Civilization.all.filter(\.isUnlocked).map(\.id))
+        var newIds = Set<CivilizationID>()
+        switch civId {
+        case .egyptian:
+            for id: CivilizationID in [.norse, .sumerian] where implemented.contains(id) && !done.contains(id) {
+                newIds.insert(id)
+            }
+        case .norse:
+            if done.contains(.sumerian) {
+                for id: CivilizationID in [.maya, .celtic] where implemented.contains(id) && !done.contains(id) { newIds.insert(id) }
+            }
+        case .sumerian:
+            if done.contains(.norse) {
+                for id: CivilizationID in [.maya, .celtic] where implemented.contains(id) && !done.contains(id) { newIds.insert(id) }
+            }
+        case .maya, .celtic:
+            if implemented.contains(.chinese) && !done.contains(.chinese) { newIds.insert(.chinese) }
+        case .chinese:
+            break
+        }
+        return Civilization.all.filter { newIds.contains($0.id) }
     }
 
     /// Direct navigation to a specific civilization's next unsolved puzzle.
@@ -461,7 +500,6 @@ final class GameState: ObservableObject {
 
     func startNorseGame() {
         lastActiveCivilization = .norse
-        if needsKeyGate(for: .norse) { currentScreen = .civKeyGate(.norse); return }
         let next = min(norseUnlockedLevels.count, PathLevel.allLevels.count - 1)
         loadNorseLevel(next)
         currentScreen = .norseGame
@@ -558,7 +596,24 @@ final class GameState: ObservableObject {
         // Auto-verify once the path covers every cell
         if norsePath.count == level.totalCells {
             if level.isSolved(norsePath) {
-                handleNorseLevelComplete()
+                // Level 1 requires the correct mystery mark to complete
+                if norseCurrentLevelIndex == 0 && needsKeyGate(for: .norse) {
+                    if mysteryMarkIsCorrect(for: .norse) {
+                        passKeyGate(for: .norse)
+                        handleNorseLevelComplete()
+                    } else {
+                        // Correct path, wrong mark — flash and reset so player knows to check the diary
+                        flashMysteryMarkWrong()
+                        norseErrorCells = Set(norsePath)
+                        Task {
+                            try? await Task.sleep(nanoseconds: 1_500_000_000)
+                            norseErrorCells = []
+                            norsePath = []
+                        }
+                    }
+                } else {
+                    handleNorseLevelComplete()
+                }
             } else {
                 // Wrong path — flash all cells red then reset
                 norseErrorCells = Set(norsePath)
@@ -588,16 +643,19 @@ final class GameState: ObservableObject {
             recordKey(for: .norse)
         }
         saveProgress()
+        // No auto-advance — player presses Continue or Open Diary in the completion card.
+    }
 
-        Task {
-            try? await Task.sleep(nanoseconds: 2_200_000_000)
-            norseIsAnimatingCompletion = false
-            let next = norseCurrentLevelIndex + 1
-            if next < PathLevel.allLevels.count {
-                loadNorseLevel(next)
-            } else {
-                currentScreen = .title
-            }
+    /// Advance to the next Norse level (or title if done). Called by the completion card button.
+    func advanceNorseToNextLevel() {
+        let next = norseCurrentLevelIndex + 1
+        norseIsAnimatingCompletion = false
+        norsePath = []
+        norseErrorCells = []
+        if next < PathLevel.allLevels.count {
+            loadNorseLevel(next)
+        } else {
+            currentScreen = .title
         }
     }
 
@@ -677,7 +735,6 @@ final class GameState: ObservableObject {
 
     func startSumerianGame() {
         lastActiveCivilization = .sumerian
-        if needsKeyGate(for: .sumerian) { currentScreen = .civKeyGate(.sumerian); return }
         let next = min(sumerianUnlockedLevels.count, SumerianLevel.allLevels.count - 1)
         loadSumerianLevel(next)
         currentScreen = .sumerianGame
@@ -748,7 +805,13 @@ final class GameState: ObservableObject {
             }
         }
         if mistakes.isEmpty {
-            HapticFeedback.success()
+            // All cipher positions correct — still need the right mystery mark on Level 1
+            if sumerianCurrentLevelIndex == 0 && needsKeyGate(for: .sumerian)
+                && !mysteryMarkIsCorrect(for: .sumerian) {
+                flashMysteryMarkWrong()
+            } else {
+                HapticFeedback.success()
+            }
         } else {
             HapticFeedback.error()
             sumerianErrorPositions = mistakes
@@ -763,9 +826,13 @@ final class GameState: ObservableObject {
 
     private func checkSumerianSolution() {
         guard playerSumerianDecoded.allSatisfy({ $0 != nil }) else { return }
-        if sumerianCurrentLevel.isSolved(playerSumerianDecoded) {
-            handleSumerianLevelComplete()
+        guard sumerianCurrentLevel.isSolved(playerSumerianDecoded) else { return }
+        // Level 1 requires the correct mystery mark to complete
+        if sumerianCurrentLevelIndex == 0 && needsKeyGate(for: .sumerian) {
+            guard mysteryMarkIsCorrect(for: .sumerian) else { return }
+            passKeyGate(for: .sumerian)
         }
+        handleSumerianLevelComplete()
     }
 
     private func handleSumerianLevelComplete() {
@@ -807,25 +874,68 @@ final class GameState: ObservableObject {
     /// Civilizations whose key-identification gate the player has already passed.
     @Published var civKeyGateAnswered: Set<CivilizationID> = []
 
-    /// True if the player must pass the key-identification gate before entering this civ.
-    /// Egypt never requires a gate (it's the first civ). All others do — once.
+    // Mystery mark cycling — one index per civ (which candidate is currently shown)
+    // China needs a second slot (it requires keys from both Maya and Celtic)
+    @Published var mysteryMarkIndex: [CivilizationID: Int] = [:]
+    @Published var chinaMysteryMarkIndex2: Int = 0
+
+    // Set briefly when the player tries to complete Level 1 with the wrong mark
+    @Published var mysteryMarkWrongFlash: Bool = false
+
+    /// True if the player must still identify the foreign mark before Level 1 counts as solved.
+    /// Egypt never requires this (it's the first civ).
     func needsKeyGate(for civ: CivilizationID) -> Bool {
         civ != .egyptian && !civKeyGateAnswered.contains(civ)
     }
 
-    /// Called by CivKeyGateView when the player correctly identifies the key symbol.
-    /// Marks the gate as passed and navigates into the civilization's game.
+    // MARK: Mystery Mark Helpers
+
+    func mysteryMarkCurrent(for civ: CivilizationID) -> String {
+        let choices = civ == .chinese ? TreeOfLifeKeys.chinaSlot1Choices : TreeOfLifeKeys.choices(for: civ)
+        guard !choices.isEmpty else { return "" }
+        return choices[(mysteryMarkIndex[civ, default: 0]) % choices.count]
+    }
+
+    var chinaMysteryMarkCurrent2: String {
+        let c = TreeOfLifeKeys.chinaSlot2Choices
+        return c[chinaMysteryMarkIndex2 % c.count]
+    }
+
+    func cycleMysteryMark(for civ: CivilizationID) {
+        let choices = civ == .chinese ? TreeOfLifeKeys.chinaSlot1Choices : TreeOfLifeKeys.choices(for: civ)
+        guard !choices.isEmpty else { return }
+        mysteryMarkIndex[civ] = ((mysteryMarkIndex[civ, default: 0]) + 1) % choices.count
+        HapticFeedback.tap()
+    }
+
+    func cycleChinaMysteryMark2() {
+        chinaMysteryMarkIndex2 = (chinaMysteryMarkIndex2 + 1) % TreeOfLifeKeys.chinaSlot2Choices.count
+        HapticFeedback.tap()
+    }
+
+    func mysteryMarkIsCorrect(for civ: CivilizationID) -> Bool {
+        if civ == .chinese {
+            return mysteryMarkCurrent(for: .chinese) == TreeOfLifeKeys.maya
+                && chinaMysteryMarkCurrent2 == TreeOfLifeKeys.celtic
+        }
+        guard let required = TreeOfLifeKeys.required(by: civ) else { return true }
+        return mysteryMarkCurrent(for: civ) == required
+    }
+
+    private func flashMysteryMarkWrong() {
+        mysteryMarkWrongFlash = true
+        HapticFeedback.error()
+        Task {
+            try? await Task.sleep(nanoseconds: 1_800_000_000)
+            mysteryMarkWrongFlash = false
+        }
+    }
+
+    /// Called when Level 1 is correctly solved AND mystery mark is correct.
+    /// Marks the gate as passed. Navigation proceeds normally through the level-complete flow.
     func passKeyGate(for civ: CivilizationID) {
         civKeyGateAnswered.insert(civ)
         saveProgress()
-        switch civ {
-        case .norse:    startNorseGame()
-        case .sumerian: startSumerianGame()
-        case .maya:     startMayanGame()
-        case .celtic:   startCelticGame()
-        case .chinese:  startChineseGame()
-        case .egyptian: break
-        }
     }
 
     func hasProducedKey(_ civ: CivilizationID) -> Bool {
@@ -982,23 +1092,78 @@ final class GameState: ObservableObject {
 
     // MARK: Reset Civilization
 
-    /// Wipes all solved levels and discovered glyphs for a given civilization.
-    func resetCivilization(_ civId: CivilizationID) {
+    /// Number of solved levels for a given civilization. Used by Settings.
+    func solvedLevelCount(for civId: CivilizationID) -> Int {
         switch civId {
+        case .egyptian: return Level.allLevels.filter { unlockedJournalEntries.contains($0.journalEntry.id) }.count
+        case .norse:    return norseUnlockedLevels.count
+        case .sumerian: return sumerianUnlockedLevels.count
+        case .maya:     return mayanUnlockedLevels.count
+        case .celtic:   return celticUnlockedLevels.count
+        case .chinese:  return chineseUnlockedLevels.count
+        }
+    }
+
+    /// Total number of levels for a given civilization.
+    func totalLevelCount(for civId: CivilizationID) -> Int {
+        switch civId {
+        case .egyptian: return Level.allLevels.count
+        case .norse:    return PathLevel.allLevels.count
+        case .sumerian: return SumerianLevel.allLevels.count
+        case .maya:     return MayanLevel.allLevels.count
+        case .celtic:   return CelticDifficulty.all.count
+        case .chinese:  return ChineseBoxLevel.allLevels.count
+        }
+    }
+
+    /// Wipes all solved levels, the mystery-mark gate, and the produced key for a civilization.
+    /// The player can replay that civilization from scratch, including re-identifying the mark.
+    func resetCivilization(_ civId: CivilizationID) {
+        // ── Puzzle state per civ ─────────────────────────────────
+        switch civId {
+        case .egyptian:
+            let civLevels = Level.allLevels.filter { $0.civilization == .egyptian }
+            for level in civLevels {
+                unlockedJournalEntries.remove(level.journalEntry.id)
+                decodedMessages.removeValue(forKey: level.id)
+            }
+            let civGlyphs  = Set(civLevels.flatMap { $0.availableGlyphs })
+            let otherGlyphs = Set(Level.allLevels
+                .filter { $0.civilization != .egyptian }
+                .flatMap { $0.availableGlyphs })
+            discoveredGlyphs.removeAll { civGlyphs.subtracting(otherGlyphs).contains($0) }
+            currentLevelIndex = 0
+            resetGrid(for: Level.allLevels[0])
+
+        case .norse:
+            norseUnlockedLevels = []
+            norseCurrentLevelIndex = 0
+            norsePath = []
+            norseErrorCells = []
+            norseIsAnimatingCompletion = false
+            norseActiveLevel = nil
+            UserDefaults.standard.removeObject(forKey: "EOA_norseUnlocked")
+
+        case .sumerian:
+            sumerianUnlockedLevels = []
+            sumerianCurrentLevelIndex = 0
+            sumerianSelectedDecodedIndex = nil
+            sumerianErrorPositions = []
+            sumerianPendingComplete = false
+            sumerianPendingDecodedMessage = ""
+            resetSumerianDecoded(for: SumerianLevel.allLevels[0])
+            UserDefaults.standard.removeObject(forKey: "EOA_sumerianUnlocked")
+
         case .maya:
             mayanUnlockedLevels = []
             mayanCurrentLevelIndex = 0
-            resetMayanGrid(for: MayanLevel.allLevels[0])
+            mayanSelectedCell = nil
+            mayanArmedGlyph = nil
+            mayanErrorCells = []
             mayanPendingComplete = false
+            resetMayanGrid(for: MayanLevel.allLevels[0])
             UserDefaults.standard.removeObject(forKey: "EOA_mayanUnlocked")
-            return
-        case .chinese:
-            chineseUnlockedLevels = []
-            chineseCurrentLevelIndex = 0
-            resetChinesePieces(for: ChineseBoxLevel.allLevels[0])
-            chinesePendingComplete = false
-            UserDefaults.standard.removeObject(forKey: "EOA_chineseUnlocked")
-            return
+
         case .celtic:
             celticUnlockedLevels = []
             celticCurrentLevelIndex = 0
@@ -1008,25 +1173,24 @@ final class GameState: ObservableObject {
             celticErrorCells = []
             celticPendingComplete = false
             UserDefaults.standard.removeObject(forKey: "EOA_celticUnlocked")
-            return
-        default:
-            break
+
+        case .chinese:
+            chineseUnlockedLevels = []
+            chineseCurrentLevelIndex = 0
+            chineseSelectedPieceId = nil
+            chineseArmedRotation = 0
+            chinesePendingComplete = false
+            resetChinesePieces(for: ChineseBoxLevel.allLevels[0])
+            UserDefaults.standard.removeObject(forKey: "EOA_chineseUnlocked")
         }
 
-        let civLevels = Level.allLevels.filter { $0.civilization == civId }
-
-        for level in civLevels {
-            unlockedJournalEntries.remove(level.journalEntry.id)
-            decodedMessages.removeValue(forKey: level.id)
-        }
-
-        // Remove glyphs that were introduced exclusively by this civilization's levels
-        let civGlyphs = Set(civLevels.flatMap { $0.availableGlyphs })
-        let otherGlyphs = Set(Level.allLevels
-            .filter { $0.civilization != civId }
-            .flatMap { $0.availableGlyphs })
-        let exclusiveGlyphs = civGlyphs.subtracting(otherGlyphs)
-        discoveredGlyphs.removeAll { exclusiveGlyphs.contains($0) }
+        // ── Key gate + produced key + mystery cycling position ────
+        // Removing these lets the player re-identify the mystery mark on
+        // Level 1 replay and re-earn the key by completing Level 5 again.
+        civKeyGateAnswered.remove(civId)
+        discoveredKeys.removeValue(forKey: civId)
+        mysteryMarkIndex.removeValue(forKey: civId)
+        if civId == .chinese { chinaMysteryMarkIndex2 = 0 }
 
         saveProgress()
         HapticFeedback.heavy()
@@ -1036,7 +1200,6 @@ final class GameState: ObservableObject {
 
     func startMayanGame() {
         lastActiveCivilization = .maya
-        if needsKeyGate(for: .maya) { currentScreen = .civKeyGate(.maya); return }
         let idx = min(mayanUnlockedLevels.count, MayanLevel.allLevels.count - 1)
         loadMayanLevel(idx)
         previousScreen = currentScreen
@@ -1080,7 +1243,16 @@ final class GameState: ObservableObject {
         mayanErrorCells.remove(coord)
         // Check for solution after every placement
         if mayanCurrentLevel.isSolved(mayanPlayerGrid) {
-            completeMayanLevel()
+            if mayanCurrentLevelIndex == 0 && needsKeyGate(for: .maya) {
+                if mysteryMarkIsCorrect(for: .maya) {
+                    passKeyGate(for: .maya)
+                    completeMayanLevel()
+                } else {
+                    flashMysteryMarkWrong()
+                }
+            } else {
+                completeMayanLevel()
+            }
         }
     }
 
@@ -1094,6 +1266,11 @@ final class GameState: ObservableObject {
 
     func verifyMayanPlacement() {
         let wrong = mayanCurrentLevel.incorrectCells(mayanPlayerGrid)
+        if wrong.isEmpty && mayanCurrentLevelIndex == 0 && needsKeyGate(for: .maya)
+            && !mysteryMarkIsCorrect(for: .maya) {
+            flashMysteryMarkWrong()
+            return
+        }
         mayanErrorCells = wrong
         if !wrong.isEmpty {
             HapticFeedback.heavy()
@@ -1112,12 +1289,7 @@ final class GameState: ObservableObject {
         saveProgress()
         HapticFeedback.heavy()
         mayanPendingComplete = true
-        // Auto-navigate to Mandu if all six civs done
-        if allSixCivsComplete {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 3.5) {
-                self.openManduTablet()
-            }
-        }
+        // Navigation handled by the completion card buttons — no auto-advance.
     }
 
     func advanceMayanToNextLevel() {
@@ -1152,7 +1324,6 @@ final class GameState: ObservableObject {
 
     func startChineseGame() {
         lastActiveCivilization = .chinese
-        if needsKeyGate(for: .chinese) { currentScreen = .civKeyGate(.chinese); return }
         let idx = min(chineseUnlockedLevels.count, ChineseBoxLevel.allLevels.count - 1)
         loadChineseLevel(idx)
         previousScreen = currentScreen
@@ -1215,7 +1386,16 @@ final class GameState: ObservableObject {
         chineseArmedRotation = 0
         HapticFeedback.tap()
         if level.isSolved(chinesePlacedPieces) {
-            completeChineseLevel()
+            if chineseCurrentLevelIndex == 0 && needsKeyGate(for: .chinese) {
+                if mysteryMarkIsCorrect(for: .chinese) {
+                    passKeyGate(for: .chinese)
+                    completeChineseLevel()
+                } else {
+                    flashMysteryMarkWrong()
+                }
+            } else {
+                completeChineseLevel()
+            }
         }
     }
 
@@ -1233,11 +1413,7 @@ final class GameState: ObservableObject {
         saveProgress()
         HapticFeedback.heavy()
         chinesePendingComplete = true
-        if allSixCivsComplete {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 3.5) {
-                self.openManduTablet()
-            }
-        }
+        // Navigation handled by the completion card buttons — no auto-advance.
     }
 
     func advanceChineseToNextLevel() {
@@ -1269,7 +1445,6 @@ final class GameState: ObservableObject {
 
     func startCelticGame() {
         lastActiveCivilization = .celtic
-        if needsKeyGate(for: .celtic) { currentScreen = .civKeyGate(.celtic); return }
         let idx = min(celticUnlockedLevels.count, CelticDifficulty.all.count - 1)
         loadCelticLevel(idx)
         previousScreen = currentScreen
@@ -1325,7 +1500,16 @@ final class GameState: ObservableObject {
         HapticFeedback.tap()
 
         if puzzle.isSolved(celticPlayerGrid) {
-            completeCelticLevel()
+            if celticCurrentLevelIndex == 0 && needsKeyGate(for: .celtic) {
+                if mysteryMarkIsCorrect(for: .celtic) {
+                    passKeyGate(for: .celtic)
+                    completeCelticLevel()
+                } else {
+                    flashMysteryMarkWrong()
+                }
+            } else {
+                completeCelticLevel()
+            }
         }
     }
 
@@ -1350,6 +1534,11 @@ final class GameState: ObservableObject {
     func verifyCelticPlacement() {
         guard let puzzle = celticCurrentPuzzle else { return }
         let errors = puzzle.errorCells(in: celticPlayerGrid)
+        if errors.isEmpty && celticCurrentLevelIndex == 0 && needsKeyGate(for: .celtic)
+            && !mysteryMarkIsCorrect(for: .celtic) {
+            flashMysteryMarkWrong()
+            return
+        }
         celticErrorCells = errors
         if !errors.isEmpty {
             HapticFeedback.heavy()
@@ -1368,11 +1557,7 @@ final class GameState: ObservableObject {
         saveProgress()
         HapticFeedback.heavy()
         celticPendingComplete = true
-        if allSixCivsComplete {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 3.5) {
-                self.openManduTablet()
-            }
-        }
+        // Navigation handled by the completion card buttons — no auto-advance.
     }
 
     func advanceCelticToNextLevel() {
@@ -1411,6 +1596,7 @@ final class GameState: ObservableObject {
         let messagesDict = decodedMessages.reduce(into: [String: String]()) { $0["\($1.key)"] = $1.value }
         UserDefaults.standard.set(messagesDict, forKey: "EOA_chronicle")
         UserDefaults.standard.set(showIntroOnLaunch, forKey: "EOA_showIntro")
+        UserDefaults.standard.set(playerName, forKey: "EOA_playerName")
         UserDefaults.standard.set(Array(norseUnlockedLevels), forKey: "EOA_norseUnlocked")
         UserDefaults.standard.set(Array(mayanUnlockedLevels), forKey: "EOA_mayanUnlocked")
         UserDefaults.standard.set(Array(chineseUnlockedLevels), forKey: "EOA_chineseUnlocked")
@@ -1477,6 +1663,8 @@ final class GameState: ObservableObject {
         } else {
             showIntroOnLaunch = UserDefaults.standard.bool(forKey: "EOA_showIntro")
         }
+
+        playerName = UserDefaults.standard.string(forKey: "EOA_playerName") ?? ""
     }
 
     var hasProgress: Bool {
@@ -1485,5 +1673,101 @@ final class GameState: ObservableObject {
 
     func saveSettings() {
         UserDefaults.standard.set(showIntroOnLaunch, forKey: "EOA_showIntro")
+        UserDefaults.standard.set(playerName, forKey: "EOA_playerName")
+    }
+
+    /// Persist the player's name immediately (called from the name-entry sheet).
+    func savePlayerName(_ name: String) {
+        playerName = name.trimmingCharacters(in: .whitespaces)
+        UserDefaults.standard.set(playerName, forKey: "EOA_playerName")
+    }
+
+    // MARK: - Master Reset
+
+    /// Wipes every piece of game state and returns the player to the title screen,
+    /// exactly as if the app had never been launched before.
+    func masterReset() {
+        // ── Egyptian puzzle ──────────────────────────────────────
+        currentLevelIndex = 0
+        selectedGlyph = nil
+        errorCells = []
+        isAnimatingCompletion = false
+        unlockedJournalEntries = []
+        discoveredGlyphs = []
+        decodedMessages = [:]
+        pendingDecodedMessage = ""
+        spotlightJournalId = nil
+        resetGrid(for: Level.allLevels[0])
+
+        // ── Norse ─────────────────────────────────────────────────
+        norseCurrentLevelIndex = 0
+        norsePath = []
+        norseErrorCells = []
+        norseIsAnimatingCompletion = false
+        norseUnlockedLevels = []
+        norseActiveLevel = nil
+
+        // ── Sumerian ──────────────────────────────────────────────
+        sumerianCurrentLevelIndex = 0
+        sumerianSelectedDecodedIndex = nil
+        sumerianErrorPositions = []
+        sumerianUnlockedLevels = []
+        sumerianPendingComplete = false
+        sumerianPendingDecodedMessage = ""
+        resetSumerianDecoded(for: SumerianLevel.allLevels[0])
+
+        // ── Maya ──────────────────────────────────────────────────
+        mayanCurrentLevelIndex = 0
+        mayanUnlockedLevels = []
+        mayanSelectedCell = nil
+        mayanArmedGlyph = nil
+        mayanErrorCells = []
+        mayanPendingComplete = false
+        resetMayanGrid(for: MayanLevel.allLevels[0])
+
+        // ── Chinese ───────────────────────────────────────────────
+        chineseCurrentLevelIndex = 0
+        chineseUnlockedLevels = []
+        chineseSelectedPieceId = nil
+        chineseArmedRotation = 0
+        chinesePendingComplete = false
+        resetChinesePieces(for: ChineseBoxLevel.allLevels[0])
+
+        // ── Celtic ────────────────────────────────────────────────
+        celticCurrentLevelIndex = 0
+        celticUnlockedLevels = []
+        celticPlayerGrid = []
+        celticArmedGlyph = nil
+        celticErrorCells = []
+        celticPendingComplete = false
+        celticCurrentPuzzle = nil
+
+        // ── Tree of Life / Mandu Tablet ───────────────────────────
+        discoveredKeys = [:]
+        civKeyGateAnswered = []
+        mysteryMarkIndex = [:]
+        chinaMysteryMarkIndex2 = 0
+        mysteryMarkWrongFlash = false
+        manduPlayerGrid = [:]
+        manduArmedCiv = nil
+
+        // ── Navigation / session ──────────────────────────────────
+        lastActiveCivilization = nil
+        journalTargetPage = nil
+        previousScreen = .title
+
+        // ── UserDefaults ──────────────────────────────────────────
+        let keysToErase = [
+            "EOA_unlockedEntries", "EOA_codex", "EOA_chronicle",
+            "EOA_norseUnlocked", "EOA_sumerianUnlocked", "EOA_mayanUnlocked",
+            "EOA_chineseUnlocked", "EOA_celticUnlocked", "EOA_lastCiv",
+            "EOA_discoveredKeys", "EOA_keyGateAnswered", "EOA_manduGrid",
+            "EOA_hasSeenIntro"
+        ]
+        keysToErase.forEach { UserDefaults.standard.removeObject(forKey: $0) }
+        // Keep showIntroOnLaunch and playerName — the player set those deliberately.
+
+        HapticFeedback.heavy()
+        currentScreen = .title
     }
 }

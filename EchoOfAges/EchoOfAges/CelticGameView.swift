@@ -41,6 +41,12 @@ struct CelticGameView: View {
                 ScrollView {
                     VStack(spacing: 20) {
                         subtitleText
+                        if gameState.celticCurrentLevelIndex == 0
+                            && gameState.needsKeyGate(for: .celtic) {
+                            MysteryMarkBanner(civ: .celtic,
+                                             accentColor: Color.celticGold)
+                                .padding(.horizontal, 16)
+                        }
                         if let p = puzzle {
                             gridView(p)
                         }
@@ -333,60 +339,149 @@ struct CelticGameView: View {
     // MARK: - Level Complete Card
 
     private var levelCompleteCard: some View {
-        VStack(spacing: 20) {
-            Text("ᚁ ᚂ ᚃ ᚄ ᚅ")
-                .font(.system(size: 52))
-                .foregroundStyle(Color.celticGold)
-                .shadow(color: Color.celticGold.opacity(0.55), radius: 14, x: 0, y: 0)
+        let isLastLevel = gameState.celticCurrentLevelIndex == CelticDifficulty.all.count - 1
+        let newCivs     = isLastLevel ? gameState.newlyUnlockedCivs(completingLevel5Of: .celtic) : []
 
-            VStack(spacing: 8) {
-                Text("Stone Decoded")
-                    .font(EgyptFont.titleBold(26))
+        return ScrollView(showsIndicators: false) {
+            VStack(spacing: 20) {
+                Spacer(minLength: 20)
+
+                Text("ᚁ ᚂ ᚃ ᚄ ᚅ")
+                    .font(.system(size: 48))
                     .foregroundStyle(Color.celticGold)
-                    .tracking(2)
-                Text(difficulty.title)
-                    .font(EgyptFont.bodyItalic(17))
-                    .foregroundStyle(Color.celticGold.opacity(0.75))
-            }
+                    .shadow(color: Color.celticGold.opacity(0.55), radius: 14, x: 0, y: 0)
 
-            if messageRevealed {
-                Text(difficulty.decodedMessage)
-                    .font(EgyptFont.bodyItalic(15))
-                    .foregroundStyle(Color.celticParchment.opacity(0.85))
-                    .lineSpacing(5)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 8)
+                VStack(spacing: 8) {
+                    Text("Stone Decoded")
+                        .font(EgyptFont.titleBold(26))
+                        .foregroundStyle(Color.celticGold)
+                        .tracking(2)
+                    Text(difficulty.title)
+                        .font(EgyptFont.bodyItalic(17))
+                        .foregroundStyle(Color.celticGold.opacity(0.75))
+                }
+
+                if messageRevealed {
+                    Text(difficulty.decodedMessage)
+                        .font(EgyptFont.bodyItalic(15))
+                        .foregroundStyle(Color.celticParchment.opacity(0.85))
+                        .lineSpacing(5)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 8)
+                        .transition(.opacity)
+
+                    // Journal nudge
+                    HStack(spacing: 8) {
+                        Image(systemName: "book.fill").font(.system(size: 11))
+                            .foregroundStyle(Color.celticGold.opacity(0.60))
+                        Text("A new entry has been written in your Field Diary.")
+                            .font(EgyptFont.bodyItalic(13))
+                            .foregroundStyle(Color.celticGold.opacity(0.60))
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 4)
                     .transition(.opacity)
-            } else {
-                Text("Deciphering inscription…")
-                    .font(EgyptFont.bodyItalic(14))
-                    .foregroundStyle(Color.celticParchment.opacity(0.35))
-                    .italic()
-            }
 
-            VStack(spacing: 10) {
-                Button {
-                    HapticFeedback.tap()
-                    gameState.advanceCelticToNextLevel()
-                } label: {
-                    StoneButton(title: difficulty.id < 5 ? "Next Stone" : "Complete",
-                                icon: difficulty.id < 5 ? "arrow.right" : "checkmark",
-                                style: .gold)
-                }
-                .buttonStyle(.plain)
+                    // Level 5 — key earned + newly unlocked civs
+                    if isLastLevel {
+                        VStack(alignment: .leading, spacing: 10) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "key.fill").font(.system(size: 12))
+                                    .foregroundStyle(Color.celticGold)
+                                Text("The Celtic key has been carved in your Field Diary.")
+                                    .font(EgyptFont.bodyItalic(13))
+                                    .foregroundStyle(Color.celticGold)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
 
-                Button {
-                    HapticFeedback.tap()
-                    gameState.advanceCelticToNextLevel()
-                    gameState.currentScreen = .journal
-                } label: {
-                    StoneButton(title: "Open Field Diary", icon: "book.fill", style: .muted)
+                            if !newCivs.isEmpty {
+                                Text("NEW PATHS OPEN")
+                                    .font(EgyptFont.title(11))
+                                    .foregroundStyle(Color.celticGold.opacity(0.55))
+                                    .tracking(2)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                ForEach(newCivs) { civ in
+                                    HStack(spacing: 12) {
+                                        Text(civ.emblem).font(.system(size: 24))
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(civ.name).font(EgyptFont.titleBold(14))
+                                                .foregroundStyle(civ.accentColor)
+                                            Text(civ.era).font(EgyptFont.bodyItalic(12))
+                                                .foregroundStyle(Color.celticParchment.opacity(0.55))
+                                        }
+                                        Spacer()
+                                        Image(systemName: "lock.open.fill").font(.system(size: 12))
+                                            .foregroundStyle(Color.goldMid)
+                                    }
+                                    .padding(10)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .fill(Color.celticStone.opacity(0.15))
+                                            .overlay(RoundedRectangle(cornerRadius: 8)
+                                                .stroke(civ.accentColor.opacity(0.35), lineWidth: 1))
+                                    )
+                                }
+                            }
+                        }
+                        .padding(12)
+                        .background(
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(Color.celticForest.opacity(0.6))
+                                .overlay(RoundedRectangle(cornerRadius: 10)
+                                    .stroke(Color.celticGold.opacity(0.30), lineWidth: 1))
+                        )
+                        .transition(.opacity)
+                    }
+                } else {
+                    Text("Deciphering inscription…")
+                        .font(EgyptFont.bodyItalic(14))
+                        .foregroundStyle(Color.celticParchment.opacity(0.35))
+                        .italic()
                 }
-                .buttonStyle(.plain)
+
+                VStack(spacing: 10) {
+                    if isLastLevel && gameState.allSixCivsComplete {
+                        Button {
+                            HapticFeedback.heavy()
+                            gameState.celticPendingComplete = false
+                            withAnimation(.easeInOut(duration: 0.4)) { gameState.openManduTablet() }
+                        } label: {
+                            StoneButton(title: "Open the Mandu Tablet", icon: "seal.fill", style: .gold)
+                        }
+                        .buttonStyle(.plain)
+                    } else if isLastLevel {
+                        Button {
+                            HapticFeedback.heavy()
+                            gameState.celticPendingComplete = false
+                            withAnimation(.easeInOut(duration: 0.4)) { gameState.startNewGame() }
+                        } label: {
+                            StoneButton(title: "Continue Expedition", icon: "arrow.right", style: .gold)
+                        }
+                        .buttonStyle(.plain)
+                    } else {
+                        Button {
+                            HapticFeedback.tap()
+                            gameState.advanceCelticToNextLevel()
+                        } label: {
+                            StoneButton(title: "Next Stone", icon: "arrow.right", style: .gold)
+                        }
+                        .buttonStyle(.plain)
+                    }
+
+                    Button {
+                        HapticFeedback.tap()
+                        gameState.openJournal()
+                    } label: {
+                        StoneButton(title: "Open Field Diary", icon: "book.fill", style: .muted)
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, 8)
+
+                Spacer(minLength: 20)
             }
-            .padding(.horizontal, 8)
+            .padding(24)
         }
-        .padding(28)
         .background(
             RoundedRectangle(cornerRadius: 20)
                 .fill(Color.stoneDark)
@@ -396,7 +491,8 @@ struct CelticGameView: View {
                 )
         )
         .shadow(color: .black.opacity(0.55), radius: 22, x: 0, y: 8)
-        .padding(.horizontal, 28)
+        .padding(.horizontal, 24)
+        .frame(maxHeight: UIScreen.main.bounds.height * 0.82)
     }
 }
 

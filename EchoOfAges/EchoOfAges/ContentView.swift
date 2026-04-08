@@ -99,13 +99,6 @@ struct ContentView: View {
                             insertion: .move(edge: .bottom).combined(with: .opacity),
                             removal: .opacity
                         ))
-
-                case .civKeyGate(let civ):
-                    CivKeyGateView(civId: civ)
-                        .transition(.asymmetric(
-                            insertion: .move(edge: .bottom).combined(with: .opacity),
-                            removal: .opacity
-                        ))
                 }
             }
             .animation(.easeInOut(duration: 0.38), value: gameState.currentScreen)
@@ -191,6 +184,19 @@ struct LevelCompleteView: View {
                         )
                         .padding(.horizontal, 24)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
+
+                        // Journal nudge
+                        HStack(spacing: 8) {
+                            Image(systemName: "book.fill")
+                                .font(.system(size: 11))
+                                .foregroundStyle(Color.goldDark.opacity(0.65))
+                            Text("A new entry has been written in your Field Diary.")
+                                .font(EgyptFont.bodyItalic(13))
+                                .foregroundStyle(Color.goldDark.opacity(0.65))
+                        }
+                        .padding(.horizontal, 28)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .transition(.opacity)
                     }
 
                     // New codex glyphs
@@ -281,13 +287,16 @@ struct GameCompleteView: View {
     @EnvironmentObject var gameState: GameState
     @State private var appeared = false
     @State private var glowPulse = false
-    @State private var messagesRevealed = false
+    @State private var unlockedRevealed = false
 
-    // Combine all decoded messages into the full Tree of Life narrative
-    private var fullNarrative: String {
-        gameState.chronicleMessages
-            .compactMap(\.message)
-            .joined(separator: "\n\n")
+    // Names of civilizations that just became available
+    private var newlyUnlocked: [Civilization] {
+        let done = gameState.civilizationsCompletedForMandu
+        let unlocked = gameState.dynamicallyUnlockedCivIds
+        return Civilization.all.filter { civ in
+            civ.isUnlocked && unlocked.contains(civ.id) && !done.contains(civ.id)
+            && civ.id != .egyptian   // Egyptian is the one we just finished
+        }
     }
 
     var body: some View {
@@ -303,7 +312,7 @@ struct GameCompleteView: View {
                 VStack(spacing: 0) {
                     Spacer(minLength: 40)
 
-                    // All five glyphs
+                    // Egyptian glyphs — the chapter just completed
                     HStack(spacing: 16) {
                         ForEach(Glyph.allCases) { glyph in
                             Text(glyph.rawValue)
@@ -319,15 +328,15 @@ struct GameCompleteView: View {
                     Spacer(minLength: 28)
 
                     VStack(spacing: 14) {
-                        Text("The Tree of Life")
-                            .font(EgyptFont.titleBold(38))
+                        Text("Egyptian Chapter Complete")
+                            .font(EgyptFont.titleBold(34))
                             .foregroundStyle(Color.goldBright)
-                            .tracking(3)
+                            .tracking(2)
                             .shadow(color: Color.goldDark.opacity(glowPulse ? 1 : 0.4), radius: 14, x: 0, y: 0)
 
                         ornamentalRule
 
-                        Text("All five inscriptions deciphered.\nThe ancient message is complete.")
+                        Text("All five inscriptions have been deciphered.\nDr. Mandu's expedition continues.")
                             .font(EgyptFont.body(17))
                             .foregroundStyle(Color.papyrus)
                             .lineSpacing(5)
@@ -340,29 +349,47 @@ struct GameCompleteView: View {
 
                     Spacer(minLength: 32)
 
-                    // The complete Tree of Life narrative — all 5 messages
-                    if messagesRevealed && !fullNarrative.isEmpty {
+                    // Newly unlocked civilizations
+                    if unlockedRevealed && !newlyUnlocked.isEmpty {
                         VStack(alignment: .leading, spacing: 16) {
-                            Label("The Complete Inscription", systemImage: "scroll")
+                            Label("New Civilizations Unlocked", systemImage: "globe.americas")
                                 .font(EgyptFont.title(13))
                                 .foregroundStyle(Color.goldDark)
                                 .tracking(1)
                                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                            Text(fullNarrative)
-                                .font(EgyptFont.bodyItalic(16))
-                                .foregroundStyle(Color.papyrus)
-                                .lineSpacing(7)
-                                .frame(maxWidth: .infinity, alignment: .leading)
+                            ForEach(newlyUnlocked) { civ in
+                                HStack(spacing: 14) {
+                                    Text(civ.emblem)
+                                        .font(.system(size: 28))
+                                    VStack(alignment: .leading, spacing: 3) {
+                                        Text(civ.name)
+                                            .font(EgyptFont.titleBold(16))
+                                            .foregroundStyle(civ.accentColor)
+                                        Text(civ.era)
+                                            .font(EgyptFont.bodyItalic(13))
+                                            .foregroundStyle(Color.papyrus.opacity(0.65))
+                                    }
+                                    Spacer()
+                                    Image(systemName: "lock.open.fill")
+                                        .font(.system(size: 14))
+                                        .foregroundStyle(Color.goldMid)
+                                }
+                                .padding(12)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .fill(Color.stoneMid.opacity(0.3))
+                                        .overlay(RoundedRectangle(cornerRadius: 10)
+                                            .stroke(civ.accentColor.opacity(0.35), lineWidth: 1))
+                                )
+                            }
 
-                            ornamentalRule
-                                .padding(.top, 4)
+                            ornamentalRule.padding(.top, 4)
 
-                            Text("𓅱 𓆑 𓏏 𓈖 𓊪")
-                                .font(.system(size: 20))
-                                .foregroundStyle(Color.goldMid.opacity(0.6))
-                                .tracking(6)
-                                .frame(maxWidth: .infinity, alignment: .center)
+                            Text("Check your Field Diary — a new mark was found in the ruins.")
+                                .font(EgyptFont.bodyItalic(14))
+                                .foregroundStyle(Color.papyrus.opacity(0.65))
+                                .multilineTextAlignment(.leading)
                         }
                         .padding(20)
                         .background(
@@ -380,6 +407,17 @@ struct GameCompleteView: View {
                     Spacer(minLength: 40)
 
                     VStack(spacing: 14) {
+                        // Primary: continue straight into the next unlocked civ
+                        if !newlyUnlocked.isEmpty {
+                            Button(action: {
+                                HapticFeedback.heavy()
+                                withAnimation(.easeInOut(duration: 0.4)) {
+                                    gameState.startNewGame()
+                                }
+                            }) {
+                                StoneButton(title: "Continue the Expedition", icon: "arrow.right", style: .gold)
+                            }
+                        }
                         Button(action: {
                             HapticFeedback.tap()
                             gameState.openJournal()
@@ -387,12 +425,12 @@ struct GameCompleteView: View {
                             StoneButton(title: "Read Field Diary", icon: "book.fill", style: .muted)
                         }
                         Button(action: {
-                            HapticFeedback.heavy()
+                            HapticFeedback.tap()
                             withAnimation(.easeInOut(duration: 0.4)) {
                                 gameState.goToTitle()
                             }
                         }) {
-                            StoneButton(title: "Return to the Beginning", icon: "house.fill", style: .gold)
+                            StoneButton(title: "Return to Title", icon: "house.fill", style: .muted)
                         }
                     }
                     .padding(.horizontal, 32)
@@ -411,9 +449,7 @@ struct GameCompleteView: View {
             }
             Task {
                 try? await Task.sleep(nanoseconds: 900_000_000)
-                withAnimation(.easeOut(duration: 1.0)) {
-                    messagesRevealed = true
-                }
+                withAnimation(.easeOut(duration: 1.0)) { unlockedRevealed = true }
             }
         }
     }

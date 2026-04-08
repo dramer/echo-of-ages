@@ -224,7 +224,10 @@ struct IntroView: View {
     // MARK: Crawl text content
 
     private var crawlContent: some View {
-        VStack(spacing: 0) {
+        let name = gameState.playerName.trimmingCharacters(in: .whitespaces)
+        let greeting = name.isEmpty ? "Archaeologist" : name
+
+        return VStack(spacing: 0) {
 
             Text("𓊹  ·  𓂀  ·  𓊹")
                 .font(.system(size: 26))
@@ -243,44 +246,50 @@ struct IntroView: View {
                 .tracking(8)
                 .padding(.bottom, 70)
 
-            crawlParagraph("Summer, 2024.\n\nA research vessel mapping the\nMid-Atlantic Ridge makes an\nextraordinary discovery.")
+            crawlEmphasis("Welcome, \(greeting).")
 
-            crawlParagraph("On a remote volcanic island —\nuncharted, unnamed, and unreachable\nby ordinary means —\nburied beneath centuries of\nash and ocean-stone...")
+            crawlParagraph("The call came at 2:47 in the morning.")
 
-            crawlEmphasis("...a tablet.")
+            crawlParagraph("Dr. Elena Mandu —\nlead archaeologist,\ncross-cultural linguist,\nand the most relentless person\nany of us have ever worked with —\nhad found something she\ncould not explain.")
 
-            crawlParagraph("Carved from a single slab of\nblack obsidian, it bears thirty\nsymbols drawn from six of\nhumanity's oldest civilizations.")
+            separatorGlyphs
+
+            crawlParagraph("On a remote volcanic island\nin the mid-Atlantic —\nuncharted, unmapped,\nunreachable by any ordinary route —\nburied beneath centuries of\nash and ocean-stone:")
+
+            crawlParagraph("Six tablets.\n\nEach carved in the ancient script\nof a different civilization.")
 
             crawlEmphasis("Egyptian.  Norse.  Sumerian.")
-            crawlEmphasis("Mayan.  Celtic.  Chinese.")
+            crawlEmphasis("Maya.  Celtic.  Chinese.")
 
-            crawlParagraph("No single culture could have\ncreated it alone.")
-
-            separatorGlyphs
-
-            crawlParagraph("Lead archaeologist Dr. Elena Mandu —\nfor whom the tablet is now named —\nrecognized fragments of each\nancient script immediately.\n\nBut the tablet was incomplete.")
-
-            crawlParagraph("The symbols are arranged in a\nsacred pattern. A puzzle.\nWithout the key, the full\nmessage cannot be read.")
-
-            crawlEmphasis("But the key still exists.")
-
-            crawlParagraph("Across six ancient sites, five\npartial tablets survive from\neach civilization.\n\nTogether, they hold the answer.")
+            crawlParagraph("No single culture could have\ncrossed paths with all the others.\n\nAnd yet —\nhere they were.\nTogether.")
 
             separatorGlyphs
 
-            crawlEmphasis("Your mission:")
+            crawlParagraph("But that was not the discovery\nthat made her call\nat 2:47 in the morning.")
 
-            crawlParagraph("Decipher the partial tablets,\none civilization at a time.\n\nEgypt first. Then Norse and\nSumerian. Then Maya and Celtic.\nFinally — Chinese.")
+            crawlParagraph("Beneath the six tablets,\nhalf-buried in the volcanic stone,\nDr. Mandu found a seventh.")
 
-            crawlParagraph("Each civilization you master\nunlocks the next.\n\nEach script you learn lets you\nplace one more row of symbols\nupon the Tablet of Mandu.")
+            crawlEmphasis("Partially carved.")
 
-            crawlParagraph("But the stone does not hold\nwhat you place upon it.\n\nNot yet.\n\nThe symbols fall away — every\ntime — until all six civilizations\nhave been fully deciphered.")
+            crawlParagraph("Six empty spaces\nwhere symbols should have been.\n\nOne space for each civilization.\n\nThe carver had stopped\nbefore finishing —\nor left it for someone else\nto complete.")
 
-            crawlParagraph("When the last inscription yields\nits secret, return to the stone.\n\nPlace what you have learned.\n\nAll thirty symbols. All six rows.")
+            separatorGlyphs
 
-            crawlParagraph("The ancients placed these symbols\nhere for a reason.\n\nThey were waiting for someone\nwith the patience to listen.")
+            crawlParagraph("The question is not\nwhat the tablet says.")
 
-            crawlEmphasis("Begin with the Egyptian Chamber.")
+            crawlEmphasis("The question is:\nwhat symbols are missing?")
+
+            crawlParagraph("Dr. Mandu believes the answer\nis hidden in the six\npartial tablets themselves.\n\nEach civilization left\nfive teaching stones.\nStudy them. Solve them.\nLearn their scripts.")
+
+            crawlParagraph("Each solution will reveal\nwhich symbol belongs\nin that empty space\non the partial tablet.")
+
+            separatorGlyphs
+
+            crawlParagraph("That is why you are here,\n\(greeting).")
+
+            crawlParagraph("Your insights may be\nthe ones that finally\ncomplete what was started\nthousands of years ago.")
+
+            crawlEmphasis("Begin with Egypt.")
 
             crawlEmphasis("The tablets await.")
 

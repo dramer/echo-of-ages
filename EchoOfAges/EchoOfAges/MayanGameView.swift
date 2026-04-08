@@ -35,6 +35,12 @@ struct MayanGameView: View {
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 14) {
                         levelHeader
+                        if gameState.mayanCurrentLevelIndex == 0
+                            && gameState.needsKeyGate(for: .maya) {
+                            MysteryMarkBanner(civ: .maya,
+                                             accentColor: Color(red: 0.32, green: 0.68, blue: 0.42))
+                                .padding(.horizontal, 4)
+                        }
                         wheelView
                         palette
                         actionRow
@@ -484,50 +490,139 @@ struct MayanGameView: View {
     // MARK: - Level Complete Card
 
     private var levelCompleteCard: some View {
-        VStack(spacing: 20) {
-            Image(systemName: level.artifact)
-                .font(.system(size: 64))
-                .foregroundStyle(jadeColor)
-                .shadow(color: jadeColor.opacity(0.7), radius: 12, x: 0, y: 0)
+        let isLastLevel = gameState.mayanCurrentLevelIndex == MayanLevel.allLevels.count - 1
+        let newCivs     = isLastLevel ? gameState.newlyUnlockedCivs(completingLevel5Of: .maya) : []
 
-            VStack(spacing: 8) {
-                Text("Calendar Decoded")
-                    .font(EgyptFont.titleBold(26))
+        return ScrollView(showsIndicators: false) {
+            VStack(spacing: 20) {
+                Spacer(minLength: 20)
+
+                Image(systemName: level.artifact)
+                    .font(.system(size: 60))
                     .foregroundStyle(jadeColor)
-                    .tracking(2)
-                Text(level.journalTitle)
-                    .font(EgyptFont.bodyItalic(17))
-                    .foregroundStyle(Color.papyrus)
-            }
+                    .shadow(color: jadeColor.opacity(0.7), radius: 12, x: 0, y: 0)
 
-            if messageRevealed {
-                Text(level.decodedMessage)
-                    .font(EgyptFont.bodyItalic(15))
-                    .foregroundStyle(Color.papyrus.opacity(0.85))
-                    .lineSpacing(5)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 8)
+                VStack(spacing: 8) {
+                    Text("Calendar Decoded")
+                        .font(EgyptFont.titleBold(26))
+                        .foregroundStyle(jadeColor)
+                        .tracking(2)
+                    Text(level.journalTitle)
+                        .font(EgyptFont.bodyItalic(17))
+                        .foregroundStyle(Color.papyrus)
+                }
+
+                if messageRevealed {
+                    Text(level.decodedMessage)
+                        .font(EgyptFont.bodyItalic(15))
+                        .foregroundStyle(Color.papyrus.opacity(0.85))
+                        .lineSpacing(5)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 8)
+                        .transition(.opacity)
+
+                    // Journal nudge
+                    HStack(spacing: 8) {
+                        Image(systemName: "book.fill").font(.system(size: 11))
+                            .foregroundStyle(jadeColor.opacity(0.60))
+                        Text("A new entry has been written in your Field Diary.")
+                            .font(EgyptFont.bodyItalic(13))
+                            .foregroundStyle(jadeColor.opacity(0.60))
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 4)
                     .transition(.opacity)
-            }
 
-            VStack(spacing: 10) {
-                Button(action: {
-                    HapticFeedback.tap()
-                    gameState.advanceMayanToNextLevel()
-                }) {
-                    StoneButton(title: "Next Tablet", icon: "arrow.right", style: .gold)
+                    // Level 5 — key earned + newly unlocked civs
+                    if isLastLevel {
+                        VStack(alignment: .leading, spacing: 10) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "key.fill").font(.system(size: 12))
+                                    .foregroundStyle(jadeColor)
+                                Text("The Maya key has been carved in your Field Diary.")
+                                    .font(EgyptFont.bodyItalic(13))
+                                    .foregroundStyle(jadeColor)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+
+                            if !newCivs.isEmpty {
+                                Text("NEW PATHS OPEN")
+                                    .font(EgyptFont.title(11))
+                                    .foregroundStyle(jadeColor.opacity(0.55))
+                                    .tracking(2)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                ForEach(newCivs) { civ in
+                                    HStack(spacing: 12) {
+                                        Text(civ.emblem).font(.system(size: 24))
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(civ.name).font(EgyptFont.titleBold(14))
+                                                .foregroundStyle(civ.accentColor)
+                                            Text(civ.era).font(EgyptFont.bodyItalic(12))
+                                                .foregroundStyle(Color.papyrus.opacity(0.55))
+                                        }
+                                        Spacer()
+                                        Image(systemName: "lock.open.fill").font(.system(size: 12))
+                                            .foregroundStyle(Color.goldMid)
+                                    }
+                                    .padding(10)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .fill(Color(red: 0.05, green: 0.10, blue: 0.07).opacity(0.8))
+                                            .overlay(RoundedRectangle(cornerRadius: 8)
+                                                .stroke(civ.accentColor.opacity(0.35), lineWidth: 1))
+                                    )
+                                }
+                            }
+                        }
+                        .padding(12)
+                        .background(
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(Color(red: 0.04, green: 0.09, blue: 0.06).opacity(0.8))
+                                .overlay(RoundedRectangle(cornerRadius: 10)
+                                    .stroke(jadeColor.opacity(0.30), lineWidth: 1))
+                        )
+                        .transition(.opacity)
+                    }
                 }
-                Button(action: {
-                    HapticFeedback.tap()
-                    gameState.closeMayanGame()
-                    gameState.openJournal()
-                }) {
-                    StoneButton(title: "Open Field Diary", icon: "book.fill", style: .muted)
+
+                VStack(spacing: 10) {
+                    if isLastLevel && gameState.allSixCivsComplete {
+                        Button {
+                            HapticFeedback.heavy()
+                            gameState.mayanPendingComplete = false
+                            withAnimation(.easeInOut(duration: 0.4)) { gameState.openManduTablet() }
+                        } label: {
+                            StoneButton(title: "Open the Mandu Tablet", icon: "seal.fill", style: .gold)
+                        }
+                    } else if isLastLevel {
+                        Button {
+                            HapticFeedback.heavy()
+                            gameState.mayanPendingComplete = false
+                            withAnimation(.easeInOut(duration: 0.4)) { gameState.startNewGame() }
+                        } label: {
+                            StoneButton(title: "Continue Expedition", icon: "arrow.right", style: .gold)
+                        }
+                    } else {
+                        Button {
+                            HapticFeedback.tap()
+                            gameState.advanceMayanToNextLevel()
+                        } label: {
+                            StoneButton(title: "Next Tablet", icon: "arrow.right", style: .gold)
+                        }
+                    }
+                    Button {
+                        HapticFeedback.tap()
+                        gameState.openJournal()
+                    } label: {
+                        StoneButton(title: "Open Field Diary", icon: "book.fill", style: .muted)
+                    }
                 }
+                .padding(.horizontal, 8)
+
+                Spacer(minLength: 20)
             }
-            .padding(.horizontal, 8)
+            .padding(24)
         }
-        .padding(28)
         .background(
             RoundedRectangle(cornerRadius: 20)
                 .fill(Color(red: 0.06, green: 0.12, blue: 0.08))
@@ -535,7 +630,8 @@ struct MayanGameView: View {
                     .stroke(jadeColor.opacity(0.5), lineWidth: 1.2))
         )
         .shadow(color: .black.opacity(0.5), radius: 20, x: 0, y: 8)
-        .padding(.horizontal, 28)
+        .padding(.horizontal, 24)
+        .frame(maxHeight: UIScreen.main.bounds.height * 0.82)
     }
 
     // MARK: - Background & Colors

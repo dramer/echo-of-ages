@@ -60,6 +60,11 @@ struct SumerianGameView: View {
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 16) {
                         levelHeader
+                        if gameState.sumerianCurrentLevelIndex == 0
+                            && gameState.needsKeyGate(for: .sumerian) {
+                            MysteryMarkBanner(civ: .sumerian,
+                                             accentColor: Color(red: 0.72, green: 0.54, blue: 0.34))
+                        }
                         cipherKeyPanel
                         tabletSection
                         palette
@@ -543,13 +548,18 @@ struct SumerianGameView: View {
     // MARK: Level Complete Card
 
     private var levelCompleteCard: some View {
-        ScrollView(showsIndicators: false) {
+        let isLastLevel = gameState.sumerianCurrentLevelIndex == SumerianLevel.allLevels.count - 1
+        let newCivs     = isLastLevel ? gameState.newlyUnlockedCivs(completingLevel5Of: .sumerian) : []
+        let gold        = Color(red: 0.90, green: 0.72, blue: 0.35)
+        let parchment   = Color(red: 0.93, green: 0.85, blue: 0.68)
+
+        return ScrollView(showsIndicators: false) {
             VStack(spacing: 18) {
                 Spacer(minLength: 30)
 
                 Text(level.artifact)
                     .font(.system(size: 64))
-                    .foregroundStyle(Color(red: 0.90, green: 0.72, blue: 0.35))
+                    .foregroundStyle(gold)
                     .shadow(color: Color(red: 0.60, green: 0.42, blue: 0.15).opacity(0.8),
                             radius: 14, x: 0, y: 0)
 
@@ -561,19 +571,19 @@ struct SumerianGameView: View {
                     clayRule
                     Text(level.title)
                         .font(EgyptFont.bodyItalic(17))
-                        .foregroundStyle(Color(red: 0.93, green: 0.85, blue: 0.68))
+                        .foregroundStyle(parchment)
                 }
 
                 if messageRevealed {
                     VStack(alignment: .leading, spacing: 8) {
                         Label("Decoded Message", systemImage: "scroll")
                             .font(EgyptFont.title(11))
-                            .foregroundStyle(Color(red: 0.90, green: 0.72, blue: 0.35))
+                            .foregroundStyle(gold)
                             .tracking(1)
                             .frame(maxWidth: .infinity, alignment: .leading)
                         Text(gameState.sumerianPendingDecodedMessage)
                             .font(EgyptFont.bodyItalic(15))
-                            .foregroundStyle(Color(red: 0.93, green: 0.85, blue: 0.68))
+                            .foregroundStyle(parchment)
                             .lineSpacing(5)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
@@ -582,7 +592,7 @@ struct SumerianGameView: View {
                         RoundedRectangle(cornerRadius: 10)
                             .fill(Color(red: 0.28, green: 0.18, blue: 0.08).opacity(0.55))
                             .overlay(RoundedRectangle(cornerRadius: 10)
-                                .stroke(Color(red: 0.90, green: 0.72, blue: 0.35).opacity(0.4), lineWidth: 1))
+                                .stroke(gold.opacity(0.4), lineWidth: 1))
                     )
                     .transition(.move(edge: .bottom).combined(with: .opacity))
 
@@ -590,7 +600,7 @@ struct SumerianGameView: View {
                         VStack(spacing: 6) {
                             Text("New Signs Discovered")
                                 .font(EgyptFont.title(11))
-                                .foregroundStyle(Color(red: 0.90, green: 0.72, blue: 0.35).opacity(0.8))
+                                .foregroundStyle(gold.opacity(0.8))
                                 .tracking(1)
                             HStack(spacing: 16) {
                                 ForEach(level.newGlyphs) { glyph in
@@ -598,17 +608,95 @@ struct SumerianGameView: View {
                                         Text(glyph.rawValue).font(.system(size: 28))
                                             .foregroundStyle(Color(red: 0.92, green: 0.78, blue: 0.45))
                                         Text(glyph.displayName).font(EgyptFont.body(10))
-                                            .foregroundStyle(Color(red: 0.93, green: 0.85, blue: 0.68).opacity(0.7))
+                                            .foregroundStyle(parchment.opacity(0.7))
                                     }
                                 }
                             }
                         }
                         .transition(.opacity)
                     }
+
+                    // Journal nudge — every level
+                    HStack(spacing: 8) {
+                        Image(systemName: "book.fill").font(.system(size: 11))
+                            .foregroundStyle(gold.opacity(0.60))
+                        Text("A new entry has been written in your Field Diary.")
+                            .font(EgyptFont.bodyItalic(13))
+                            .foregroundStyle(gold.opacity(0.60))
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .transition(.opacity)
+
+                    // Level 5 — key earned + newly unlocked civs
+                    if isLastLevel {
+                        VStack(alignment: .leading, spacing: 10) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "key.fill").font(.system(size: 12))
+                                    .foregroundStyle(gold)
+                                Text("The Sumerian key has been carved in your Field Diary.")
+                                    .font(EgyptFont.bodyItalic(13))
+                                    .foregroundStyle(gold)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+
+                            if !newCivs.isEmpty {
+                                Text("NEW PATHS OPEN")
+                                    .font(EgyptFont.title(11))
+                                    .foregroundStyle(gold.opacity(0.55))
+                                    .tracking(2)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                ForEach(newCivs) { civ in
+                                    HStack(spacing: 12) {
+                                        Text(civ.emblem).font(.system(size: 24))
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(civ.name).font(EgyptFont.titleBold(14))
+                                                .foregroundStyle(civ.accentColor)
+                                            Text(civ.era).font(EgyptFont.bodyItalic(12))
+                                                .foregroundStyle(parchment.opacity(0.55))
+                                        }
+                                        Spacer()
+                                        Image(systemName: "lock.open.fill").font(.system(size: 12))
+                                            .foregroundStyle(gold)
+                                    }
+                                    .padding(10)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .fill(Color(red: 0.22, green: 0.14, blue: 0.06).opacity(0.6))
+                                            .overlay(RoundedRectangle(cornerRadius: 8)
+                                                .stroke(civ.accentColor.opacity(0.35), lineWidth: 1))
+                                    )
+                                }
+                            }
+                        }
+                        .padding(12)
+                        .background(
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(Color(red: 0.20, green: 0.12, blue: 0.04).opacity(0.65))
+                                .overlay(RoundedRectangle(cornerRadius: 10)
+                                    .stroke(gold.opacity(0.35), lineWidth: 1))
+                        )
+                        .transition(.opacity)
+                    }
                 }
 
                 VStack(spacing: 10) {
-                    if gameState.sumerianCurrentLevelIndex < SumerianLevel.allLevels.count - 1 {
+                    if isLastLevel && gameState.allSixCivsComplete {
+                        Button {
+                            HapticFeedback.heavy()
+                            showComplete = false
+                            messageRevealed = false
+                            gameState.sumerianPendingComplete = false
+                            withAnimation(.easeInOut(duration: 0.4)) { gameState.openManduTablet() }
+                        } label: { StoneButton(title: "Open the Mandu Tablet", icon: "seal.fill", style: .gold) }
+                    } else if isLastLevel {
+                        Button {
+                            HapticFeedback.heavy()
+                            showComplete = false
+                            messageRevealed = false
+                            gameState.sumerianPendingComplete = false
+                            withAnimation(.easeInOut(duration: 0.4)) { gameState.startNewGame() }
+                        } label: { StoneButton(title: "Continue Expedition", icon: "arrow.right", style: .gold) }
+                    } else {
                         Button {
                             HapticFeedback.heavy()
                             showComplete = false
@@ -618,12 +706,6 @@ struct SumerianGameView: View {
                                 gameState.advanceSumerianToNextLevel()
                             }
                         } label: { StoneButton(title: "Press the Next Tablet", icon: "arrow.right", style: .gold) }
-                    } else {
-                        Button {
-                            HapticFeedback.heavy()
-                            gameState.sumerianPendingComplete = false
-                            withAnimation { gameState.closeSumerianGame() }
-                        } label: { StoneButton(title: "Return to the Beginning", icon: "house.fill", style: .gold) }
                     }
                     Button {
                         HapticFeedback.tap()
@@ -639,7 +721,7 @@ struct SumerianGameView: View {
                 RoundedRectangle(cornerRadius: 18)
                     .fill(Color(red: 0.18, green: 0.11, blue: 0.05))
                     .overlay(RoundedRectangle(cornerRadius: 18)
-                        .stroke(Color(red: 0.90, green: 0.72, blue: 0.35).opacity(0.5), lineWidth: 1.5))
+                        .stroke(gold.opacity(0.5), lineWidth: 1.5))
             )
             .padding(.horizontal, 20)
         }
