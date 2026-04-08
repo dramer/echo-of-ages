@@ -107,8 +107,8 @@ struct ManduTabletView: View {
     private var titleStrip: some View {
         VStack(spacing: 10) {
             Text("Found on a nameless island. No map charts its location.")
-                .font(EgyptFont.bodyItalic(18))
-                .foregroundStyle(ink.opacity(0.70))
+                .font(EgyptFont.bodyItalic(20))
+                .foregroundStyle(ink.opacity(0.90))
                 .multilineTextAlignment(.center)
 
             // Progress pips — 6 for 6 tree-part slots
@@ -117,15 +117,15 @@ struct ManduTabletView: View {
                     let civ = i < TreeOfLifeKeys.tabletOrder.count ? TreeOfLifeKeys.tabletOrder[i] : nil
                     let correct = civ.map { gameState.manduPlayerGrid[i] == $0.rawValue } ?? false
                     Circle()
-                        .fill(correct ? gold : ink.opacity(0.20))
+                        .fill(correct ? gold : ink.opacity(0.30))
                         .frame(width: 9, height: 9)
                         .animation(.spring(response: 0.35, dampingFraction: 0.7), value: correct)
                 }
             }
 
             Text("\(gameState.manduCorrectCount) of 6 in the right place")
-                .font(EgyptFont.body(16))
-                .foregroundStyle(gameState.manduCorrectCount == 6 ? gold : ink.opacity(0.60))
+                .font(EgyptFont.body(17))
+                .foregroundStyle(gameState.manduCorrectCount == 6 ? gold : ink.opacity(0.80))
         }
     }
 
@@ -134,9 +134,9 @@ struct ManduTabletView: View {
     private var stoneRow: some View {
         VStack(spacing: 8) {
             Text("ARRANGE THE STONES")
-                .font(EgyptFont.title(12))
+                .font(EgyptFont.title(13))
                 .tracking(2)
-                .foregroundStyle(ink.opacity(0.45))
+                .foregroundStyle(ink.opacity(0.75))
 
             HStack(spacing: 6) {
                 ForEach(treeSlots, id: \.index) { slot in
@@ -180,15 +180,15 @@ struct ManduTabletView: View {
                     } else {
                         Text("+")
                             .font(.system(size: 18, weight: .light))
-                            .foregroundStyle(isArmedTarget ? gold.opacity(0.6) : ink.opacity(0.18))
+                            .foregroundStyle(isArmedTarget ? gold.opacity(0.75) : ink.opacity(0.35))
                     }
                 }
                 .frame(height: 54)
 
                 // Subtitle below the slot
                 Text(slot.subtitle)
-                    .font(EgyptFont.bodyItalic(9))
-                    .foregroundStyle(ink.opacity(0.38))
+                    .font(EgyptFont.bodyItalic(10))
+                    .foregroundStyle(ink.opacity(0.65))
                     .lineLimit(1)
                     .minimumScaleFactor(0.6)
             }
@@ -217,9 +217,9 @@ struct ManduTabletView: View {
     private var civTray: some View {
         VStack(spacing: 8) {
             Text("YOUR CIVILIZATION STONES")
-                .font(EgyptFont.title(12))
+                .font(EgyptFont.title(13))
                 .tracking(2)
-                .foregroundStyle(ink.opacity(0.45))
+                .foregroundStyle(ink.opacity(0.75))
 
             HStack(spacing: 6) {
                 ForEach(Civilization.all) { civ in
@@ -264,9 +264,9 @@ struct ManduTabletView: View {
                 }
 
                 Text(civ.name.components(separatedBy: " ").first ?? civ.name)
-                    .font(EgyptFont.body(9))
-                    .foregroundStyle(isArmed ? civ.accentColor.opacity(0.90)
-                                    : (isAvailable ? ink.opacity(isPlaced ? 0.35 : 0.60) : ink.opacity(0.18)))
+                    .font(EgyptFont.body(11))
+                    .foregroundStyle(isArmed ? civ.accentColor.opacity(0.95)
+                                    : (isAvailable ? ink.opacity(isPlaced ? 0.50 : 0.80) : ink.opacity(0.22)))
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
             }
@@ -294,8 +294,8 @@ struct ManduTabletView: View {
                         .tracking(1)
                         .foregroundStyle(civInfo.accentColor)
                     Text("Tap a slot above to place this stone")
-                        .font(EgyptFont.bodyItalic(17))
-                        .foregroundStyle(ink.opacity(0.80))
+                        .font(EgyptFont.bodyItalic(18))
+                        .foregroundStyle(ink.opacity(0.92))
                 }
                 Spacer()
                 Button { gameState.manduArmedCiv = nil } label: {
@@ -315,8 +315,8 @@ struct ManduTabletView: View {
             .animation(.spring(response: 0.4, dampingFraction: 0.75), value: civ.rawValue)
         } else {
             Text("Tap a civilization stone, then tap where it belongs on the tree.")
-                .font(EgyptFont.bodyItalic(17))
-                .foregroundStyle(ink.opacity(0.65))
+                .font(EgyptFont.bodyItalic(18))
+                .foregroundStyle(ink.opacity(0.88))
                 .multilineTextAlignment(.center)
                 .padding(.vertical, 4)
         }
@@ -329,7 +329,7 @@ struct ManduTabletView: View {
             Button { gameState.resetManduGrid() } label: {
                 Label("Clear Stone", systemImage: "arrow.counterclockwise")
                     .font(EgyptFont.body(18))
-                    .foregroundStyle(ink.opacity(0.75))
+                    .foregroundStyle(ink.opacity(0.90))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 13)
                     .background(
@@ -366,8 +366,8 @@ struct ManduTabletView: View {
 
     private var loreNote: some View {
         Text("Six civilizations. One stone. One message.")
-            .font(EgyptFont.bodyItalic(17))
-            .foregroundStyle(ink.opacity(0.60))
+            .font(EgyptFont.bodyItalic(19))
+            .foregroundStyle(ink.opacity(0.85))
             .multilineTextAlignment(.center)
             .lineSpacing(5)
             .padding(.top, 4)
