@@ -1490,7 +1490,7 @@ private struct DrManduContent: View {
 
             Spacer(minLength: 14)
 
-            HandBody(text: "Born in New Jersey, in the shadow of Thomas Edison's old laboratory complex in Menlo Park, Sandra grew up surrounded by a family that treated invention as a way of life. She displayed an obsession with pattern and language from an early age, and taught herself Ancient Greek at fourteen using library books and stubbornness in equal measure.")
+            HandBody(text: "Born in New Jersey, in the shadow of Thomas Edison's old laboratory complex in Menlo Park, Sandra grew up surrounded by a family that treated invention as a way of life. From her earliest years she had a deep love of books — she could be found reading in every spare moment, working through her local library shelf by shelf. She displayed an obsession with pattern and language from an early age, and taught herself Ancient Greek at fourteen using library books and stubbornness in equal measure.")
 
             Spacer(minLength: 14)
 
