@@ -164,7 +164,10 @@ struct JournalView: View {
 
     private var diaryTopBar: some View {
         HStack {
-            Button(action: { gameState.closeJournal() }) {
+            Button(action: {
+                HapticFeedback.tap()
+                withAnimation(.easeInOut(duration: 0.35)) { gameState.closeJournal() }
+            }) {
                 HStack(spacing: 5) {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 13, weight: .semibold))

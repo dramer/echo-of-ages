@@ -266,7 +266,17 @@ final class GameState: ObservableObject {
     }
 
     func closeJournal() {
-        currentScreen = previousScreen
+        // Return to the screen the player came from.
+        // If that screen is one of the active game/puzzle screens, go back there.
+        // For everything else (title, intro, journal itself, or anything unexpected)
+        // always land on title so the player can choose what to do next.
+        switch previousScreen {
+        case .game, .norseGame, .sumerianGame, .mayanGame, .chineseGame,
+             .celticGame, .levelComplete, .gameComplete, .manduTablet, .debug:
+            currentScreen = previousScreen
+        default:
+            currentScreen = .title
+        }
     }
 
     func openSettings() {
