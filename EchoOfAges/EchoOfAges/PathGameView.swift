@@ -73,14 +73,12 @@ struct PathGameView: View {
 
     @ViewBuilder
     private func portraitLayout(geo: GeometryProxy) -> some View {
-        let showBanner  = gameState.norseCurrentLevelIndex == 0 && gameState.needsKeyGate(for: .norse)
-        let bannerH:    CGFloat = showBanner ? 158 : 0
         let barH:       CGFloat = 84
         let titleH:     CGFloat = 76
         let runeBarH:   CGFloat = 64
         let spacing:    CGFloat = 8 * 3
         let safeBottom: CGFloat = 16
-        let reserved    = barH + titleH + runeBarH + spacing + safeBottom + bannerH
+        let reserved    = barH + titleH + runeBarH + spacing + safeBottom
         let gridAvailH  = geo.size.height - reserved
         let gridAvailW  = geo.size.width - 32
 
@@ -92,13 +90,6 @@ struct PathGameView: View {
             Spacer(minLength: 8)
             levelTitle.padding(.horizontal, 16)
             Spacer(minLength: 8)
-
-            if showBanner {
-                MysteryMarkBanner(civ: .norse,
-                                  accentColor: Color(red: 0.45, green: 0.75, blue: 1.0))
-                    .padding(.horizontal, 16)
-                Spacer(minLength: 8)
-            }
 
             pathGrid(availableWidth: gridAvailW, availableHeight: max(gridAvailH, 100))
                 .padding(.horizontal, 16)
@@ -289,13 +280,19 @@ struct PathGameView: View {
                     HStack(spacing: spacing) {
                         ForEach(0..<level.cols, id: \.self) { col in
                             let pos = GridPosition(row: row, col: col)
+                            let isKeyGateStart = pos == level.startPosition
+                                && gameState.norseCurrentLevelIndex == 0
+                                && gameState.needsKeyGate(for: .norse)
                             PathCellView(
                                 position: pos,
                                 level: level,
                                 path: gameState.norsePath,
                                 errorCells: gameState.norseErrorCells,
                                 isAnimatingCompletion: gameState.norseIsAnimatingCompletion,
-                                size: cs
+                                size: cs,
+                                mysteryMarkSymbol: isKeyGateStart
+                                    ? gameState.mysteryMarkCurrent(for: .norse)
+                                    : nil
                             ) {
                                 gameState.tapNorseCell(at: pos)
                             }
@@ -596,6 +593,7 @@ private struct PathCellView: View {
     let errorCells: Set<GridPosition>
     let isAnimatingCompletion: Bool
     let size: CGFloat
+    let mysteryMarkSymbol: String?   // non-nil on the start cell when key gate is active
     let onTap: () -> Void
 
     private var isBlocked: Bool { level.isBlocked(position) }
@@ -606,6 +604,8 @@ private struct PathCellView: View {
     private var waypoint:  Waypoint? { level.waypoint(at: position) }
     private var isStart:   Bool { position == level.startPosition }
     private var isEnd:     Bool { position == level.endPosition }
+    // True when this cell is actively showing the mystery mark (not yet locked into path)
+    private var isMysteryCell: Bool { mysteryMarkSymbol != nil && isStart && !isInPath }
 
     var body: some View {
         Button(action: onTap) {
@@ -621,7 +621,13 @@ private struct PathCellView: View {
 
     @ViewBuilder
     private var cellBackground: some View {
-        if isBlocked {
+        if isMysteryCell {
+            // Mystery mark start cell — glowing amber, inviting interaction
+            RoundedRectangle(cornerRadius: 6)
+                .fill(Color(red: 0.28, green: 0.20, blue: 0.06))
+                .overlay(RoundedRectangle(cornerRadius: 6)
+                    .stroke(Color(red: 0.90, green: 0.72, blue: 0.25).opacity(0.85), lineWidth: 2))
+        } else if isBlocked {
             // Impassable stone — dark, earthy, clearly inert
             RoundedRectangle(cornerRadius: 6)
                 .fill(Color(red: 0.09, green: 0.08, blue: 0.07))
@@ -669,7 +675,20 @@ private struct PathCellView: View {
 
     @ViewBuilder
     private var cellContent: some View {
-        if isBlocked {
+        if isMysteryCell, let symbol = mysteryMarkSymbol {
+            // Mystery mark — cycling Egyptian hieroglyph on the start stone
+            VStack(spacing: 1) {
+                Text(symbol)
+                    .font(.system(size: size * 0.44))
+                    .foregroundStyle(Color(red: 0.95, green: 0.82, blue: 0.40))
+                    .contentTransition(.numericText())
+                if size > 44 {
+                    Image(systemName: "arrow.2.circlepath")
+                        .font(.system(size: size * 0.15, weight: .semibold))
+                        .foregroundStyle(Color(red: 0.90, green: 0.72, blue: 0.25).opacity(0.70))
+                }
+            }
+        } else if isBlocked {
             // Cracked/impassable stone — subtle crossed lines
             ZStack {
                 // Diagonal crack lines

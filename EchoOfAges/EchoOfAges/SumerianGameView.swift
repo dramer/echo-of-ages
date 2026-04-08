@@ -60,11 +60,6 @@ struct SumerianGameView: View {
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 16) {
                         levelHeader
-                        if gameState.sumerianCurrentLevelIndex == 0
-                            && gameState.needsKeyGate(for: .sumerian) {
-                            MysteryMarkBanner(civ: .sumerian,
-                                             accentColor: Color(red: 0.72, green: 0.54, blue: 0.34))
-                        }
                         cipherKeyPanel
                         tabletSection
                         palette
@@ -279,6 +274,12 @@ struct SumerianGameView: View {
                 .frame(height: 1)
                 .padding(.vertical, 10)
 
+            // Mystery mark slot — only on Level 1 before the key gate is passed
+            if gameState.sumerianCurrentLevelIndex == 0 && gameState.needsKeyGate(for: .sumerian) {
+                mysteryMarkSlot
+                    .padding(.bottom, 6)
+            }
+
             // The decipherment — player fills this in
             decodedRow
         }
@@ -319,6 +320,60 @@ struct SumerianGameView: View {
                 }
             }
         }
+    }
+
+    // MARK: Mystery Mark Slot (Sumerian Level 1 key gate)
+
+    private var mysteryMarkSlot: some View {
+        let symbol = gameState.mysteryMarkCurrent(for: .sumerian)
+        let isWrong = gameState.mysteryMarkWrongFlash
+        return HStack(spacing: 8) {
+            // Cycling cell — styled to match decoded cells
+            Button {
+                gameState.cycleMysteryMark(for: .sumerian)
+            } label: {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(isWrong
+                            ? Color(red: 0.55, green: 0.10, blue: 0.08)
+                            : Color(red: 0.28, green: 0.18, blue: 0.06))
+                        .overlay(RoundedRectangle(cornerRadius: 6)
+                            .stroke(isWrong
+                                ? Color.red.opacity(0.70)
+                                : Color(red: 0.90, green: 0.72, blue: 0.25).opacity(0.80),
+                                    lineWidth: 1.8))
+                    VStack(spacing: 2) {
+                        Text(symbol)
+                            .font(.system(size: 28))
+                            .foregroundStyle(isWrong
+                                ? Color(red: 1.0, green: 0.55, blue: 0.45)
+                                : Color(red: 0.95, green: 0.82, blue: 0.40))
+                            .contentTransition(.numericText())
+                        Image(systemName: "arrow.2.circlepath")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(Color(red: 0.90, green: 0.72, blue: 0.25).opacity(0.65))
+                    }
+                }
+                .frame(width: 52, height: 52)
+            }
+            .buttonStyle(.plain)
+            .animation(.easeInOut(duration: 0.25), value: isWrong)
+
+            // Label
+            VStack(alignment: .leading, spacing: 3) {
+                Text(isWrong ? "Not recognized — check your Field Diary" : "Identify the foreign mark")
+                    .font(EgyptFont.bodyItalic(13))
+                    .foregroundStyle(isWrong
+                        ? Color(red: 0.90, green: 0.40, blue: 0.35)
+                        : clayDark.opacity(0.75))
+                    .animation(.easeInOut(duration: 0.2), value: isWrong)
+                Text("Tap the symbol to cycle through candidates")
+                    .font(EgyptFont.body(11))
+                    .foregroundStyle(clayDark.opacity(0.45))
+            }
+            Spacer()
+        }
+        .padding(.horizontal, 2)
     }
 
     private var decodedRow: some View {

@@ -607,7 +607,26 @@ final class GameState: ObservableObject {
         }
 
         if norsePath.isEmpty {
-            // First tap must be the start cell
+            // Level 1 key gate: start cell tap cycles the mystery mark symbol.
+            // Tapping any adjacent cell auto-begins the path (start is prepended automatically).
+            if norseCurrentLevelIndex == 0 && needsKeyGate(for: .norse) {
+                if position == level.startPosition {
+                    cycleMysteryMark(for: .norse)
+                    return
+                }
+                // Adjacent to start → auto-begin from startPosition
+                let dr = abs(position.row - level.startPosition.row)
+                let dc = abs(position.col - level.startPosition.col)
+                if (dr == 1 && dc == 0) || (dr == 0 && dc == 1) {
+                    norsePath.append(level.startPosition)
+                    norsePath.append(position)
+                    HapticFeedback.tap()
+                    return
+                }
+                HapticFeedback.error()
+                return
+            }
+            // Normal first tap must be the start cell
             guard position == level.startPosition else {
                 HapticFeedback.error()
                 return
