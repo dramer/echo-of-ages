@@ -43,8 +43,7 @@ struct CelticGameView: View {
                         subtitleText
                         if gameState.celticCurrentLevelIndex == 0
                             && gameState.needsKeyGate(for: .celtic) {
-                            MysteryMarkBanner(civ: .celtic,
-                                             accentColor: Color.celticGold)
+                            celticMysteryMarkSlot
                                 .padding(.horizontal, 16)
                         }
                         if let p = puzzle {
@@ -145,6 +144,57 @@ struct CelticGameView: View {
                 .multilineTextAlignment(.center)
         }
         .padding(.horizontal, 20)
+    }
+
+    // MARK: - Mystery Mark Slot (Celtic Level 1 key gate)
+
+    private var celticMysteryMarkSlot: some View {
+        let symbol = gameState.mysteryMarkCurrent(for: .celtic)
+        let isWrong = gameState.mysteryMarkWrongFlash
+        return HStack(spacing: 8) {
+            Button {
+                gameState.cycleMysteryMark(for: .celtic)
+            } label: {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(isWrong
+                            ? Color(red: 0.55, green: 0.10, blue: 0.08)
+                            : Color.celticForest.opacity(0.90))
+                        .overlay(RoundedRectangle(cornerRadius: 6)
+                            .stroke(isWrong
+                                ? Color.red.opacity(0.70)
+                                : Color.celticGold.opacity(0.85),
+                                    lineWidth: 1.8))
+                    VStack(spacing: 2) {
+                        Text(symbol)
+                            .font(.system(size: 28))
+                            .foregroundStyle(isWrong
+                                ? Color(red: 1.0, green: 0.55, blue: 0.45)
+                                : Color.celticGold)
+                            .contentTransition(.numericText())
+                        Image(systemName: "arrow.2.circlepath")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(Color.celticGold.opacity(0.65))
+                    }
+                }
+                .frame(width: 52, height: 52)
+            }
+            .buttonStyle(.plain)
+            .animation(.easeInOut(duration: 0.25), value: isWrong)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(isWrong ? "Not recognized — check your Field Diary" : "Identify the foreign mark")
+                    .font(EgyptFont.bodyItalic(13))
+                    .foregroundStyle(isWrong
+                        ? Color(red: 0.90, green: 0.40, blue: 0.35)
+                        : Color.celticParchment.opacity(0.85))
+                    .animation(.easeInOut(duration: 0.2), value: isWrong)
+                Text("Tap the symbol to cycle through candidates")
+                    .font(EgyptFont.body(11))
+                    .foregroundStyle(Color.celticParchment.opacity(0.50))
+            }
+            Spacer()
+        }
     }
 
     // MARK: - Grid

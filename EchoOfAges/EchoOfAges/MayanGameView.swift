@@ -35,12 +35,6 @@ struct MayanGameView: View {
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 14) {
                         levelHeader
-                        if gameState.mayanCurrentLevelIndex == 0
-                            && gameState.needsKeyGate(for: .maya) {
-                            MysteryMarkBanner(civ: .maya,
-                                             accentColor: Color(red: 0.32, green: 0.68, blue: 0.42))
-                                .padding(.horizontal, 4)
-                        }
                         wheelView
                         palette
                         actionRow
@@ -153,10 +147,13 @@ struct MayanGameView: View {
         let (innerR, spacing, cellSz) = ringGeometry(radius: radius)
         let outerR = innerR + CGFloat(max(0, level.cycles.count - 1)) * spacing
 
+        let isKeyGate = gameState.mayanCurrentLevelIndex == 0 && gameState.needsKeyGate(for: .maya)
+        let mysterySymbol: String? = isKeyGate ? gameState.mysteryMarkCurrent(for: .maya) : nil
+
         return VStack(spacing: 10) {
             ZStack {
-                // Hub decoration
-                hubDecoration(innerRadius: innerR)
+                // Hub decoration — doubles as mystery mark selector on Level 1
+                hubDecoration(innerRadius: innerR, mysterySymbol: mysterySymbol)
 
                 // One ring per cycle
                 ForEach(0..<level.cycles.count, id: \.self) { ci in
@@ -196,21 +193,53 @@ struct MayanGameView: View {
         )
     }
 
-    // Hub: decorative bordered circle with the level artifact glyph
-    private func hubDecoration(innerRadius r: CGFloat) -> some View {
-        ZStack {
+    // Hub: decorative bordered circle — becomes mystery mark cycling selector on Level 1
+    private func hubDecoration(innerRadius r: CGFloat, mysterySymbol: String?) -> some View {
+        let isWrong = gameState.mysteryMarkWrongFlash
+        let isMystery = mysterySymbol != nil
+        return ZStack {
             Circle()
                 .fill(RadialGradient(
-                    colors: [jadeColor.opacity(0.22), Color(red: 0.04, green: 0.08, blue: 0.05)],
+                    colors: [
+                        isMystery
+                            ? Color(red: 0.28, green: 0.20, blue: 0.04).opacity(isWrong ? 0.6 : 1.0)
+                            : jadeColor.opacity(0.22),
+                        Color(red: 0.04, green: 0.08, blue: 0.05)
+                    ],
                     center: .center, startRadius: 0, endRadius: r * 0.58
                 ))
                 .frame(width: r * 1.2, height: r * 1.2)
             Circle()
-                .stroke(jadeColor.opacity(0.38), lineWidth: 1.2)
+                .stroke(
+                    isMystery
+                        ? (isWrong ? Color.red.opacity(0.80) : Color(red: 0.90, green: 0.72, blue: 0.25).opacity(0.90))
+                        : jadeColor.opacity(0.38),
+                    lineWidth: isMystery ? 2.0 : 1.2
+                )
                 .frame(width: r * 1.2, height: r * 1.2)
-            Image(systemName: level.artifact)
-                .font(.system(size: max(22, r * 0.32)))
-                .foregroundStyle(jadeColor.opacity(0.68))
+                .animation(.easeInOut(duration: 0.25), value: isWrong)
+
+            if let symbol = mysterySymbol {
+                VStack(spacing: 2) {
+                    Text(symbol)
+                        .font(.system(size: max(24, r * 0.44)))
+                        .foregroundStyle(isWrong
+                            ? Color.red.opacity(0.85)
+                            : Color(red: 0.95, green: 0.82, blue: 0.40))
+                        .contentTransition(.numericText())
+                    Image(systemName: "arrow.2.circlepath")
+                        .font(.system(size: max(9, r * 0.16), weight: .semibold))
+                        .foregroundStyle(Color(red: 0.90, green: 0.72, blue: 0.25).opacity(0.70))
+                }
+                .animation(.easeInOut(duration: 0.25), value: isWrong)
+            } else {
+                Image(systemName: level.artifact)
+                    .font(.system(size: max(22, r * 0.32)))
+                    .foregroundStyle(jadeColor.opacity(0.68))
+            }
+        }
+        .onTapGesture {
+            if isMystery { gameState.cycleMysteryMark(for: .maya) }
         }
     }
 

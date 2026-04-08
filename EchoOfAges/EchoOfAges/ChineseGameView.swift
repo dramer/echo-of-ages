@@ -60,9 +60,7 @@ struct ChineseGameView: View {
                         levelHeader
                         if gameState.chineseCurrentLevelIndex == 0
                             && gameState.needsKeyGate(for: .chinese) {
-                            MysteryMarkBanner(civ: .chinese,
-                                             accentColor: Color(red: 0.78, green: 0.16, blue: 0.09))
-                                .padding(.horizontal, 4)
+                            chineseMysteryMarkSlots
                         }
                         boardSection(cellSize: computedCellSize)
                         piecesPalette
@@ -172,6 +170,98 @@ struct ChineseGameView: View {
                         .stroke(Color.stoneMid.opacity(0.40), lineWidth: 0.8)
                 )
         )
+    }
+
+    // MARK: - Mystery Mark Slots (Chinese Level 1 key gate — two marks required)
+
+    private var chineseMysteryMarkSlots: some View {
+        let symbol1 = gameState.mysteryMarkCurrent(for: .chinese)
+        let symbol2 = gameState.chinaMysteryMarkCurrent2
+        let isWrong = gameState.mysteryMarkWrongFlash
+
+        return HStack(alignment: .center, spacing: 16) {
+            // Slot 1: From Maya ruins
+            VStack(spacing: 6) {
+                Text("From Maya ruins")
+                    .font(EgyptFont.bodyItalic(11))
+                    .foregroundStyle(vermillion.opacity(0.75))
+                Button { gameState.cycleMysteryMark(for: .chinese) } label: {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(isWrong
+                                ? Color(red: 0.55, green: 0.10, blue: 0.08)
+                                : Color.stoneDark.opacity(0.88))
+                            .overlay(RoundedRectangle(cornerRadius: 8)
+                                .stroke(isWrong ? Color.red.opacity(0.75) : vermillion.opacity(0.80), lineWidth: 2))
+                        VStack(spacing: 2) {
+                            Text(symbol1)
+                                .font(.system(size: 30))
+                                .foregroundStyle(isWrong ? Color(red: 1.0, green: 0.55, blue: 0.45) : Color.goldBright)
+                                .contentTransition(.numericText())
+                            Image(systemName: "arrow.2.circlepath")
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundStyle(Color.goldBright.opacity(0.60))
+                        }
+                    }
+                    .frame(width: 62, height: 62)
+                }
+                .buttonStyle(.plain)
+            }
+
+            Text("&")
+                .font(EgyptFont.titleBold(22))
+                .foregroundStyle(vermillion.opacity(0.55))
+
+            // Slot 2: From Celtic grove
+            VStack(spacing: 6) {
+                Text("From Celtic grove")
+                    .font(EgyptFont.bodyItalic(11))
+                    .foregroundStyle(vermillion.opacity(0.75))
+                Button { gameState.cycleChinaMysteryMark2() } label: {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(isWrong
+                                ? Color(red: 0.55, green: 0.10, blue: 0.08)
+                                : Color.stoneDark.opacity(0.88))
+                            .overlay(RoundedRectangle(cornerRadius: 8)
+                                .stroke(isWrong ? Color.red.opacity(0.75) : vermillion.opacity(0.80), lineWidth: 2))
+                        VStack(spacing: 2) {
+                            Text(symbol2)
+                                .font(.system(size: 30))
+                                .foregroundStyle(isWrong ? Color(red: 1.0, green: 0.55, blue: 0.45) : Color.goldBright)
+                                .contentTransition(.numericText())
+                            Image(systemName: "arrow.2.circlepath")
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundStyle(Color.goldBright.opacity(0.60))
+                        }
+                    }
+                    .frame(width: 62, height: 62)
+                }
+                .buttonStyle(.plain)
+            }
+
+            Spacer()
+
+            // Instruction text
+            VStack(alignment: .leading, spacing: 4) {
+                Text(isWrong ? "Check your\nField Diary" : "Identify the\nforeign marks")
+                    .font(EgyptFont.bodyItalic(12))
+                    .foregroundStyle(isWrong ? Color(red: 0.90, green: 0.40, blue: 0.35) : vermillion.opacity(0.85))
+                    .multilineTextAlignment(.leading)
+                    .animation(.easeInOut(duration: 0.2), value: isWrong)
+                Text("Tap each to cycle")
+                    .font(EgyptFont.body(10))
+                    .foregroundStyle(vermillion.opacity(0.50))
+            }
+        }
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color.stoneDark.opacity(0.90))
+                .overlay(RoundedRectangle(cornerRadius: 12)
+                    .stroke(vermillion.opacity(0.50), lineWidth: 1.5))
+        )
+        .animation(.easeInOut(duration: 0.25), value: isWrong)
     }
 
     // MARK: - Board Section
