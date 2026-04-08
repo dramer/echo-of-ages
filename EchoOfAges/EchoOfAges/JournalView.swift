@@ -25,8 +25,9 @@ private enum DiaryPage: Equatable {
     case mesoamericanPuzzle  // Maya            — Pattern / Rhythm
     case codexGlyph(Glyph)
     case greekAlphabet
-    case chronicle(Int)         // level id
-    case fieldNotes             // current puzzle's clues
+    case chronicle(Int)                 // level id
+    case keyDiscovery(CivilizationID)   // field note about the mystery mark found at Level 5
+    case fieldNotes                     // current puzzle's clues
     case rosettaStone
     case champollionMethod
     case howToPlay
@@ -75,6 +76,10 @@ struct JournalView: View {
         list.append(.greekAlphabet)
         // Chronicle: one page per decoded level
         for levelId in gameState.decodedMessages.keys.sorted() { list.append(.chronicle(levelId)) }
+        // Key discovery field notes — one per civilization whose Level 5 key has been found
+        for civ in CivilizationID.allCases where gameState.discoveredKeys[civ] != nil {
+            list.append(.keyDiscovery(civ))
+        }
         // Field notes for current puzzle
         list.append(.fieldNotes)
         // Reference pages
@@ -312,8 +317,9 @@ private struct BookPage: View {
         case .mesoamericanPuzzle:  MesoamericanPuzzleContent()
         case .codexGlyph(let g):   CodexGlyphContent(glyph: g)
         case .greekAlphabet:       GreekAlphabetContent()
-        case .chronicle(let id):   ChronicleContent(levelId: id)
-        case .fieldNotes:          FieldNotesContent()
+        case .chronicle(let id):       ChronicleContent(levelId: id)
+        case .keyDiscovery(let civ):   KeyDiscoveryContent(civId: civ)
+        case .fieldNotes:              FieldNotesContent()
         case .rosettaStone:        RosettaStoneContent()
         case .champollionMethod:   ChampollionContent()
         case .howToPlay:           HowToPlayContent()
@@ -831,6 +837,62 @@ private struct ChronicleContent: View {
                 HandTitle(text: "Scholar's Notes", size: 16)
                 HandBody(text: level.journalEntry.body, size: 15)
             }
+        }
+    }
+}
+
+// MARK: - Key Discovery Content
+
+private struct KeyDiscoveryContent: View {
+    let civId: CivilizationID
+    @EnvironmentObject var gameState: GameState
+
+    private var civ: Civilization? { Civilization.all.first { $0.id == civId } }
+
+    var body: some View {
+        let symbol = TreeOfLifeKeys.produced(by: civId) ?? "?"
+        let title  = TreeOfLifeKeys.keyDiscoveryTitle(for: civId)
+        let body   = TreeOfLifeKeys.keyDiscoveryBody(for: civId)
+
+        VStack(alignment: .leading, spacing: 14) {
+            // Section stamp
+            HStack(spacing: 8) {
+                Text(civ?.emblem ?? "")
+                    .font(.system(size: 16))
+                    .foregroundStyle(Color.inkSepia.opacity(0.55))
+                HandNote(text: (civ?.name ?? "").uppercased() + "  ·  FIELD DISCOVERY",
+                         color: Color.inkSepia.opacity(0.55))
+            }
+
+            SectionRule()
+
+            // The symbol — large and centred
+            HStack {
+                Spacer()
+                VStack(spacing: 6) {
+                    Text(symbol)
+                        .font(.system(size: 52))
+                        .foregroundStyle(Color.inkSepia.opacity(0.75))
+                    Text("— the mark —")
+                        .font(handFont(13))
+                        .foregroundStyle(Color.inkSepia.opacity(0.38))
+                }
+                Spacer()
+            }
+            .padding(.vertical, 6)
+
+            SectionRule()
+
+            HandTitle(text: title)
+            HandBody(text: body)
+
+            SectionRule()
+
+            // Hint for the gate
+            HandNote(
+                text: "This mark was found among the ruins. It does not belong to this civilization's known script.",
+                color: Color.inkBlue.opacity(0.65)
+            )
         }
     }
 }

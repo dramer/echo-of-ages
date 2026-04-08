@@ -99,6 +99,13 @@ struct ContentView: View {
                             insertion: .move(edge: .bottom).combined(with: .opacity),
                             removal: .opacity
                         ))
+
+                case .civKeyGate(let civ):
+                    CivKeyGateView(civId: civ)
+                        .transition(.asymmetric(
+                            insertion: .move(edge: .bottom).combined(with: .opacity),
+                            removal: .opacity
+                        ))
                 }
             }
             .animation(.easeInOut(duration: 0.38), value: gameState.currentScreen)

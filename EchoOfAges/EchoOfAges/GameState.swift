@@ -21,6 +21,7 @@ enum GameScreen: Equatable {
     case chineseGame
     case celticGame
     case manduTablet
+    case civKeyGate(CivilizationID)   // key-identification gate before a new civilization
 }
 
 // MARK: - GameState
@@ -460,6 +461,7 @@ final class GameState: ObservableObject {
 
     func startNorseGame() {
         lastActiveCivilization = .norse
+        if needsKeyGate(for: .norse) { currentScreen = .civKeyGate(.norse); return }
         let next = min(norseUnlockedLevels.count, PathLevel.allLevels.count - 1)
         loadNorseLevel(next)
         currentScreen = .norseGame
@@ -675,6 +677,7 @@ final class GameState: ObservableObject {
 
     func startSumerianGame() {
         lastActiveCivilization = .sumerian
+        if needsKeyGate(for: .sumerian) { currentScreen = .civKeyGate(.sumerian); return }
         let next = min(sumerianUnlockedLevels.count, SumerianLevel.allLevels.count - 1)
         loadSumerianLevel(next)
         currentScreen = .sumerianGame
@@ -800,6 +803,30 @@ final class GameState: ObservableObject {
     // MARK: Mandu Tablet State
 
     @Published var discoveredKeys: [CivilizationID: String] = [:]
+
+    /// Civilizations whose key-identification gate the player has already passed.
+    @Published var civKeyGateAnswered: Set<CivilizationID> = []
+
+    /// True if the player must pass the key-identification gate before entering this civ.
+    /// Egypt never requires a gate (it's the first civ). All others do — once.
+    func needsKeyGate(for civ: CivilizationID) -> Bool {
+        civ != .egyptian && !civKeyGateAnswered.contains(civ)
+    }
+
+    /// Called by CivKeyGateView when the player correctly identifies the key symbol.
+    /// Marks the gate as passed and navigates into the civilization's game.
+    func passKeyGate(for civ: CivilizationID) {
+        civKeyGateAnswered.insert(civ)
+        saveProgress()
+        switch civ {
+        case .norse:    startNorseGame()
+        case .sumerian: startSumerianGame()
+        case .maya:     startMayanGame()
+        case .celtic:   startCelticGame()
+        case .chinese:  startChineseGame()
+        case .egyptian: break
+        }
+    }
 
     func hasProducedKey(_ civ: CivilizationID) -> Bool {
         discoveredKeys[civ] != nil
@@ -1009,6 +1036,7 @@ final class GameState: ObservableObject {
 
     func startMayanGame() {
         lastActiveCivilization = .maya
+        if needsKeyGate(for: .maya) { currentScreen = .civKeyGate(.maya); return }
         let idx = min(mayanUnlockedLevels.count, MayanLevel.allLevels.count - 1)
         loadMayanLevel(idx)
         previousScreen = currentScreen
@@ -1124,6 +1152,7 @@ final class GameState: ObservableObject {
 
     func startChineseGame() {
         lastActiveCivilization = .chinese
+        if needsKeyGate(for: .chinese) { currentScreen = .civKeyGate(.chinese); return }
         let idx = min(chineseUnlockedLevels.count, ChineseBoxLevel.allLevels.count - 1)
         loadChineseLevel(idx)
         previousScreen = currentScreen
@@ -1240,6 +1269,7 @@ final class GameState: ObservableObject {
 
     func startCelticGame() {
         lastActiveCivilization = .celtic
+        if needsKeyGate(for: .celtic) { currentScreen = .civKeyGate(.celtic); return }
         let idx = min(celticUnlockedLevels.count, CelticDifficulty.all.count - 1)
         loadCelticLevel(idx)
         previousScreen = currentScreen
@@ -1388,6 +1418,7 @@ final class GameState: ObservableObject {
         UserDefaults.standard.set(lastActiveCivilization?.rawValue, forKey: "EOA_lastCiv")
         let keysDict = discoveredKeys.reduce(into: [String: String]()) { $0[$1.key.rawValue] = $1.value }
         UserDefaults.standard.set(keysDict, forKey: "EOA_discoveredKeys")
+        UserDefaults.standard.set(civKeyGateAnswered.map(\.rawValue), forKey: "EOA_keyGateAnswered")
         // Only persist the Mandu grid when all six civilizations are complete.
         // Until then symbols fall off — clearing here ensures a fresh slate on next open.
         if allSixCivsComplete {
@@ -1432,6 +1463,8 @@ final class GameState: ObservableObject {
         discoveredKeys = rawKeys.reduce(into: [CivilizationID: String]()) {
             if let civ = CivilizationID(rawValue: $1.key) { $0[civ] = $1.value }
         }
+        let rawGate = UserDefaults.standard.array(forKey: "EOA_keyGateAnswered") as? [String] ?? []
+        civKeyGateAnswered = Set(rawGate.compactMap { CivilizationID(rawValue: $0) })
 
         let rawMandu = UserDefaults.standard.dictionary(forKey: "EOA_manduGrid") as? [String: String] ?? [:]
         manduPlayerGrid = rawMandu.reduce(into: [Int: String]()) {
