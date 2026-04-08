@@ -1490,7 +1490,7 @@ private struct DrManduContent: View {
 
             Spacer(minLength: 14)
 
-            HandBody(text: "Born in São Paulo, Brazil, Sandra displayed an obsession with pattern and language from an early age. She taught herself Ancient Greek at fourteen using library books and stubbornness in equal measure.")
+            HandBody(text: "Born in New Jersey, in the shadow of Thomas Edison's old laboratory complex in Menlo Park, Sandra grew up surrounded by a family that treated invention as a way of life. She displayed an obsession with pattern and language from an early age, and taught herself Ancient Greek at fourteen using library books and stubbornness in equal measure.")
 
             Spacer(minLength: 14)
 
