@@ -11,7 +11,7 @@ import SwiftUI
 private enum DiaryPage: Equatable {
     case frontPage
     case tableOfContents     // jump to any section
-    case drMandu             // Dr. Elena Mandu biography + Egyptian Latin Square
+    case drMandu             // Dr. Sandra Mandu biography + Egyptian Latin Square
     case mapPage
     case tabletStory
     case tabletGrid
@@ -458,7 +458,7 @@ private struct TableOfContentsContent: View {
 
     private var fixedEntries: [TOCEntry] {
         [
-            TOCEntry(label: "Dr. Elena Mandu",       icon: "person.fill",          page: .drMandu),
+            TOCEntry(label: "Dr. Sandra Mandu",       icon: "person.fill",          page: .drMandu),
             TOCEntry(label: "Discovery Site",         icon: "map.fill",             page: .mapPage),
             TOCEntry(label: "The Tablet of Mandu",   icon: "tablecells.fill",      page: .tabletStory),
             TOCEntry(label: "The Stone Tablet",       icon: "square.grid.3x3.fill", page: .tabletGrid),
@@ -1449,7 +1449,7 @@ private struct DrManduContent: View {
         VStack(alignment: .leading, spacing: 0) {
 
             // Page title
-            HandTitle(text: "Dr. Elena Mandu", size: 26, color: .inkBlue)
+            HandTitle(text: "Dr. Sandra Mandu", size: 26, color: .inkBlue)
                 .frame(maxWidth: .infinity, alignment: .center)
                 .padding(.bottom, 4)
 
@@ -1476,7 +1476,7 @@ private struct DrManduContent: View {
                     .frame(maxWidth: .infinity, alignment: .center)
                     .padding(.bottom, 6)
 
-                Text("Dr. Elena Mandu, 2024")
+                Text("Dr. Sandra Mandu, 2024")
                     .font(handFont(11))
                     .foregroundStyle(Color.inkSepia.opacity(0.55))
                     .frame(maxWidth: .infinity, alignment: .center)
@@ -1486,11 +1486,11 @@ private struct DrManduContent: View {
             SectionRule()
 
             // Biography
-            HandBody(text: "Dr. Elena Mandu is one of the world's foremost authorities on ancient writing systems and cross-cultural linguistics. With her signature thick-framed glasses and an unnerving ability to read a room — or a ruin — she has led excavations on four continents.")
+            HandBody(text: "Dr. Sandra Mandu is one of the world's foremost authorities on ancient writing systems and cross-cultural linguistics. With her signature thick-framed glasses and an unnerving ability to read a room — or a ruin — she has led excavations on four continents.")
 
             Spacer(minLength: 14)
 
-            HandBody(text: "Born in São Paulo, Brazil, Elena displayed an obsession with pattern and language from an early age. She taught herself Ancient Greek at fourteen using library books and stubbornness in equal measure.")
+            HandBody(text: "Born in São Paulo, Brazil, Sandra displayed an obsession with pattern and language from an early age. She taught herself Ancient Greek at fourteen using library books and stubbornness in equal measure.")
 
             Spacer(minLength: 14)
 
@@ -1538,7 +1538,7 @@ private struct DrManduContent: View {
 
             Spacer(minLength: 8)
 
-            HandNote(text: "— Dr. Elena Mandu, field notes, July 2024", size: 12, color: Color.inkSepia.opacity(0.55))
+            HandNote(text: "— Dr. Sandra Mandu, field notes, July 2024", size: 12, color: Color.inkSepia.opacity(0.55))
 
             Spacer(minLength: 14)
 

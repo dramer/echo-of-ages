@@ -250,7 +250,7 @@ struct IntroView: View {
 
             crawlParagraph("The call came at 2:47 in the morning.")
 
-            crawlParagraph("Dr. Elena Mandu —\nlead archaeologist,\ncross-cultural linguist,\nand the most relentless person\nany of us have ever worked with —\nhad found something she\ncould not explain.")
+            crawlParagraph("Dr. Sandra Mandu —\nlead archaeologist,\ncross-cultural linguist,\nand the most relentless person\nany of us have ever worked with —\nhad found something she\ncould not explain.")
 
             separatorGlyphs
 
