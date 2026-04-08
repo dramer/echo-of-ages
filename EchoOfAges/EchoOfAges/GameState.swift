@@ -416,6 +416,11 @@ final class GameState: ObservableObject {
             discoveredGlyphs.append(glyph)
         }
 
+        // Level 5 (the last Egyptian level) produces the Tree of Life key
+        if currentLevelIndex == Level.allLevels.count - 1 {
+            recordKey(for: .egyptian)
+        }
+
         saveProgress()
 
         Task {
@@ -577,6 +582,9 @@ final class GameState: ObservableObject {
         norseIsAnimatingCompletion = true
         HapticFeedback.success()
         norseUnlockedLevels.insert(norseCurrentLevel.id)
+        if norseCurrentLevelIndex == PathLevel.allLevels.count - 1 {
+            recordKey(for: .norse)
+        }
         saveProgress()
 
         Task {
@@ -762,6 +770,9 @@ final class GameState: ObservableObject {
         let level = sumerianCurrentLevel
         sumerianUnlockedLevels.insert(level.id)
         sumerianPendingDecodedMessage = level.decodedMessage
+        if sumerianCurrentLevelIndex == SumerianLevel.allLevels.count - 1 {
+            recordKey(for: .sumerian)
+        }
         UserDefaults.standard.set(Array(sumerianUnlockedLevels), forKey: "EOA_sumerianUnlocked")
         Task {
             try? await Task.sleep(nanoseconds: 800_000_000)
@@ -787,6 +798,28 @@ final class GameState: ObservableObject {
     }
 
     // MARK: Mandu Tablet State
+
+    @Published var discoveredKeys: [CivilizationID: String] = [:]
+
+    func hasProducedKey(_ civ: CivilizationID) -> Bool {
+        discoveredKeys[civ] != nil
+    }
+
+    func hasRequiredKey(for civ: CivilizationID) -> Bool {
+        switch civ {
+        case .egyptian: return true
+        case .norse:    return discoveredKeys[.egyptian] != nil
+        case .sumerian: return discoveredKeys[.egyptian] != nil
+        case .maya:     return discoveredKeys[.norse] != nil
+        case .celtic:   return discoveredKeys[.sumerian] != nil
+        case .chinese:  return discoveredKeys[.maya] != nil && discoveredKeys[.celtic] != nil
+        }
+    }
+
+    private func recordKey(for civ: CivilizationID) {
+        guard let key = TreeOfLifeKeys.produced(by: civ) else { return }
+        discoveredKeys[civ] = key
+    }
 
     @Published var manduPlayerGrid: [Int: String] = [:]
     @Published var manduSelectedSlotId: Int? = nil
@@ -1023,6 +1056,9 @@ final class GameState: ObservableObject {
     func completeMayanLevel() {
         let level = mayanCurrentLevel
         mayanUnlockedLevels.insert(level.id)
+        if mayanCurrentLevelIndex == MayanLevel.allLevels.count - 1 {
+            recordKey(for: .maya)
+        }
         saveProgress()
         HapticFeedback.heavy()
         mayanPendingComplete = true
@@ -1140,6 +1176,9 @@ final class GameState: ObservableObject {
     func completeChineseLevel() {
         let level = chineseCurrentLevel
         chineseUnlockedLevels.insert(level.id)
+        if chineseCurrentLevelIndex == ChineseBoxLevel.allLevels.count - 1 {
+            recordKey(for: .chinese)
+        }
         saveProgress()
         HapticFeedback.heavy()
         chinesePendingComplete = true
@@ -1271,6 +1310,9 @@ final class GameState: ObservableObject {
     func completeCelticLevel() {
         let levelId = celticCurrentLevelIndex + 1   // IDs are 1-based
         celticUnlockedLevels.insert(levelId)
+        if celticCurrentLevelIndex == CelticDifficulty.all.count - 1 {
+            recordKey(for: .celtic)
+        }
         saveProgress()
         HapticFeedback.heavy()
         celticPendingComplete = true
@@ -1322,6 +1364,8 @@ final class GameState: ObservableObject {
         UserDefaults.standard.set(Array(chineseUnlockedLevels), forKey: "EOA_chineseUnlocked")
         UserDefaults.standard.set(Array(celticUnlockedLevels),  forKey: "EOA_celticUnlocked")
         UserDefaults.standard.set(lastActiveCivilization?.rawValue, forKey: "EOA_lastCiv")
+        let keysDict = discoveredKeys.reduce(into: [String: String]()) { $0[$1.key.rawValue] = $1.value }
+        UserDefaults.standard.set(keysDict, forKey: "EOA_discoveredKeys")
         // Only persist the Mandu grid when all six civilizations are complete.
         // Until then symbols fall off — clearing here ensures a fresh slate on next open.
         if allSixCivsComplete {
@@ -1361,6 +1405,11 @@ final class GameState: ObservableObject {
 
         celticUnlockedLevels = Set(UserDefaults.standard.array(forKey: "EOA_celticUnlocked") as? [Int] ?? [])
         celticCurrentLevelIndex = min(celticUnlockedLevels.count, CelticDifficulty.all.count - 1)
+
+        let rawKeys = UserDefaults.standard.dictionary(forKey: "EOA_discoveredKeys") as? [String: String] ?? [:]
+        discoveredKeys = rawKeys.reduce(into: [CivilizationID: String]()) {
+            if let civ = CivilizationID(rawValue: $1.key) { $0[civ] = $1.value }
+        }
 
         let rawMandu = UserDefaults.standard.dictionary(forKey: "EOA_manduGrid") as? [String: String] ?? [:]
         manduPlayerGrid = rawMandu.reduce(into: [Int: String]()) {
