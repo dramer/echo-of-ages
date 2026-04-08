@@ -3,11 +3,33 @@
 //
 // The Tablet of Mandu — the final puzzle of Echo of Ages.
 //
-// The player places symbols from every civilization they have mastered
-// into the 6×5 stone grid. Each cell shows its decoded word as a hint.
-// When all 30 symbols are correctly placed, the Tree of Life is revealed.
+// The player has six civilization stones, each earned by completing a
+// civilization's puzzles. The stones must be placed on the tablet in the
+// correct left-to-right order matching the parts of the Tree of Life:
+//
+//   Roots · Water · Trunk · Branches · Leaves · Sun
+//
+// No civilization is labeled with its tree part — the player must infer
+// the order from the decoded diary entries.
 
 import SwiftUI
+
+// MARK: - Tree Slot Data
+
+private struct TreeSlotInfo {
+    let index: Int
+    let part: String
+    let subtitle: String
+}
+
+private let treeSlots: [TreeSlotInfo] = [
+    TreeSlotInfo(index: 0, part: "Roots",    subtitle: "Before the flood"),
+    TreeSlotInfo(index: 1, part: "Water",    subtitle: "The primordial sea"),
+    TreeSlotInfo(index: 2, part: "Trunk",    subtitle: "The world pillar"),
+    TreeSlotInfo(index: 3, part: "Branches", subtitle: "Across nine worlds"),
+    TreeSlotInfo(index: 4, part: "Leaves",   subtitle: "Each word, a leaf"),
+    TreeSlotInfo(index: 5, part: "Sun",      subtitle: "Visible in light"),
+]
 
 // MARK: - ManduTabletView
 
@@ -15,10 +37,9 @@ struct ManduTabletView: View {
     @EnvironmentObject var gameState: GameState
 
     @State private var showReveal  = false
-    @State private var revealStep  = 0      // 0=hidden, 1-6=civ lines one at a time
+    @State private var revealStep  = 0
     @State private var showFullMsg = false
     @State private var isAnimating = false
-    @State private var showContextBanner = false
 
     var body: some View {
         ZStack {
@@ -26,22 +47,17 @@ struct ManduTabletView: View {
 
             VStack(spacing: 0) {
                 headerBar
-
                 ScrollView(showsIndicators: false) {
-                    VStack(spacing: 20) {
-                        if showContextBanner {
-                            contextBanner
-                                .transition(.move(edge: .top).combined(with: .opacity))
-                        }
-                        tabletTitle
-                        tabletGrid
-                        selectedHintBanner
-                        paletteSection
+                    VStack(spacing: 24) {
+                        titleStrip
+                        stoneRow
+                        civTray
+                        instructionBanner
                         actionRow
                         loreNote
                     }
                     .padding(.horizontal, 16)
-                    .padding(.top, 14)
+                    .padding(.top, 18)
                     .padding(.bottom, 60)
                 }
             }
@@ -55,78 +71,6 @@ struct ManduTabletView: View {
         .onChange(of: gameState.isManduComplete) { _, complete in
             if complete { startReveal() }
         }
-        .onAppear {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                withAnimation(.easeOut(duration: 0.4)) { showContextBanner = true }
-            }
-        }
-    }
-
-    // MARK: - Context Banner
-
-    private var contextBannerContent: (icon: String, message: String, isWarning: Bool) {
-        let completedCount = gameState.civilizationsCompletedForMandu.count
-        if gameState.isManduComplete && gameState.allSixCivsComplete {
-            return (
-                icon: "sparkles",
-                message: "The stone is complete. Tap \"Read the Stone\" to reveal the final message.",
-                isWarning: false
-            )
-        } else if gameState.allSixCivsComplete {
-            let remaining = TabletSlot.all.count - gameState.manduCorrectCount
-            return (
-                icon: "hand.tap",
-                message: "All six civilizations mastered. Place every symbol to seal the stone forever. \(remaining) remaining.",
-                isWarning: false
-            )
-        } else if completedCount > 0 {
-            return (
-                icon: "arrow.down.to.line",
-                message: "Symbols you place here fall away when you leave — they hold only when all six civilizations are complete. \(completedCount) of 6 done. Keep deciphering.",
-                isWarning: false
-            )
-        } else {
-            return (
-                icon: "lock.fill",
-                message: "Decipher Egypt's tablets first to place your first symbols on the stone.",
-                isWarning: true
-            )
-        }
-    }
-
-    private var contextBanner: some View {
-        let content = contextBannerContent
-        let accent: Color = content.isWarning ? Color(red: 0.65, green: 0.35, blue: 0.10) : gold
-        return HStack(alignment: .top, spacing: 12) {
-            Image(systemName: content.icon)
-                .font(.system(size: 18))
-                .foregroundStyle(accent)
-                .padding(.top, 1)
-            Text(content.message)
-                .font(EgyptFont.bodyItalic(19))
-                .foregroundStyle(ink.opacity(0.85))
-                .lineSpacing(4)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            Button {
-                withAnimation(.easeOut(duration: 0.3)) { showContextBanner = false }
-            } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(ink.opacity(0.30))
-                    .frame(width: 24, height: 24)
-            }
-            .buttonStyle(.plain)
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
-        .background(
-            RoundedRectangle(cornerRadius: 10)
-                .fill(content.isWarning
-                      ? Color(red: 0.65, green: 0.35, blue: 0.10).opacity(0.10)
-                      : gold.opacity(0.12))
-                .overlay(RoundedRectangle(cornerRadius: 10)
-                    .stroke(accent.opacity(0.35), lineWidth: 1))
-        )
     }
 
     // MARK: - Header
@@ -159,273 +103,252 @@ struct ManduTabletView: View {
 
     // MARK: - Title Strip
 
-    private var tabletTitle: some View {
-        VStack(spacing: 12) {
+    private var titleStrip: some View {
+        VStack(spacing: 10) {
             Text("Found on a nameless island. No map charts its location.")
-                .font(EgyptFont.bodyItalic(20))
-                .foregroundStyle(ink.opacity(0.75))
+                .font(EgyptFont.bodyItalic(18))
+                .foregroundStyle(ink.opacity(0.70))
                 .multilineTextAlignment(.center)
 
-            // Progress dots — one per slot, gold when correct
-            let correct = gameState.manduCorrectCount
-            let total   = TabletSlot.all.count
-            LazyVGrid(columns: Array(repeating: GridItem(.fixed(7), spacing: 3), count: 15),
-                      spacing: 4) {
-                ForEach(0..<total, id: \.self) { i in
+            // Progress pips — 6 for 6 tree-part slots
+            HStack(spacing: 6) {
+                ForEach(0..<6, id: \.self) { i in
+                    let civ = i < TreeOfLifeKeys.tabletOrder.count ? TreeOfLifeKeys.tabletOrder[i] : nil
+                    let correct = civ.map { gameState.manduPlayerGrid[i] == $0.rawValue } ?? false
                     Circle()
-                        .fill(i < correct ? gold : ink.opacity(0.22))
-                        .frame(width: 6, height: 6)
-                        .animation(.easeInOut(duration: 0.3).delay(Double(i) * 0.02), value: correct)
+                        .fill(correct ? gold : ink.opacity(0.20))
+                        .frame(width: 9, height: 9)
+                        .animation(.spring(response: 0.35, dampingFraction: 0.7), value: correct)
                 }
             }
-            .padding(.horizontal, 24)
 
-            Text("\(correct) of \(total) correctly placed")
-                .font(EgyptFont.body(19))
-                .foregroundStyle(correct == total ? gold : ink.opacity(0.65))
+            Text("\(gameState.manduCorrectCount) of 6 in the right place")
+                .font(EgyptFont.body(16))
+                .foregroundStyle(gameState.manduCorrectCount == 6 ? gold : ink.opacity(0.60))
         }
     }
 
-    // MARK: - Stone Grid
+    // MARK: - Stone Slot Row
 
-    private var tabletGrid: some View {
-        VStack(spacing: 4) {
-            ForEach(Civilization.all) { civ in
-                civRow(civ)
+    private var stoneRow: some View {
+        VStack(spacing: 8) {
+            Text("ARRANGE THE STONES")
+                .font(EgyptFont.title(12))
+                .tracking(2)
+                .foregroundStyle(ink.opacity(0.45))
+
+            HStack(spacing: 6) {
+                ForEach(treeSlots, id: \.index) { slot in
+                    slotCell(slot)
+                }
             }
         }
-        .padding(12)
+        .padding(14)
         .background(
             RoundedRectangle(cornerRadius: 14)
-                .fill(Color(red: 0.78, green: 0.68, blue: 0.50).opacity(0.45))
+                .fill(Color(red: 0.78, green: 0.68, blue: 0.50).opacity(0.40))
                 .overlay(RoundedRectangle(cornerRadius: 14)
-                    .stroke(ink.opacity(0.30), lineWidth: 1.5))
+                    .stroke(ink.opacity(0.25), lineWidth: 1.5))
         )
     }
 
-    private func civRow(_ civ: Civilization) -> some View {
-        let completed = gameState.civilizationsCompletedForMandu.contains(civ.id)
-        let slots     = TabletSlot.all.filter { $0.civilization == civ.id }
+    private func slotCell(_ slot: TreeSlotInfo) -> some View {
+        let placedRaw = gameState.manduPlayerGrid[slot.index]
+        let placedCiv: CivilizationID? = placedRaw.flatMap { CivilizationID(rawValue: $0) }
+        let civInfo = placedCiv.flatMap { id in Civilization.all.first(where: { $0.id == id }) }
+        let isCorrect = placedCiv.map { TreeOfLifeKeys.tabletOrder[slot.index] == $0 } ?? false
+        let isArmedTarget = gameState.manduArmedCiv != nil
 
-        return HStack(spacing: 4) {
-            VStack(spacing: 2) {
-                Text(civ.emblem)
-                    .font(.system(size: 18))
-                    .foregroundStyle(completed ? civ.accentColor : ink.opacity(0.18))
-                if !completed {
-                    Image(systemName: "lock.fill")
-                        .font(.system(size: 7))
-                        .foregroundStyle(ink.opacity(0.20))
-                }
-            }
-            .frame(width: 26)
+        return Button { gameState.tapManduSlot(slot.index) } label: {
+            VStack(spacing: 3) {
+                // Part name label
+                Text(slot.part)
+                    .font(EgyptFont.title(10))
+                    .tracking(0.5)
+                    .foregroundStyle(ink.opacity(0.55))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
 
-            ForEach(slots) { slot in
-                stoneCell(slot, civ: civ, completed: completed)
-            }
-        }
-        .padding(.vertical, 4)
-        .padding(.horizontal, 4)
-        .background(
-            RoundedRectangle(cornerRadius: 8)
-                .fill(completed ? civ.accentColor.opacity(0.10) : ink.opacity(0.05))
-        )
-    }
+                // Stone cell body
+                ZStack {
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(slotFill(placed: civInfo != nil, correct: isCorrect, accent: civInfo?.accentColor))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(slotBorder(placed: civInfo != nil, correct: isCorrect,
+                                                   accent: civInfo?.accentColor, armedTarget: isArmedTarget),
+                                        lineWidth: isCorrect ? 2.0 : (isArmedTarget && civInfo == nil ? 1.5 : 1.0))
+                        )
 
-    private func stoneCell(_ slot: TabletSlot, civ: Civilization, completed: Bool) -> some View {
-        let placed     = gameState.manduPlayerGrid[slot.id]
-        let isCorrect  = placed == slot.character
-        let isSelected = gameState.manduSelectedSlotId == slot.id
-
-        return Button {
-            if completed { gameState.tapManduSlot(slot.id) }
-            else { HapticFeedback.error() }
-        } label: {
-            ZStack(alignment: .bottom) {
-                RoundedRectangle(cornerRadius: 7)
-                    .fill(stoneCellFill(completed: completed, correct: isCorrect, selected: isSelected))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 7)
-                            .stroke(stoneCellBorder(civ: civ, correct: isCorrect,
-                                                    selected: isSelected, completed: completed),
-                                    lineWidth: isSelected ? 2.0 : 0.8)
-                    )
-
-                VStack(spacing: 1) {
-                    if let placed {
-                        Text(placed)
-                            .font(.system(size: 20))
-                            .foregroundStyle(isCorrect ? civ.accentColor : ink)
-                            .minimumScaleFactor(0.5)
+                    if let civ = civInfo {
+                        VStack(spacing: 2) {
+                            Text(civ.emblem)
+                                .font(.system(size: 24))
+                                .foregroundStyle(isCorrect ? civ.accentColor : ink.opacity(0.80))
+                        }
                     } else {
-                        Spacer()
+                        Text("+")
+                            .font(.system(size: 18, weight: .light))
+                            .foregroundStyle(isArmedTarget ? gold.opacity(0.6) : ink.opacity(0.18))
                     }
-                    Text(slot.decoded)
-                        .font(EgyptFont.body(10))
-                        .foregroundStyle(completed
-                                         ? (isCorrect ? civ.accentColor.opacity(0.80) : ink.opacity(0.60))
-                                         : ink.opacity(0.10))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.6)
                 }
-                .padding(.bottom, 3)
-                .padding(.top, placed != nil ? 4 : 2)
+                .frame(height: 54)
+
+                // Subtitle label
+                Text(slot.subtitle)
+                    .font(EgyptFont.bodyItalic(9))
+                    .foregroundStyle(ink.opacity(0.38))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
             }
         }
         .buttonStyle(.plain)
-        .frame(width: 44, height: 48)
-        .animation(.easeInOut(duration: 0.15), value: isSelected)
+        .frame(maxWidth: .infinity)
+        .animation(.easeInOut(duration: 0.15), value: placedCiv?.rawValue)
         .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isCorrect)
     }
 
-    private func stoneCellFill(completed: Bool, correct: Bool, selected: Bool) -> Color {
-        guard completed else { return ink.opacity(0.05) }
-        if correct  { return Color(red: 0.93, green: 0.80, blue: 0.45).opacity(0.30) }
-        if selected { return Color(red: 0.98, green: 0.93, blue: 0.78) }
-        return Color(red: 0.85, green: 0.77, blue: 0.60)
+    private func slotFill(placed: Bool, correct: Bool, accent: Color?) -> Color {
+        if correct  { return (accent ?? gold).opacity(0.18) }
+        if placed   { return Color(red: 0.85, green: 0.77, blue: 0.60) }
+        return Color(red: 0.70, green: 0.62, blue: 0.48).opacity(0.30)
     }
 
-    private func stoneCellBorder(civ: Civilization, correct: Bool, selected: Bool, completed: Bool) -> Color {
-        guard completed else { return ink.opacity(0.08) }
-        if correct  { return civ.accentColor.opacity(0.75) }
-        if selected { return ink.opacity(0.65) }
-        return ink.opacity(0.22)
+    private func slotBorder(placed: Bool, correct: Bool, accent: Color?, armedTarget: Bool) -> Color {
+        if correct  { return (accent ?? gold).opacity(0.80) }
+        if placed   { return ink.opacity(0.30) }
+        if armedTarget { return gold.opacity(0.55) }
+        return ink.opacity(0.20)
     }
 
-    // MARK: - Selection Hint Banner
+    // MARK: - Civilization Token Tray
+
+    private var civTray: some View {
+        VStack(spacing: 8) {
+            Text("YOUR CIVILIZATION STONES")
+                .font(EgyptFont.title(12))
+                .tracking(2)
+                .foregroundStyle(ink.opacity(0.45))
+
+            HStack(spacing: 6) {
+                ForEach(Civilization.all) { civ in
+                    civToken(civ)
+                }
+            }
+        }
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(Color(red: 0.86, green: 0.78, blue: 0.60).opacity(0.45))
+                .overlay(RoundedRectangle(cornerRadius: 14)
+                    .stroke(ink.opacity(0.18), lineWidth: 1))
+        )
+    }
+
+    private func civToken(_ civ: Civilization) -> some View {
+        let isArmed = gameState.manduArmedCiv == civ.id
+        let isPlaced = gameState.manduPlayerGrid.values.contains(civ.id.rawValue)
+        let isAvailable = gameState.civilizationsCompletedForMandu.contains(civ.id)
+
+        return Button { if isAvailable { gameState.tapManduCiv(civ.id) } } label: {
+            VStack(spacing: 4) {
+                ZStack {
+                    Circle()
+                        .fill(isArmed ? civ.accentColor.opacity(0.25)
+                              : (isPlaced ? ink.opacity(0.06) : ink.opacity(0.09)))
+                        .overlay(
+                            Circle()
+                                .stroke(isArmed ? civ.accentColor : (isPlaced ? ink.opacity(0.15) : ink.opacity(0.25)),
+                                        lineWidth: isArmed ? 2.0 : 1.0)
+                        )
+                        .frame(width: 40, height: 40)
+
+                    Text(civ.emblem)
+                        .font(.system(size: 20))
+                        .foregroundStyle(
+                            isArmed ? civ.accentColor
+                            : (isAvailable ? (isPlaced ? ink.opacity(0.35) : ink.opacity(0.75))
+                               : ink.opacity(0.15))
+                        )
+                }
+
+                Text(civ.name.components(separatedBy: " ").first ?? civ.name)
+                    .font(EgyptFont.body(9))
+                    .foregroundStyle(isArmed ? civ.accentColor.opacity(0.90)
+                                    : (isAvailable ? ink.opacity(isPlaced ? 0.35 : 0.60) : ink.opacity(0.18)))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+            }
+            .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.plain)
+        .disabled(!isAvailable)
+        .animation(.easeInOut(duration: 0.15), value: isArmed)
+        .animation(.easeInOut(duration: 0.15), value: isPlaced)
+    }
+
+    // MARK: - Instruction Banner
 
     @ViewBuilder
-    private var selectedHintBanner: some View {
-        if let slotId = gameState.manduSelectedSlotId,
-           let slot = TabletSlot.all.first(where: { $0.id == slotId }),
-           let civ  = Civilization.all.first(where: { $0.id == slot.civilization }) {
+    private var instructionBanner: some View {
+        if let civ = gameState.manduArmedCiv,
+           let civInfo = Civilization.all.first(where: { $0.id == civ }) {
             HStack(spacing: 12) {
-                Text(civ.emblem).font(.system(size: 24)).foregroundStyle(civ.accentColor)
+                Text(civInfo.emblem)
+                    .font(.system(size: 26))
+                    .foregroundStyle(civInfo.accentColor)
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(civ.name)
-                        .font(EgyptFont.title(17))
+                    Text(civInfo.name)
+                        .font(EgyptFont.title(16))
                         .tracking(1)
-                        .foregroundStyle(civ.accentColor)
-                    Text("Place the symbol that means \"\(slot.decoded)\"")
-                        .font(EgyptFont.bodyItalic(19))
-                        .foregroundStyle(ink.opacity(0.85))
+                        .foregroundStyle(civInfo.accentColor)
+                    Text("Tap a slot above to place this stone")
+                        .font(EgyptFont.bodyItalic(17))
+                        .foregroundStyle(ink.opacity(0.80))
                 }
                 Spacer()
-                Button { gameState.manduSelectedSlotId = nil } label: {
+                Button { gameState.manduArmedCiv = nil } label: {
                     Image(systemName: "xmark.circle.fill")
                         .font(.system(size: 20))
-                        .foregroundStyle(ink.opacity(0.30))
+                        .foregroundStyle(ink.opacity(0.28))
                 }
             }
             .padding(.horizontal, 14).padding(.vertical, 12)
             .background(
                 RoundedRectangle(cornerRadius: 10)
-                    .fill(civ.accentColor.opacity(0.12))
+                    .fill(civInfo.accentColor.opacity(0.10))
                     .overlay(RoundedRectangle(cornerRadius: 10)
-                        .stroke(civ.accentColor.opacity(0.38), lineWidth: 1))
+                        .stroke(civInfo.accentColor.opacity(0.38), lineWidth: 1))
             )
             .transition(.move(edge: .top).combined(with: .opacity))
-        }
-    }
-
-    // MARK: - Palette
-
-    private var paletteSection: some View {
-        VStack(spacing: 10) {
-            HStack {
-                Text("ALL SYMBOLS")
-                    .font(EgyptFont.title(18))
-                    .tracking(2)
+            .animation(.spring(response: 0.4, dampingFraction: 0.75), value: civ.rawValue)
+        } else if !gameState.allSixCivsComplete {
+            let done = gameState.civilizationsCompletedForMandu.count
+            HStack(spacing: 10) {
+                Image(systemName: done == 0 ? "lock.fill" : "arrow.down.to.line")
+                    .font(.system(size: 16))
+                    .foregroundStyle(ink.opacity(0.45))
+                Text(done == 0
+                     ? "Decipher Egypt's tablets first to unlock your first stone."
+                     : "Stones fall away when you leave until all six civilizations are deciphered. \(done) of 6 complete.")
+                    .font(EgyptFont.bodyItalic(17))
                     .foregroundStyle(ink.opacity(0.70))
-                Spacer()
-                if gameState.manduSelectedSlotId == nil {
-                    Text("tap a cell above first")
-                        .font(EgyptFont.bodyItalic(18))
-                        .foregroundStyle(ink.opacity(0.55))
-                }
+                    .lineSpacing(3)
             }
-
-            ForEach(Civilization.all) { civ in
-                civPaletteRow(civ)
-            }
+            .padding(.horizontal, 14).padding(.vertical, 12)
+            .background(
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(ink.opacity(0.06))
+                    .overlay(RoundedRectangle(cornerRadius: 10)
+                        .stroke(ink.opacity(0.16), lineWidth: 1))
+            )
+        } else {
+            Text("Tap a civilization stone, then tap where it belongs on the tree.")
+                .font(EgyptFont.bodyItalic(17))
+                .foregroundStyle(ink.opacity(0.65))
+                .multilineTextAlignment(.center)
+                .padding(.vertical, 4)
         }
-        .padding(12)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color(red: 0.86, green: 0.78, blue: 0.60).opacity(0.55))
-                .overlay(RoundedRectangle(cornerRadius: 12)
-                    .stroke(ink.opacity(0.18), lineWidth: 1))
-        )
-    }
-
-    private func civPaletteRow(_ civ: Civilization) -> some View {
-        let completed = gameState.civilizationsCompletedForMandu.contains(civ.id)
-        let isActive: Bool = {
-            guard let sid = gameState.manduSelectedSlotId,
-                  let s   = TabletSlot.all.first(where: { $0.id == sid }) else { return false }
-            return s.civilization == civ.id
-        }()
-
-        return HStack(spacing: 5) {
-            Text(civ.emblem)
-                .font(.system(size: 19))
-                .foregroundStyle(completed ? civ.accentColor : ink.opacity(0.14))
-                .frame(width: 26)
-
-            HStack(spacing: 4) {
-                ForEach(civ.symbols) { sym in
-                    if completed {
-                        Button { gameState.placeManduSymbol(sym.character) } label: {
-                            symButton(sym, accent: civ.accentColor, active: isActive)
-                        }
-                        .buttonStyle(.plain)
-                        .disabled(gameState.manduSelectedSlotId == nil)
-                    } else {
-                        symLocked(sym)
-                    }
-                }
-            }
-        }
-        .padding(.vertical, 4).padding(.horizontal, 4)
-        .background(
-            RoundedRectangle(cornerRadius: 8)
-                .fill(isActive ? civ.accentColor.opacity(0.10) : Color.clear)
-                .overlay(RoundedRectangle(cornerRadius: 8)
-                    .stroke(isActive ? civ.accentColor.opacity(0.32) : Color.clear, lineWidth: 1))
-        )
-        .animation(.easeInOut(duration: 0.2), value: isActive)
-    }
-
-    private func symButton(_ sym: ScriptSymbol, accent: Color, active: Bool) -> some View {
-        VStack(spacing: 4) {
-            Text(sym.character).font(.system(size: 36)).foregroundStyle(accent)
-            Text(sym.transliteration.uppercased())
-                .font(EgyptFont.body(13)).foregroundStyle(accent.opacity(0.80))
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 8)
-        .background(
-            RoundedRectangle(cornerRadius: 8)
-                .fill(active ? accent.opacity(0.18) : ink.opacity(0.07))
-                .overlay(RoundedRectangle(cornerRadius: 8)
-                    .stroke(accent.opacity(active ? 0.50 : 0.22), lineWidth: 1))
-        )
-    }
-
-    private func symLocked(_ sym: ScriptSymbol) -> some View {
-        VStack(spacing: 4) {
-            Text(sym.character).font(.system(size: 36)).foregroundStyle(ink.opacity(0.08))
-            Text(sym.transliteration.uppercased())
-                .font(EgyptFont.body(13)).foregroundStyle(ink.opacity(0.08))
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 8)
-        .background(
-            RoundedRectangle(cornerRadius: 8)
-                .fill(ink.opacity(0.04))
-                .overlay(RoundedRectangle(cornerRadius: 8)
-                    .stroke(ink.opacity(0.08), lineWidth: 1))
-        )
     }
 
     // MARK: - Action Row
@@ -434,23 +357,23 @@ struct ManduTabletView: View {
         HStack(spacing: 12) {
             Button { gameState.resetManduGrid() } label: {
                 Label("Clear Stone", systemImage: "arrow.counterclockwise")
-                    .font(EgyptFont.body(20))
-                    .foregroundStyle(ink.opacity(0.80))
+                    .font(EgyptFont.body(18))
+                    .foregroundStyle(ink.opacity(0.75))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 13)
                     .background(
                         RoundedRectangle(cornerRadius: 9)
-                            .fill(ink.opacity(0.08))
+                            .fill(ink.opacity(0.07))
                             .overlay(RoundedRectangle(cornerRadius: 9)
-                                .stroke(ink.opacity(0.22), lineWidth: 1))
+                                .stroke(ink.opacity(0.20), lineWidth: 1))
                     )
             }
             .buttonStyle(.plain)
 
             if gameState.isManduComplete {
                 Button { startReveal() } label: {
-                    Label("Read the Stone", systemImage: "sparkles")
-                        .font(EgyptFont.titleBold(21))
+                    Label("Seal the Stone", systemImage: "sparkles")
+                        .font(EgyptFont.titleBold(19))
                         .foregroundStyle(Color(red: 0.10, green: 0.08, blue: 0.02))
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 13)
@@ -471,9 +394,9 @@ struct ManduTabletView: View {
     // MARK: - Lore Note
 
     private var loreNote: some View {
-        Text("Thirty symbols. Six civilizations. One message.\n\nPlace symbols as you learn them — but the stone does not hold them. They fall away each time you leave. Only when all six civilizations are deciphered will the stone keep what you place upon it.")
-            .font(EgyptFont.bodyItalic(19))
-            .foregroundStyle(ink.opacity(0.65))
+        Text("Six civilizations. One stone. One message.\n\nPlace every stone in the part of the tree it represents — but they fall away each time you leave. Only when all six civilizations are deciphered will the stone hold them forever.")
+            .font(EgyptFont.bodyItalic(17))
+            .foregroundStyle(ink.opacity(0.60))
             .multilineTextAlignment(.center)
             .lineSpacing(5)
             .padding(.top, 4)
@@ -592,7 +515,7 @@ struct ManduTabletView: View {
         }
     }
 
-    // MARK: - Colours
+    // MARK: - Colors
 
     private var sandBackground: some View {
         ZStack {

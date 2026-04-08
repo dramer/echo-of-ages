@@ -821,8 +821,10 @@ final class GameState: ObservableObject {
         discoveredKeys[civ] = key
     }
 
+    /// slot index 0-5 → CivilizationID.rawValue of the placed stone
     @Published var manduPlayerGrid: [Int: String] = [:]
-    @Published var manduSelectedSlotId: Int? = nil
+    /// The civ token the player has picked up and is holding
+    @Published var manduArmedCiv: CivilizationID? = nil
 
     /// All civilizations where the player has completed every puzzle.
     var civilizationsCompletedForMandu: Set<CivilizationID> {
@@ -880,20 +882,26 @@ final class GameState: ObservableObject {
     /// Legacy alias — kept for any call sites that used this name.
     var allUnlockedCivsComplete: Bool { allSixCivsComplete }
 
-    /// True when every slot in the tablet has the correct symbol placed.
+    /// True when every slot has the correct civilization stone in the correct tree-part position.
     var isManduComplete: Bool {
-        TabletSlot.all.allSatisfy { manduPlayerGrid[$0.id] == $0.character }
+        TreeOfLifeKeys.tabletOrder.enumerated().allSatisfy { i, civ in
+            manduPlayerGrid[i] == civ.rawValue
+        }
     }
 
+    /// Number of slots where the placed civ matches the correct tree-part order.
     var manduCorrectCount: Int {
-        TabletSlot.all.filter { manduPlayerGrid[$0.id] == $0.character }.count
+        TreeOfLifeKeys.tabletOrder.enumerated().filter { i, civ in
+            manduPlayerGrid[i] == civ.rawValue
+        }.count
     }
 
     // MARK: Mandu Navigation
 
     func openManduTablet() {
-        // Symbols fall off every time the tablet is opened — they only hold when all six are done.
+        // Stones fall off every time the tablet is opened — they only hold when all six are done.
         if !allSixCivsComplete { manduPlayerGrid = [:] }
+        manduArmedCiv = nil
         previousScreen = currentScreen
         currentScreen = .manduTablet
     }
@@ -904,30 +912,44 @@ final class GameState: ObservableObject {
 
     // MARK: Mandu Interaction
 
-    func tapManduSlot(_ slotId: Int) {
-        if manduSelectedSlotId == slotId {
-            manduSelectedSlotId = nil
+    /// Arm or disarm a civilization token. Tapping an already-armed civ disarms it.
+    func tapManduCiv(_ civ: CivilizationID) {
+        if manduArmedCiv == civ {
+            manduArmedCiv = nil
         } else {
-            manduSelectedSlotId = slotId
+            manduArmedCiv = civ
             HapticFeedback.tap()
         }
     }
 
-    func placeManduSymbol(_ character: String) {
-        guard let slotId = manduSelectedSlotId else { return }
-        if manduPlayerGrid[slotId] == character {
-            manduPlayerGrid.removeValue(forKey: slotId)
-        } else {
-            manduPlayerGrid[slotId] = character
+    /// Place the armed civ into a slot, or pick up the civ already in a slot.
+    func tapManduSlot(_ slotIndex: Int) {
+        if let civ = manduArmedCiv {
+            if manduPlayerGrid[slotIndex] == civ.rawValue {
+                // Tap same civ in same slot → clear it
+                manduPlayerGrid.removeValue(forKey: slotIndex)
+            } else {
+                // Remove this civ from any other slot first (each civ goes in exactly one slot)
+                for key in manduPlayerGrid.keys where manduPlayerGrid[key] == civ.rawValue {
+                    manduPlayerGrid.removeValue(forKey: key)
+                }
+                manduPlayerGrid[slotIndex] = civ.rawValue
+                HapticFeedback.tap()
+            }
+            manduArmedCiv = nil
+            if isManduComplete { HapticFeedback.success() }
+        } else if let civRaw = manduPlayerGrid[slotIndex],
+                  let civ = CivilizationID(rawValue: civRaw) {
+            // No civ armed — pick up whatever is in this slot
+            manduPlayerGrid.removeValue(forKey: slotIndex)
+            manduArmedCiv = civ
             HapticFeedback.tap()
         }
-        manduSelectedSlotId = nil
-        if isManduComplete { HapticFeedback.success() }
     }
 
     func resetManduGrid() {
         manduPlayerGrid = [:]
-        manduSelectedSlotId = nil
+        manduArmedCiv = nil
         HapticFeedback.heavy()
     }
 
