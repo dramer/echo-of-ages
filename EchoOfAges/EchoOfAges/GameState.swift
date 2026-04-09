@@ -439,7 +439,12 @@ final class GameState: ObservableObject {
             Task {
                 try? await Task.sleep(nanoseconds: 1_200_000_000)
                 errorCells = []
-                if self.egyptDecipherFailCount >= 3 {
+                #if DEBUG
+                let decipherLimit = 10
+                #else
+                let decipherLimit = 3
+                #endif
+                if self.egyptDecipherFailCount >= decipherLimit {
                     self.applyDecipherPenalty()
                 }
             }
