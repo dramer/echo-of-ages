@@ -186,6 +186,12 @@ final class GameState: ObservableObject {
             startNewGame()
             return
         }
+        // If the required key is missing (e.g. Egypt was reset after Sumerian was started),
+        // fall back to startNewGame() which will correctly tier-route to Egypt first.
+        if let last = lastActiveCivilization, !hasRequiredKey(for: last) {
+            startNewGame()
+            return
+        }
         switch lastActiveCivilization {
         case .egyptian:
             let next = min(unlockedJournalEntries.count, Level.allLevels.count - 1)
