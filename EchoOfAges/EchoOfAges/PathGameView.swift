@@ -224,8 +224,11 @@ struct PathGameView: View {
     // MARK: Waypoint Bar (shows rune sequence at bottom)
 
     private var waypointBar: some View {
-        let level = gameState.norseCurrentLevel
-        let path  = gameState.norsePath
+        let level    = gameState.norseCurrentLevel
+        let path     = gameState.norsePath
+        // On Level 1, the start waypoint rune is the player-selected mystery mark symbol.
+        let keyGateActive = gameState.norseCurrentLevelIndex == 0
+                         && gameState.needsKeyGate(for: .norse)
 
         return VStack(spacing: 6) {
             Text("Waypoints — visit in order")
@@ -235,8 +238,13 @@ struct PathGameView: View {
             HStack(spacing: 6) {
                 ForEach(level.waypoints.sorted(by: { $0.pathIndex < $1.pathIndex })) { wp in
                     let reached = path.count > wp.pathIndex && path[wp.pathIndex] == wp.position
+                    // Use the live mystery mark for the start waypoint while the key gate is open
+                    let displayRune = (wp.isStart && keyGateActive)
+                        ? gameState.mysteryMarkCurrent(for: .norse)
+                        : wp.rune
                     VStack(spacing: 2) {
-                        Text(wp.rune)
+                        Text(displayRune)
+                            .contentTransition(.numericText())
                             .font(.system(size: 20))
                             .foregroundStyle(reached
                                 ? Color(red: 0.30, green: 0.90, blue: 0.55)
