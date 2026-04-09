@@ -27,8 +27,12 @@ enum TreeOfLifeKeys {
 
     // MARK: The Six Keys
 
-    /// Djed pillar hieroglyph — the axis that holds everything up.
-    static let egypt    = "𓊽"
+    /// Djed pillar hieroglyph — the axis that holds everything up. Clue for Norse Level 1.
+    static let egypt        = "𓊽"
+
+    /// Neter hieroglyph — Egyptian symbol for "the divine / god". Clue for Sumerian Level 1.
+    /// Egypt's ruins contain two foreign marks: the Djed (pointing to Norse) and Neter (pointing to Sumerian).
+    static let egyptNeter   = "𓊹"
 
     /// Laguz rune — water, what the branches reach toward in the deep well.
     static let norse    = "ᛚ"
@@ -76,9 +80,9 @@ enum TreeOfLifeKeys {
     /// Returns nil for Egypt (no key required) and China (two keys — use chinaRequiredKeys).
     static func required(by civ: CivilizationID) -> String? {
         switch civ {
-        case .egyptian: return nil       // first — no key required
-        case .norse:    return egypt     // needs Egypt's Djed pillar
-        case .sumerian: return egypt     // needs Egypt's Djed pillar
+        case .egyptian: return nil           // first — no key required
+        case .norse:    return egypt         // needs Egypt's Djed pillar 𓊽
+        case .sumerian: return egyptNeter    // needs Egypt's Neter mark 𓊹 (the divine)
         case .maya:     return norse     // needs Norse's Laguz rune
         case .celtic:   return sumerian  // needs Sumerian's AN mark
         case .chinese:  return nil       // two keys — see chinaRequiredKeys
@@ -126,8 +130,10 @@ enum TreeOfLifeKeys {
     /// Context paragraph shown in the gate screen before the cycling cell(s).
     static func gateIntroText(for civ: CivilizationID) -> String {
         switch civ {
-        case .norse, .sumerian:
+        case .norse:
             return "Among the final Egyptian hieroglyphs, a mark was found carved in a different style — not part of their known script. It was placed there deliberately.\n\nWhich symbol did they leave behind?"
+        case .sumerian:
+            return "Two marks were found in the Egyptian ruins. The second — carved apart from the first, unattached to any word — is Egypt's symbol for the divine itself. The mark placed before the name of any god.\n\nWhich symbol did they leave behind?"
         case .maya:
             return "At the end of the final Norse runestone, one mark was carved in a different hand — not one of the Elder Futhark letters used in these pathways. It was not Norse.\n\nWhat mark did they leave?"
         case .celtic:
@@ -158,11 +164,13 @@ enum TreeOfLifeKeys {
         switch civ {
         case .egyptian:
             return """
-            Beyond the final seal, among the hieroglyphs I had spent weeks learning, one mark stood apart. Not one of our five-symbol set. Carved deeper — more deliberate. A vertical column with horizontal bands and a flat base.
+            Beyond the final seal, among the hieroglyphs I had spent weeks learning, two marks stood apart. Neither belonged to our five-symbol set. Both carved deeper — more deliberate. Left by someone who knew what they were doing.
 
-            The Djed pillar. Spine of Osiris. Symbol of stability — of what endures when everything else falls away.
+            The first: a vertical column with horizontal bands and a flat base. The Djed pillar. Spine of Osiris. Symbol of stability — of what endures when everything else falls away.
 
-            Someone added it here intentionally. It was not part of this inscription's original language. It was a message addressed, I believe, to whoever came next.
+            The second, a few hand-widths to the right: the Neter. Egypt's mark for the divine itself — the sign placed before the name of any god. It stood alone, unattached to any word.
+
+            Two marks. Two messages. Both addressed, I believe, to whoever came next. I do not yet know where they point. But I have copied them carefully.
             """
         case .norse:
             return """
