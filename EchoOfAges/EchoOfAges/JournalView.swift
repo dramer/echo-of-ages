@@ -608,7 +608,22 @@ private struct TabletStoryContent: View {
             Spacer(minLength: 10)
             HandNote(text: "The question isn't what it says. The question is: what goes in the six empty spaces?", color: Color.inkRed)
             SectionRule()
-            HandBody(text: "The six teaching tablets are the key. Each civilization left behind five partial tablets in its own script. Solve them. Learn the patterns. The answer to what belongs in the partial stone is hidden inside.")
+            HandTitle(text: "A Seventh Mark", size: 17, color: .inkBlue)
+            HandBody(text: "When we photographed the tablet in full light, we found something we had missed. On the face of the stone — not inside any of the six empty spaces — a single mark was already carved.")
+            Spacer(minLength: 8)
+            HandBody(text: "It does not belong to any script we have studied. Not Egyptian. Not Norse. Not Sumerian, Maya, Celtic, or Chinese. It is not a letter, not a numeral, not a determinative. It is simply there.")
+            Spacer(minLength: 10)
+            HStack {
+                Spacer()
+                Text(TreeOfLifeKeys.ramerMark)
+                    .font(.system(size: 38))
+                    .foregroundStyle(Color.inkRed.opacity(0.75))
+                Spacer()
+            }
+            Spacer(minLength: 10)
+            HandNote(text: "It was carved before the six spaces were left waiting. Whoever made this tablet put it there on purpose. We do not know why. We do not know who.", color: Color.inkRed)
+            SectionRule()
+            HandBody(text: "The six teaching tablets are the key. Each civilization left behind five partial tablets in its own script. Solve them. Learn the patterns. The answer to what belongs in the six empty spaces is hidden inside.")
             Spacer(minLength: 8)
             HandNote(text: "The team named it the Tablet of Mandu. Nobody knows what Mandu means. We found no language it comes from.", color: Color.inkSepia.opacity(0.6))
             Spacer(minLength: 8)
@@ -683,6 +698,49 @@ private struct TabletGridContent: View {
                     }
                 }
             }
+
+            SectionRule()
+
+            // The Ramer mark — already on the tablet, set apart
+            HandTitle(text: "Already Carved", size: 16, color: .inkRed)
+            HandNote(
+                text: "One mark was found on the face of the tablet itself — not in any of the six gaps, but already carved into the stone. It belongs to no known script.",
+                color: Color.inkSepia.opacity(0.65)
+            )
+            Spacer(minLength: 4)
+
+            HStack(spacing: 12) {
+                // Empty emblem placeholder — no civilization
+                Text("·")
+                    .font(.system(size: 20))
+                    .foregroundStyle(Color.inkRed.opacity(0.45))
+                    .frame(width: 28)
+
+                HandBody(text: "Origin unknown", size: 14)
+                    .foregroundStyle(Color.inkSepia.opacity(0.55))
+                    .italic()
+
+                Spacer()
+
+                // Ramer mark slot — always visible, always filled
+                ZStack {
+                    RoundedRectangle(cornerRadius: 7)
+                        .fill(Color.inkRed.opacity(0.08))
+                        .overlay(RoundedRectangle(cornerRadius: 7)
+                            .stroke(Color.inkRed.opacity(0.40), lineWidth: 1.0))
+
+                    Text(TreeOfLifeKeys.ramerMark)
+                        .font(.system(size: 22))
+                        .foregroundStyle(Color.inkRed.opacity(0.80))
+                }
+                .frame(width: 48, height: 48)
+            }
+
+            Spacer(minLength: 4)
+            HandNote(
+                text: "This mark was placed by whoever carved the tablet. It predates the expedition. Its meaning — and whose hand carved it — is still unknown.",
+                color: Color.inkRed.opacity(0.60)
+            )
 
             SectionRule()
 
