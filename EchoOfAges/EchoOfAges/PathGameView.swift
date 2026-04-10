@@ -239,17 +239,21 @@ struct PathGameView: View {
                 ForEach(level.waypoints.sorted(by: { $0.pathIndex < $1.pathIndex })) { wp in
                     let reached = path.count > wp.pathIndex && path[wp.pathIndex] == wp.position
                     // Use the live mystery mark for the start waypoint while the key gate is open
-                    let displayRune = (wp.isStart && keyGateActive)
+                    let rawRune = (wp.isStart && keyGateActive)
                         ? gameState.mysteryMarkCurrent(for: .norse)
                         : wp.rune
+                    let displayRune = (wp.isStart && keyGateActive && rawRune.isEmpty) ? "?" : rawRune
+                    let isUnknown   = wp.isStart && keyGateActive && rawRune.isEmpty
                     VStack(spacing: 2) {
                         Text(displayRune)
                             .contentTransition(.numericText())
                             .font(.system(size: 20))
-                            .foregroundStyle(reached
-                                ? Color(red: 0.30, green: 0.90, blue: 0.55)
-                                : (wp.isStart ? Color(red: 0.55, green: 0.95, blue: 0.65)
-                                             : Color(red: 0.85, green: 0.72, blue: 0.40)))
+                            .foregroundStyle(isUnknown
+                                ? Color(red: 0.90, green: 0.72, blue: 0.25).opacity(0.85)
+                                : (reached
+                                    ? Color(red: 0.30, green: 0.90, blue: 0.55)
+                                    : (wp.isStart ? Color(red: 0.55, green: 0.95, blue: 0.65)
+                                                 : Color(red: 0.85, green: 0.72, blue: 0.40))))
                         Text(wp.isStart ? "Start" : wp.isEnd ? "End" : wp.runeName)
                             .font(EgyptFont.body(9))
                             .foregroundStyle(Color(red: 0.65, green: 0.80, blue: 0.95).opacity(0.65))
@@ -616,8 +620,10 @@ private struct PathCellView: View {
     private var waypoint:  Waypoint? { level.waypoint(at: position) }
     private var isStart:   Bool { position == level.startPosition }
     private var isEnd:     Bool { position == level.endPosition }
-    // True when this cell is actively showing the mystery mark (not yet locked into path)
+    // True when this cell is the start cell with the key-gate mystery mark active (not yet locked into path)
     private var isMysteryCell: Bool { mysteryMarkSymbol != nil && isStart && !isInPath }
+    // True when isMysteryCell but no symbol has been selected yet — show a "?" prompt
+    private var isMysteryUnselected: Bool { isMysteryCell && (mysteryMarkSymbol ?? "").isEmpty }
 
     var body: some View {
         Button(action: onTap) {
@@ -687,13 +693,21 @@ private struct PathCellView: View {
 
     @ViewBuilder
     private var cellContent: some View {
-        if isMysteryCell, let symbol = mysteryMarkSymbol {
+        if isMysteryCell {
             // Mystery mark — cycling Egyptian hieroglyph on the start stone
             VStack(spacing: 1) {
-                Text(symbol)
-                    .font(.system(size: size * 0.44))
-                    .foregroundStyle(Color(red: 0.95, green: 0.82, blue: 0.40))
-                    .contentTransition(.numericText())
+                if isMysteryUnselected {
+                    // Not yet selected — prompt the player with a glowing "?"
+                    Text("?")
+                        .font(.system(size: size * 0.44, weight: .bold))
+                        .foregroundStyle(Color(red: 0.95, green: 0.82, blue: 0.40).opacity(0.90))
+                        .contentTransition(.numericText())
+                } else {
+                    Text(mysteryMarkSymbol ?? "")
+                        .font(.system(size: size * 0.44))
+                        .foregroundStyle(Color(red: 0.95, green: 0.82, blue: 0.40))
+                        .contentTransition(.numericText())
+                }
                 if size > 44 {
                     Image(systemName: "arrow.2.circlepath")
                         .font(.system(size: size * 0.15, weight: .semibold))

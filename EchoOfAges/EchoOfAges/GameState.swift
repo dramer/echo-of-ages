@@ -589,19 +589,18 @@ final class GameState: ObservableObject {
         norseFailCount = 0
         norsePenaltyMessage = nil
         norseActiveLevel = generateNorseVariant(at: norseCurrentLevelIndex)
+        // Level 1 always starts with no mystery mark selected — player must tap to choose
+        if norseCurrentLevelIndex == 0 {
+            mysteryMarkIndex[.norse] = nil
+        }
     }
 
     func resetNorsePath() {
-        norseFailCount += 1
         norsePath = []
         norseErrorCells = []
-        if norseFailCount >= 3 {
-            applyNorsePenalty()
-        } else {
-            // Generate a fresh path layout — every reset gives a new puzzle
-            norseActiveLevel = generateNorseVariant(at: norseCurrentLevelIndex)
-            HapticFeedback.heavy()
-        }
+        // Manual clears do NOT count as failures — only wrong-path completions do.
+        norseActiveLevel = generateNorseVariant(at: norseCurrentLevelIndex)
+        HapticFeedback.heavy()
     }
 
     private func applyNorsePenalty() {
@@ -653,10 +652,15 @@ final class GameState: ObservableObject {
                     cycleMysteryMark(for: .norse)
                     return
                 }
-                // Adjacent to start → auto-begin from startPosition
+                // Adjacent to start → auto-begin from startPosition, but only after a mark is chosen
                 let dr = abs(position.row - level.startPosition.row)
                 let dc = abs(position.col - level.startPosition.col)
                 if (dr == 1 && dc == 0) || (dr == 0 && dc == 1) {
+                    guard mysteryMarkIndex[.norse] != nil else {
+                        // No mark selected yet — nudge the player to tap the start cell first
+                        HapticFeedback.error()
+                        return
+                    }
                     norsePath.append(level.startPosition)
                     norsePath.append(position)
                     HapticFeedback.tap()
@@ -784,6 +788,20 @@ final class GameState: ObservableObject {
     func debugJumpToNorseLevel(_ level: PathLevel) {
         guard let idx = PathLevel.allLevels.firstIndex(where: { $0.id == level.id }) else { return }
         loadNorseLevel(idx)
+        currentScreen = .norseGame
+    }
+
+    func debugSolveNorseLevel(_ level: PathLevel) {
+        guard let idx = PathLevel.allLevels.firstIndex(where: { $0.id == level.id }) else { return }
+        loadNorseLevel(idx)
+        // Pass the key gate automatically on Level 1 so the solve doesn't get blocked
+        if idx == 0 && needsKeyGate(for: .norse) {
+            mysteryMarkIndex[.norse] = TreeOfLifeKeys.choices(for: .norse)
+                .firstIndex(of: TreeOfLifeKeys.egypt) ?? 0
+            passKeyGate(for: .norse)
+        }
+        norsePath = norseActiveLevel?.solution ?? norseCurrentLevel.solution
+        handleNorseLevelComplete()
         currentScreen = .norseGame
     }
 
@@ -987,6 +1005,21 @@ final class GameState: ObservableObject {
         currentScreen = .sumerianGame
     }
 
+    func debugSolveSumerianLevel(_ level: SumerianLevel) {
+        guard let idx = SumerianLevel.allLevels.firstIndex(where: { $0.id == level.id }) else { return }
+        loadSumerianLevel(idx)
+        let l = SumerianLevel.allLevels[idx]
+        // Pass the key gate automatically on Level 1
+        if idx == 0 && needsKeyGate(for: .sumerian) {
+            mysteryMarkIndex[.sumerian] = TreeOfLifeKeys.choices(for: .sumerian)
+                .firstIndex(of: TreeOfLifeKeys.egyptNeter) ?? 0
+            passKeyGate(for: .sumerian)
+        }
+        playerSumerianDecoded = l.solution.map { Optional($0) }
+        handleSumerianLevelComplete()
+        currentScreen = .sumerianGame
+    }
+
     // MARK: Mandu Tablet State
 
     @Published var discoveredKeys: [CivilizationID: String] = [:]
@@ -1013,7 +1046,8 @@ final class GameState: ObservableObject {
     func mysteryMarkCurrent(for civ: CivilizationID) -> String {
         let choices = civ == .chinese ? TreeOfLifeKeys.chinaSlot1Choices : TreeOfLifeKeys.choices(for: civ)
         guard !choices.isEmpty else { return "" }
-        return choices[(mysteryMarkIndex[civ, default: 0]) % choices.count]
+        guard let idx = mysteryMarkIndex[civ] else { return "" }   // nil = not yet selected
+        return choices[idx % choices.count]
     }
 
     var chinaMysteryMarkCurrent2: String {
@@ -1023,8 +1057,13 @@ final class GameState: ObservableObject {
 
     func cycleMysteryMark(for civ: CivilizationID) {
         let choices = civ == .chinese ? TreeOfLifeKeys.chinaSlot1Choices : TreeOfLifeKeys.choices(for: civ)
-        guard !choices.isEmpty else { return }
-        mysteryMarkIndex[civ] = ((mysteryMarkIndex[civ, default: 0]) + 1) % choices.count
+        let count = choices.count
+        guard count > 0 else { return }
+        if let current = mysteryMarkIndex[civ] {
+            mysteryMarkIndex[civ] = (current + 1) % count
+        } else {
+            mysteryMarkIndex[civ] = 0   // first tap: show first choice
+        }
         HapticFeedback.tap()
     }
 

@@ -740,13 +740,25 @@ struct DebugView: View {
 
             Spacer()
 
-            Button(action: {
-                HapticFeedback.tap()
-                gameState.debugJumpToNorseLevel(level)
-            }) {
-                Image(systemName: "play.circle.fill")
-                    .font(.system(size: 24))
-                    .foregroundStyle(Color(red: 0.45, green: 0.75, blue: 1.0))
+            HStack(spacing: 8) {
+                Button(action: {
+                    HapticFeedback.tap()
+                    gameState.debugSolveNorseLevel(level)
+                }) {
+                    Image(systemName: "checkmark.circle")
+                        .font(.system(size: 18))
+                        .foregroundStyle(Color(red: 0.30, green: 0.85, blue: 0.50).opacity(isSolved ? 0.35 : 0.85))
+                }
+                .disabled(isSolved)
+
+                Button(action: {
+                    HapticFeedback.tap()
+                    gameState.debugJumpToNorseLevel(level)
+                }) {
+                    Image(systemName: "play.circle.fill")
+                        .font(.system(size: 24))
+                        .foregroundStyle(Color(red: 0.45, green: 0.75, blue: 1.0))
+                }
             }
         }
         .padding(.horizontal, 14)
@@ -847,13 +859,25 @@ struct DebugView: View {
 
             Spacer()
 
-            Button(action: {
-                HapticFeedback.tap()
-                gameState.debugJumpToSumerianLevel(level)
-            }) {
-                Image(systemName: "play.circle.fill")
-                    .font(.system(size: 24))
-                    .foregroundStyle(Color(red: 0.45, green: 0.75, blue: 1.0))
+            HStack(spacing: 8) {
+                Button(action: {
+                    HapticFeedback.tap()
+                    gameState.debugSolveSumerianLevel(level)
+                }) {
+                    Image(systemName: "checkmark.circle")
+                        .font(.system(size: 18))
+                        .foregroundStyle(Color(red: 0.30, green: 0.85, blue: 0.50).opacity(isSolved ? 0.35 : 0.85))
+                }
+                .disabled(isSolved)
+
+                Button(action: {
+                    HapticFeedback.tap()
+                    gameState.debugJumpToSumerianLevel(level)
+                }) {
+                    Image(systemName: "play.circle.fill")
+                        .font(.system(size: 24))
+                        .foregroundStyle(Color(red: 0.45, green: 0.75, blue: 1.0))
+                }
             }
         }
         .padding(.horizontal, 14)
