@@ -143,7 +143,7 @@ extension SumerianLevel {
         subtitle: "The Hidden Impression",
         lore: "King Ur-Namma's scribes concealed their messages using a simple substitution — each sign replaced by the next sign in the sacred cycle. Two anchor stones are pre-revealed. From them, deduce what the third sign becomes, then decode the rest of the inscription.",
         inscriptions: [
-            "The scribes of Ur called this technique 'the sealed word'. Each sign on the surface represents a different sign beneath. The two revealed positions show you the beginning of the key.",
+            "Beneath every sign pressed into this clay lies a different sign — the true meaning hidden by substitution. Two anchor positions are already revealed, showing you where the key begins. Name the two known pairings; only one sign remains unmatched.",
             "AN above becomes KI — heaven becomes earth. KI becomes A — earth becomes water. What does water become? There is only one sign left.",
             "Once you know all three substitutions, apply them in order to every blank position. The pattern repeats across the inscription.",
             "I solved it by writing the key beside the tablet: AN→KI, KI→A, A→? The third substitution was forced — only one symbol remained unused."
@@ -174,7 +174,7 @@ extension SumerianLevel {
         subtitle: "The Moon's Cipher",
         lore: "The Moon god Nanna's priests encoded their temple records with a four-sign cycle. Three anchor stones are revealed. Each one exposes a different substitution. Together they leave only one possible mapping for the fourth sign — find it, and the inscription opens.",
         inscriptions: [
-            "Four sacred signs, four substitutions. The Moon cycles through them in sequence. Three are shown to you; the fourth must be deduced.",
+            "Of the four substitutions in this cipher, three are shown in the anchor positions. Study each anchor pair: which sign appears as an input without a paired output? Which output is unclaimed? The missing pair is the only one that satisfies both gaps.",
             "Look at the three anchors: which signs appear as inputs? Which signs appear as outputs? The sign that appears as neither an input nor an output in the key panel is the missing output.",
             "When you know all four substitutions, apply each encoded sign to its decoded partner. The tablet's message will surface like the moon from cloud.",
             "Nanna divided the month into four phases. His scribes divided the cipher into four steps. I found the missing step by asking: which output is not yet claimed?"
@@ -205,7 +205,7 @@ extension SumerianLevel {
         subtitle: "The Invisible Key",
         lore: "Nippur's priests changed the cipher rotation. The same four signs, but a different cycle — AN no longer becomes KI. Three anchors are given. This time pay attention to which sign is conspicuously absent from the revealed substitutions: that absence is the clue.",
         inscriptions: [
-            "The key has changed. What you learned in the Moon Temple will not help you here. Read the anchors carefully — this cycle moves in a different direction.",
+            "Unlike the Moon Temple's cipher, this one does not shift heaven into earth. The same four signs, but a different cycle — read the three anchor pairs without assuming the previous pattern applies. The fourth substitution writes itself from what remains.",
             "Three substitutions are revealed. Name the four inputs. Name the four outputs. Which input is not yet paired with an output? Which output is not yet claimed? They belong to each other.",
             "In Nippur, the priests deliberately chose a cipher where the sign for heaven does not become the sign for earth. They said: heaven and earth are opposites. They should not follow each other in the key.",
             "I drew a small chart beside the tablet: the four signs in a column on the left, their mapped partners on the right. Three lines were given. The fourth drew itself."
@@ -236,7 +236,7 @@ extension SumerianLevel {
         subtitle: "The Five-Step Descent",
         lore: "Eridu's ziggurat had seven levels, but its cipher used only five steps — one for each sacred sign. Four anchors are given across the first five positions. The fifth substitution hides behind elimination alone. Find it, and the full inscription of the Great Descent will open.",
         inscriptions: [
-            "Five signs, five substitutions. AN becomes GAL — heaven becomes great. GAL becomes UD — great becomes sun. The cycle descends through the ziggurat levels, one step at a time.",
+            "Going level by level through the ziggurat, heaven becomes great, great becomes sun — the key descends in steps through all five signs. Four of the five substitutions are visible in the anchor stones. Name every input and output already shown; the fifth pair is the one not yet claimed.",
             "Four of the five substitutions are directly shown. Name the four known inputs. Name the four known outputs. Which input is paired with no output yet? Which output is unclaimed? Those two belong together.",
             "Once you have all five substitutions, work across the ten positions of the inscription. Each encoded sign has exactly one decoded partner.",
             "The ziggurat was a key made of stone — seven levels, each transforming the level above it. The priests called their cipher 'the stone key'. It worked the same way: each sign transforms into the next."
@@ -267,7 +267,7 @@ extension SumerianLevel {
         subtitle: "Inanna's Final Cipher",
         lore: "Inanna descended through seven gates. At each gate she surrendered one truth — until at the bottom she held nothing and understood everything. This inscription is her final cipher: twelve encoded signs, four anchors, one hidden substitution deducible only by elimination. Decode it as she decoded the underworld: by giving up assumption and following only what is certain.",
         inscriptions: [
-            "Twelve signs. Four are pre-revealed. From four known substitutions, the fifth is forced by elimination. From the five, every position in the twelve-sign inscription becomes readable.",
+            "Held within these twelve signs is a cipher of five substitutions — four visible in the four anchor positions. Name every input that appears in the anchors; name every output. The one remaining pair writes itself. With the complete key, each encoded sign has exactly one decoded partner.",
             "Look at the four anchors. Name every input that appears in them. Name every output. Five inputs must pair with five outputs. Four pairings are shown — the fifth pair writes itself.",
             "Inanna surrendered her crown, her robe, her lapis beads, her breastplate, her ring. At each gate one truth was removed. Here: four substitutions are given, one is removed. Find the removed one.",
             "When you have the full key, move left to right across the encoded inscription. Each sign tells you exactly what to write beneath it. There is no ambiguity — the cipher is a bijection. One sign, one answer."

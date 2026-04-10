@@ -183,7 +183,7 @@ extension ChineseBoxLevel {
         subtitle: "One shape, two facings",
         lore: "The master sets a long plank above the tray and two hook-pieces beside it. They are the same hook — one faces dawn, one faces dusk. Only by turning do they reveal their place.",
         inscriptions: [
-            "The strip claims the top. Study what it leaves behind.",
+            "Study what the long strip leaves behind. It spans the top row entirely — whatever it covers is settled. What remains below shapes the two hook-pieces, which are identical in form but cannot face the same direction. Find what the strip cannot touch, and the hooks place themselves.",
             "Two hooks, one shape — yet they cannot face the same direction.",
             "Turn the hook until the corner it seeks becomes clear."
         ],
@@ -246,7 +246,7 @@ extension ChineseBoxLevel {
         subtitle: "No two pieces alike",
         lore: "Four distinct pieces of wood rest beside the tray. Each has a different name, a different length, a different turning. The tray accepts all four — but only in one arrangement.",
         inscriptions: [
-            "The long strip lies flat. Where it ends, the nail-piece begins its descent.",
+            "One shape claims the top row completely. Below it, the nail-piece descends from the right, the hook sweeps the second row, and the short strip fills the final gap. Let each piece find its own fixed corner before placing the next.",
             "The hook sweeps the second row. The small strip fills what remains.",
             "Four shapes, one tray. Each piece knows one corner it cannot reach without the others."
         ],
@@ -309,7 +309,7 @@ extension ChineseBoxLevel {
         subtitle: "Four T-shapes, four directions",
         lore: "The nail piece is named for the character 丁 — a head and a stem. It can point toward any of the four walls. When each nail faces a different wall, they lock together and the tray is filled.",
         inscriptions: [
-            "One nail points down from the top, its head spanning three columns.",
+            "Like the character 丁 — a head above a stem — each nail-piece can point toward any of the four walls. No two may face the same direction. One points down, one points right, one points left, one points up. Together they share the centre of the tray.",
             "A second nail descends from the right. A third rises from the left.",
             "The fourth nail points upward from below, its stem buried in the corner.",
             "No two nails face the same wall. Together they share the center."
@@ -384,7 +384,7 @@ extension ChineseBoxLevel {
         subtitle: "Five shapes seek their home",
         lore: "Five pieces of ancient wood, each carved by a different hand in a different dynasty. The long strip remembers the river's straightness. The two bends remember the willow's curve. Only together can they fill the carpenter's tray.",
         inscriptions: [
-            "The strip spans the entire top. Nothing reaches beyond it.",
+            "Across the top row, only the long strip fits without interruption. Below it, a bend descends from the right while a hook grows down the left. Between them, a broader piece sweeps three cells in the second row. The final bend curls from the centre toward the far corner.",
             "A bend descends from the right, folding inward at the base.",
             "The left hook grows downward, its foot extending right.",
             "The broad piece sweeps three cells across the second row, anchored at the left.",
@@ -468,7 +468,7 @@ extension ChineseBoxLevel {
         subtitle: "Two pillars, four nails",
         lore: "The master craftsman's final tray is the widest. Two long pillars stand at the edges. Between them, four nail-pieces interlock in a pattern that took the master thirty years to discover. No shortcut exists. The wood will only speak to those who have learned to listen.",
         inscriptions: [
-            "Two pillars guard the left and right edges — place them first.",
+            "Rest the two pillars at the left and right edges first — they are the tallest pieces and the only ones that span the full height of the tray. Between them, four nail-pieces must interlock, each one facing a different direction than the others.",
             "A nail-piece crowns the top, its head spanning three columns.",
             "A second nail descends from the upper right, its stem at the far edge.",
             "A third nail rises from the left of center, its foot touching the second row.",

@@ -179,7 +179,7 @@ extension MayanLevel {
         subtitle: "The Wheel Begins",
         lore: "The first Maya calendar tablet. A single cycle of five sacred glyphs — KIN the sun, IMIX the earth, IK the wind, TZʼ the sacred round, HAAB the year — repeating without end. The first full cycle is shown to you. Continue it.",
         inscriptions: [
-            "Five signs. One wheel. The Maya did not think of time as a river flowing from past to future. They thought of it as a wheel turning. Every sunrise is the same sunrise, wearing a different name.",
+            "Wheels, not rivers — the Maya did not think of time as a river flowing from past to future. They thought of it as a wheel turning. Five signs repeat in fixed order: KIN, IMIX, IK, TZʼ, HAAB. The first full cycle is already shown. Continue it.",
             "The sequence is already familiar by position five. You have seen KIN, IMIX, IK, TZʼ, HAAB. Now the wheel turns again. What comes after KIN the second time? The same thing that came after KIN the first time.",
             "Fill the two blank positions. Look at where each blank sits in the cycle. Count from the beginning — what position are they? The cycle has five steps. A blank at position six is the same as position one.",
             "I recognised the rhythm before I found the blanks. That is how the Maya intended it. Feel the pattern first. The blanks fill themselves."
@@ -217,7 +217,7 @@ extension MayanLevel {
         subtitle: "Independent Rhythms",
         lore: "Two cycles now run simultaneously — the Solar Wheel above and the Earth Wheel below. Each turns independently. What happens in one row has no effect on the other. Solve each wheel on its own.",
         inscriptions: [
-            "Two rows. Two separate wheels. They do not speak to each other. The Solar Wheel turns every three steps. The Earth Wheel turns every two. They share the same positions but follow their own rhythms entirely.",
+            "Above and below: two wheels, two independent rhythms. The Solar Wheel in the top row turns every three steps. The Earth Wheel below turns every two. They share the same sequence of positions but follow entirely separate cycles — solve each row alone.",
             "Solve the top row first. Ignore the bottom row completely. Three symbols repeat. You have two anchors — from them you can reconstruct the full cycle.",
             "Now solve the bottom row. Ignore the top. Two symbols alternate. You have three anchors — the pattern is immediate.",
             "The Maya tracked six separate calendar cycles running simultaneously. Some cycles were 260 days. Some were 365. Some were 584. Each turned on its own wheel. The priest's job was to know where every wheel was at any given moment."
@@ -261,7 +261,7 @@ extension MayanLevel {
         subtitle: "LCM of Four and Three",
         lore: "The wheels are longer now. The Day Wheel turns every four steps; the Sacred Wheel turns every three. Their combined pattern does not repeat for twelve steps. But you only need to see eight — enough to feel both rhythms and fill the gaps.",
         inscriptions: [
-            "Period four and period three. LCM is twelve — the full pattern won't repeat until position twelve. But the reveals are enough. Identify each wheel's period, find where each revealed anchor falls in the cycle, and the rest follows.",
+            "Two wheels of different lengths now turn together — four symbols in one row, three in another. Their combined pattern takes twelve positions to repeat, but eight are shown. Identify the period of each cycle from the anchors; once the period is clear, every blank follows directly.",
             "The Day Wheel has four symbols. You see KIN at position 0, IK at position 2. That tells you positions 0 and 2 in a four-step cycle. Position 1 and 3 are forced — only one symbol fits each gap without repeating within the period.",
             "The Sacred Wheel has three symbols. TZʼ appears at positions 0 and 6. KIN at 1 and 4. That is a period-3 cycle confirming itself. The blanks in the Sacred Wheel row write themselves.",
             "I drew the two cycles as wheels on paper beside the tablet — a small wheel of three and a larger wheel of four, both turning. The blank positions were where I needed to look up at the wheels and read off the next position. The pattern was precise and inevitable."
@@ -307,7 +307,7 @@ extension MayanLevel {
         subtitle: "Arriving Mid-Cycle",
         lore: "The inscription does not begin at the start of either cycle. Both wheels were already turning when this tablet was carved. You must deduce where in each cycle the sequence begins — then extend it forward and backward to fill the blanks.",
         inscriptions: [
-            "Neither cycle starts at its beginning. The Day Wheel is a four-symbol sequence but it does not open with the first symbol. Read the anchors: IMIX appears at positions 0 and 4. TZʼ at positions 1 and 5. You are already inside the cycle — you just need to figure out which step you entered on.",
+            "Each wheel on this tablet was already mid-cycle when the inscription was carved. The Day Wheel does not open at its first symbol. Read the anchors and ask: which step in the four-symbol cycle does the first revealed position occupy? That offset determines every other position in the row.",
             "For the Day Wheel: you see IMIX at position 0. In the cycle [KIN, IMIX, TZʼ, HAAB], IMIX is index 1. So the offset is 1 — the sequence entered at the second symbol of the wheel. From there, all other positions are determined.",
             "The Wind Wheel has period 3 and opened at HAAB, which is index 2 in [IK, KIN, HAAB]. So offset is 2. The blanks are the positions not yet shown — use the formula: symbol = cycle[(position + offset) % period].",
             "Maya scribes sometimes began an inscription in the middle of a sacred cycle — a deliberate choice, to show the student that the calendar had no beginning and no end. The wheel was already turning before the first human was born. It will be turning after the last one closes their eyes."
@@ -355,7 +355,7 @@ extension MayanLevel {
         subtitle: "Three Wheels, One Machine",
         lore: "Three cycles turning simultaneously — period 3, period 4, period 5. Together they will not repeat for sixty steps. This inscription shows nine. Each row is independent. Solve each on its own terms. When all three wheels are filled, the inscription of the Calendar Round is complete.",
         inscriptions: [
-            "Three rows. Three independent wheels. LCM(3,4,5) = 60 — the full machine repeats once every sixty positions. You only need nine. Each wheel is solvable on its own: find the period, locate the revealed anchors within the cycle, fill the blanks.",
+            "Running at once: three wheels with independent periods of three, four, and five. Together they do not repeat for sixty positions — you see nine. Solve each row entirely on its own terms: find the period, locate the revealed anchors within it, and fill the blanks.",
             "The Sun Wheel is period 3: KIN, IMIX, IK repeating. Five positions are revealed — more than enough to confirm the rhythm. The two blanks in the middle and the two near the end follow directly from the pattern.",
             "The Year Wheel is period 4: HAAB, TZʼ, KIN, IMIX repeating. Five positions revealed. The four blanks all fall in positions not yet shown — use the period to locate each one in the cycle.",
             "The Long Wheel is period 5, all five glyphs in order. Six positions revealed across nine total. The three blanks are at positions 3, 4, and 8 — all uniquely determined. When all three rows are filled, you have decoded the Calendar Round: the great machine that the Maya used to measure the breath of the World Tree."

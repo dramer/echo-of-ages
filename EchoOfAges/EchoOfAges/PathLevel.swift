@@ -158,7 +158,7 @@ extension PathLevel {
         subtitle: "The Allfather's Pattern",
         lore: "Before the worlds were named, Odin carved his knowledge into the first runestone in the shape of a spiral — not left to right, but inward, like thought itself. The path does not begin by going forward. It begins by going down.",
         inscriptions: [
-            "ᚠ Fehu opens at the crown of the stone. But Fehu's path is not eastward — it descends first, following the left edge into the deep.",
+            "Rather than move east along the top row, this path descends first — down the left column, before any horizontal step is taken. ᚠ Fehu marks the starting stone at the crown. Its road is not forward. It is down.",
             "ᚱ Raidho — the rune of roads — marks the far corner of the base. To reach it, you must first traverse the bottom, not the top.",
             "ᛟ Othala, home, rests at the centre of the spiral. All paths that are true end here — in the middle, not at the edge."
         ],
@@ -211,7 +211,7 @@ extension PathLevel {
         subtitle: "Into the Inlet and Out",
         lore: "A fjord demands that you enter its narrow throat before you may reach its far end. Viking navigators who tried to sail the outer coast without entering the fjord always missed the safe harbour. This tablet maps such a route. The first move is never the obvious one.",
         inscriptions: [
-            "ᚠ Fehu stands at the top-left corner. But the path does not go east along the first row — it dips south immediately into the narrow inlet before it may continue.",
+            "Only by entering the inlet first can you reach the southern headland. The top-left two columns form a narrow pocket — the path dips into this inlet before it can continue south. ᚠ Fehu opens the route; do not go east from it without first dipping south.",
             "ᚦ Thurisaz — giant and obstacle — marks the bottom of the left column. You cannot reach it without first exploring the inlet formed by the first two columns.",
             "ᚹ Wunjo is the joy of safe harbour, reached near the bottom-right. The path arrives here from the south, not from the east.",
             "ᚨ Ansuz — Odin's breath — closes the route. It lies in the interior, reachable only after the outer ring of the right side has been fully traversed."
@@ -280,7 +280,7 @@ extension PathLevel {
         subtitle: "What the Fault Demands",
         lore: "The runestone had been split by frost — one stone in its centre-right was shattered and impassable. But the inscription remained readable around the fault. The rune-carver had anticipated this: the path was designed to avoid the crack from the beginning.",
         inscriptions: [
-            "ᛁ Isa — the rune of ice — marks the far right of the first row. It was ice that cracked this stone. Fittingly, the path begins where the cold originated.",
+            "One stone in the centre-right is impassable — split by frost before any rune was carved. The path begins at the far right of the first row, where ᛁ Isa marks the cold's origin. Route around the crack as you would route around a reef at sea.",
             "The cracked stone lies in the second column from the right, second row from the bottom. Route around it as you would route around a reef.",
             "ᛏ Tiwaz — justice, sacrifice — rests at the bottom-left corner. You cannot reach it without first tracing the entire left side of the tablet.",
             "ᛟ Othala closes the path near the base. Home is found not by avoiding the damaged stone but by accepting the longer route around it."
@@ -346,7 +346,7 @@ extension PathLevel {
         subtitle: "What Remains When a Corner Falls",
         lore: "The altar stone at Gamla Uppsala had lost its top-right corner to a Viking raid — carried off as a trophy or simply fallen. What remained was an L-shaped tablet, still inscribed. The runes could still be read. The path could still be traced. It only required accepting the shape as it was.",
         inscriptions: [
-            "ᚲ Kenaz — the torch — illuminates the top-left. The top row can only be traversed partially; the missing corner ends it early. The path turns south sooner than you expect.",
+            "The top-right corner is gone — carried off or fallen — and what remains is an L-shaped altar. The path cannot sweep all the way across the first row. ᚲ Kenaz illuminates the top-left; from there, the missing corner forces a southward turn earlier than expected.",
             "The missing corner stone changes everything. Do not plan as if it were there. Plan as if the stone to the left of the gap is a dead end — and route accordingly.",
             "ᚾ Naudiz — necessity — marks the bottom-left corner. It is reached last on the left side, after a long diagonal sweep through the lower half of the altar.",
             "ᚷ Gebo — the gift — closes the path in the interior of the second row. The altar ends not at an edge but inward, where the gift of completion is found."
@@ -416,7 +416,7 @@ extension PathLevel {
         subtitle: "The World Serpent Divides the Sea",
         lore: "Jormungandr — the Midgard Serpent — lies beneath the sea with its body coiled around the world. Its back breaks the surface in two places, blocking the direct path across the water. The only route is the one that honours the serpent's shape: curving around each coil, not through it.",
         inscriptions: [
-            "The two dark stones mark where the serpent's back breaks the surface. They cannot be crossed. Plan the entire route before you place a single foot.",
+            "Sealed by the serpent's bulk: two stones, one at the top-centre, one at the bottom-centre, cannot be stepped on. The only route curves around each coil — into the left pocket first, descending, then north and east. ᛟ Othala begins one cell in from the edge, not at the corner itself.",
             "ᛟ Othala does not stand at the corner — it begins one step in from the edge. The path must enter the top-left pocket before descending. Do not begin at the actual corner.",
             "ᚦ Thurisaz — the obstacle — marks the bottom-left corner. You must descend the full left side before you may turn. The serpent's first coil forces this.",
             "Only three runes are visible on this stone. The remaining twenty must be found through deduction alone. The serpent does not offer more guidance than this."

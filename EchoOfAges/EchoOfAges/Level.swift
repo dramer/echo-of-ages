@@ -268,7 +268,7 @@ extension Level {
         subtitle: "The Solar Seal",
         lore: "The sun god Ra guards this chamber with four powerful symbols. Each glyph stands alone — no symbol may stand directly beside another of the same kind. Read each cell's neighbors carefully, and the arrangement will reveal itself.",
         inscriptions: [
-            "The Eye holds the first position, far left of the opening row. The cell immediately to its right and the cell directly below it cannot be the Eye — Ra's law of separation forbids it.",
+            "Ra's four symbols surround themselves with difference. No symbol may touch another of its own kind on any shared edge. The Eye in the top-left corner tells you immediately: the cells to its right and below it cannot hold the Eye.",
             "In Ra's temple, each symbol is surrounded on all four sides by different symbols. The Lion at the fixed position in row two — look at every cell that borders it. None may be the Lion.",
             "Think of each glyph as a sentinel who cannot stand beside a twin. When you are uncertain about a cell, look at its four neighbors. If you can name three of them, the fourth reveals itself.",
             "Four sacred forces, each an island unto itself. No symbol touches another of its own kind, left nor right, above nor below. Follow any glyph across the stone — it is always surrounded by difference."
@@ -333,7 +333,7 @@ extension Level {
         subtitle: "The Judgment Seal",
         lore: "In the Hall of Two Truths, Anubis has divided the stone into four hidden chambers of judgment. Their walls are invisible — but they are real. Each chamber, like each row and each column, must hold all four symbols in perfect balance.",
         inscriptions: [
-            "Anubis divided this hall into four hidden chambers. I cannot see the walls, but each quadrant of the stone must hold all four symbols — one of each, no more, no less.",
+            "Unseen walls divide this hall into four equal chambers. I cannot trace their boundaries on the stone, but each quadrant must hold all four symbols exactly once — the same law that governs every row and column. The invisible walls make themselves known through contradiction.",
             "Three laws govern this tablet at once: no symbol repeats in any row, no symbol repeats in any column, and no symbol repeats within any hidden chamber. All three laws must be satisfied together.",
             "I found the hidden boundaries by reasoning from contradiction. When the row and column laws alone could not resolve a cell, an invisible chamber wall explained the restriction. The chambers make themselves known.",
             "Begin at the fixed stones in the corners of the tablet. Ask which hidden chamber each stone belongs to — the quadrant corners are also the chamber corners. From that one certainty, the rest follows."
@@ -403,7 +403,7 @@ extension Level {
         subtitle: "The Wisdom Seal",
         lore: "Thoth, god of wisdom, devised this seal without repetition or cycle — five symbols woven in a pattern that requires careful reasoning at every step. The fixed stones are scattered across the grid; no two share a row or column with the same glyph.",
         inscriptions: [
-            "Thoth introduced the Sky last. In every inscription with all five symbols, the Sky mediates between the Eye and the Water — never beside either one.",
+            "Note the two fixed Sky positions: they constrain every row and column they occupy. Thoth added the Sky last of all five symbols — and yet it is the Sky that unlocks the puzzle. Begin there, and the middle cells of the grid will yield.",
             "Five symbols. Five sacred directions. Each appears exactly once per row and once per column. Thoth was a mathematician before he was a god.",
             "The Water and Sky are always separated by at least one other symbol in Thoth's texts. The forty-two books say: the waters below and the heaven above must never touch directly.",
             "The Owl appears in the second position of at least one line. Knowledge was always Thoth's second concern — wisdom came first.",
@@ -466,7 +466,7 @@ extension Level {
         subtitle: "The Eternal Gate",
         lore: "Before the gates of the Field of Reeds stands the Final Seal — the greatest test devised by the gods. Only five stones are fixed. The rest must be drawn entirely from reason. No pattern will save you here; only patience, and the knowledge earned in every chamber before.",
         inscriptions: [
-            "Only five stones are certain. Champollion had the Rosetta Stone. I have these five anchors. It must be enough.",
+            "Know only what you are given. Champollion had the Rosetta Stone to start; I have these five fixed anchors. Each one eliminates a symbol from its row and column. Follow the chain of elimination from anchor to anchor — it is long, but it is unbroken.",
             "The Lion appears at the threshold of the second row and closes the first. Strength guards both entrance and exit — the inscription begins and ends with power.",
             "When I was stuck, I stopped guessing and listed only what I was certain of. Each certainty eliminated a position. The chain of deduction is long but unbroken.",
             "The Sky glyph confirmed by position in rows three and four. From the Sky, the Water follows — they are always separated by exactly two symbols in this seal.",

@@ -215,7 +215,7 @@ extension CelticDifficulty {
         title: "The First Inscription",
         subtitle: "Two rows on the standing stone",
         inscriptions: [
-            "Each row must rise left to right. Each column must rise top to bottom.",
+            "From left to right, each row must rise — no mark may be smaller than the one before it. The same law holds from top to bottom in every column. Together with the sum carved beside each row and below each column, these constraints leave only one arrangement.",
             "The numbers carved beside each row and below each column reveal their totals.",
             "A single arrangement satisfies both the ordering and the sums."
         ],
@@ -229,7 +229,7 @@ extension CelticDifficulty {
         title: "The Grove Square",
         subtitle: "Three rows, three columns",
         inscriptions: [
-            "Beith at the top-left corner. The order rises in every direction.",
+            "Rows and columns both rise, and the sums on this stone are tighter than the first. Start with the row or column whose sum allows the fewest combinations of Ogham values. Each narrowed choice removes possibilities from every cell that shares its row or column.",
             "Each carved sum fixes the total for its row and column — use them to narrow your choices.",
             "Where ordering and sums both apply, very few arrangements remain."
         ],
@@ -243,7 +243,7 @@ extension CelticDifficulty {
         title: "The Long Stone",
         subtitle: "Three rows, four columns",
         inscriptions: [
-            "More columns mean more constraints — the ordering chain grows longer.",
+            "Only by reading row sums and column sums together does this longer stone yield. More columns means a longer ordering chain — a wrong mark at the left end will break a sum at the far right. Let the most constrained row or column guide the very first placement.",
             "A row sum that leaves little room forces you to place higher marks earlier.",
             "The sum on each column ties the rows together. Work both directions."
         ],
@@ -257,7 +257,7 @@ extension CelticDifficulty {
         title: "The Four Sacred Trees",
         subtitle: "Four rows, four columns",
         inscriptions: [
-            "Four rows, four columns — sixteen marks, most of them hidden.",
+            "No mark here stands alone. Every cell touches a row and a column — a wrong value ripples outward and breaks a sum somewhere else on the stone. The sums are tight: a single error in one row will violate a column sum elsewhere. Read the grid as a whole.",
             "The sums are tight. A wrong choice in one row will violate a column sum elsewhere.",
             "Every mark constrains its neighbors in all four directions. Read the stone as a whole."
         ],
@@ -271,7 +271,7 @@ extension CelticDifficulty {
         title: "The Master's Inscription",
         subtitle: "The complete Ogham sequence",
         inscriptions: [
-            "Twenty marks. Most are hidden. The ordering and the sums together leave only one answer.",
+            "Deeper than any stone before it — twenty marks, most hidden. Work from the most constrained rows first: where the sum leaves the fewest possible combinations of Ogham values, those cells are nearest to forced. Let the stone guide you to certainty before guesswork.",
             "Work from the most constrained rows and columns first — the ones whose sums allow the fewest combinations.",
             "When you place the last mark and the stone reads true in every direction, the inscription is complete."
         ],
