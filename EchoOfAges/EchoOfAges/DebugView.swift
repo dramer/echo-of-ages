@@ -370,7 +370,9 @@ struct DebugView: View {
         return VStack(alignment: .leading, spacing: 0) {
             Button { toggleSection(key) } label: {
                 HStack(spacing: 10) {
-                    Text("𝋡").font(.system(size: 22))
+                    Image(systemName: "calendar.circle.fill")
+                        .font(.system(size: 20))
+                        .foregroundStyle(Color(red: 0.18, green: 0.49, blue: 0.31))
                     VStack(alignment: .leading, spacing: 1) {
                         Text("MAYA")
                             .font(EgyptFont.titleBold(15))
