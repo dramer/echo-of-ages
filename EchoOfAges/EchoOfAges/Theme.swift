@@ -120,6 +120,27 @@ struct ToastView: View {
     }
 }
 
+// MARK: - Acrostic Underline Helper
+
+/// Returns an AttributedString with every occurrence of `letter` (case-insensitive)
+/// underlined. Use with `Text(acrosticUnderlined(...))` — apply font/color via modifiers.
+func acrosticUnderlined(_ text: String, letter: Character) -> AttributedString {
+    var result = AttributedString(text)
+    let upperTarget = Character(String(letter).uppercased())
+    let lowerTarget = Character(String(letter).lowercased())
+
+    var idx = result.startIndex
+    while idx < result.endIndex {
+        let next = result.index(afterCharacter: idx)
+        let ch = result.characters[idx]
+        if ch == upperTarget || ch == lowerTarget {
+            result[idx..<next].underlineStyle = .single
+        }
+        idx = next
+    }
+    return result
+}
+
 struct StoneButton: View {
     let title: String
     let icon: String

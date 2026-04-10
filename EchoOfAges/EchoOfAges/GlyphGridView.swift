@@ -451,6 +451,7 @@ struct FieldNotesModal: View {
                 )
 
                 ScrollView(showsIndicators: false) {
+                    let acrostic = TreeOfLifeKeys.acrosticLetter(for: .egyptian, levelIndex: gameState.currentLevelIndex)
                     VStack(alignment: .leading, spacing: 24) {
                         ForEach(Array(gameState.currentLevel.inscriptions.enumerated()), id: \.offset) { _, note in
                             HStack(alignment: .top, spacing: 16) {
@@ -458,7 +459,7 @@ struct FieldNotesModal: View {
                                     .font(.system(size: 36))
                                     .foregroundStyle(Color.goldDark)
                                     .padding(.top, 4)
-                                Text(note)
+                                Text(acrosticUnderlined(note, letter: acrostic))
                                     .font(EgyptFont.bodyItalic(30))
                                     .foregroundStyle(Color.papyrus)
                                     .lineSpacing(10)

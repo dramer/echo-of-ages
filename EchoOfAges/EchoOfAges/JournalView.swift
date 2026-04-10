@@ -989,12 +989,17 @@ private struct FieldNotesContent: View {
             HandBody(text: level.lore, size: 15)
             SectionRule()
 
+            let acrostic = TreeOfLifeKeys.acrosticLetter(for: .egyptian, levelIndex: gameState.currentLevelIndex)
             ForEach(Array(level.inscriptions.enumerated()), id: \.offset) { i, note in
                 HStack(alignment: .top, spacing: 10) {
                     Text("—")
                         .font(handFont(20))
                         .foregroundStyle(Color.inkRed.opacity(0.7))
-                    HandBody(text: note, size: 20)
+                    Text(acrosticUnderlined(note, letter: acrostic))
+                        .font(handFont(20))
+                        .foregroundStyle(Color.inkSepia)
+                        .lineSpacing(5)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 if i < level.inscriptions.count - 1 {
                     Spacer(minLength: 4)

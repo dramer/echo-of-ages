@@ -577,13 +577,14 @@ struct SumerianGameView: View {
             .buttonStyle(.plain)
 
             if inscriptionsExpanded {
+                let acrostic = TreeOfLifeKeys.acrosticLetter(for: .sumerian, levelIndex: gameState.sumerianCurrentLevelIndex)
                 VStack(alignment: .leading, spacing: 12) {
                     ForEach(level.inscriptions.indices, id: \.self) { i in
                         HStack(alignment: .top, spacing: 10) {
                             Text("𒀭")
                                 .font(.system(size: 13))
                                 .foregroundStyle(clayDark.opacity(0.45))
-                            Text(level.inscriptions[i])
+                            Text(acrosticUnderlined(level.inscriptions[i], letter: acrostic))
                                 .font(EgyptFont.bodyItalic(14))
                                 .foregroundStyle(clayDark.opacity(0.85))
                                 .lineSpacing(4)

@@ -489,13 +489,14 @@ struct MayanGameView: View {
             }
 
             if inscriptionsExpanded {
+                let acrostic = TreeOfLifeKeys.acrosticLetter(for: .maya, levelIndex: gameState.mayanCurrentLevelIndex)
                 VStack(alignment: .leading, spacing: 12) {
                     ForEach(Array(level.inscriptions.enumerated()), id: \.offset) { _, note in
                         HStack(alignment: .top, spacing: 10) {
                             Text("–")
                                 .font(EgyptFont.body(13))
                                 .foregroundStyle(jadeColor.opacity(0.45))
-                            Text(note)
+                            Text(acrosticUnderlined(note, letter: acrostic))
                                 .font(EgyptFont.bodyItalic(14))
                                 .foregroundStyle(Color.papyrus.opacity(0.75))
                                 .lineSpacing(4)

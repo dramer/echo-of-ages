@@ -350,12 +350,13 @@ struct CelticGameView: View {
             }
 
             if showInscriptions {
+                let acrostic = TreeOfLifeKeys.acrosticLetter(for: .celtic, levelIndex: gameState.celticCurrentLevelIndex)
                 VStack(alignment: .leading, spacing: 10) {
                     ForEach(difficulty.inscriptions.indices, id: \.self) { i in
                         HStack(alignment: .top, spacing: 8) {
                             Text("·")
                                 .foregroundStyle(Color.celticGold.opacity(0.6))
-                            Text(difficulty.inscriptions[i])
+                            Text(acrosticUnderlined(difficulty.inscriptions[i], letter: acrostic))
                                 .font(.system(size: 13 * uiScale, design: .serif))
                                 .foregroundStyle(Color.celticParchment.opacity(0.75))
                                 .fixedSize(horizontal: false, vertical: true)

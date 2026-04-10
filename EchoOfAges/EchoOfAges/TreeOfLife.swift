@@ -145,6 +145,25 @@ enum TreeOfLifeKeys {
         }
     }
 
+    // MARK: - Acrostic Letters
+
+    /// The acrostic letter for a civilization's puzzle level, spelling out its Tree of Life role.
+    /// Egypt=TRUNK, Norse=ROOTS, Sumerian=BOUGH, Maya=WATER, Celtic=FROND, Chinese=SOLAR
+    /// levelIndex is 0-based (0 = Level 1).
+    static func acrosticLetter(for civ: CivilizationID, levelIndex: Int) -> Character {
+        let word: String
+        switch civ {
+        case .egyptian: word = "TRUNK"
+        case .norse:    word = "ROOTS"
+        case .sumerian: word = "BOUGH"
+        case .maya:     word = "WATER"
+        case .celtic:   word = "FROND"
+        case .chinese:  word = "SOLAR"
+        }
+        guard levelIndex >= 0, levelIndex < word.count else { return "?" }
+        return word[word.index(word.startIndex, offsetBy: levelIndex)]
+    }
+
     // MARK: - Key Discovery Diary Entries
 
     /// Title of the field-diary entry written when a civilization's Level 5 is completed.

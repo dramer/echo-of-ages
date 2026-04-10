@@ -642,13 +642,14 @@ struct ChineseGameView: View {
             .buttonStyle(.plain)
 
             if inscriptionsExpanded {
+                let acrostic = TreeOfLifeKeys.acrosticLetter(for: .chinese, levelIndex: gameState.chineseCurrentLevelIndex)
                 VStack(alignment: .leading, spacing: 12) {
                     ForEach(Array(level.inscriptions.enumerated()), id: \.offset) { _, note in
                         HStack(alignment: .top, spacing: 10) {
                             Text("–")
                                 .font(EgyptFont.body(13))
                                 .foregroundStyle(warmGold.opacity(0.40))
-                            Text(note)
+                            Text(acrosticUnderlined(note, letter: acrostic))
                                 .font(EgyptFont.bodyItalic(14))
                                 .foregroundStyle(Color.stoneDark.opacity(0.75))
                                 .lineSpacing(4)
