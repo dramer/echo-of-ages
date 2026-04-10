@@ -901,9 +901,13 @@ private struct KeyDiscoveryContent: View {
     private var civ: Civilization? { Civilization.all.first { $0.id == civId } }
 
     var body: some View {
-        let symbol = TreeOfLifeKeys.produced(by: civId) ?? "?"
-        let title  = TreeOfLifeKeys.keyDiscoveryTitle(for: civId)
-        let body   = TreeOfLifeKeys.keyDiscoveryBody(for: civId)
+        let title = TreeOfLifeKeys.keyDiscoveryTitle(for: civId)
+        let body  = TreeOfLifeKeys.keyDiscoveryBody(for: civId)
+        // Egypt produced TWO marks — the Djed (𓊽) and the Neter (𓊹).
+        // All other civs produced exactly one.
+        let isEgypt   = civId == .egyptian
+        let symbol1   = TreeOfLifeKeys.produced(by: civId) ?? "?"
+        let symbol2   = isEgypt ? TreeOfLifeKeys.egyptNeter : nil
 
         VStack(alignment: .leading, spacing: 14) {
             // Section stamp
@@ -917,16 +921,38 @@ private struct KeyDiscoveryContent: View {
 
             SectionRule()
 
-            // The symbol — large and centred
+            // Symbol display — one mark for most civs, two for Egypt
             HStack {
                 Spacer()
-                VStack(spacing: 6) {
-                    Text(symbol)
-                        .font(.system(size: 52))
-                        .foregroundStyle(Color.inkSepia.opacity(0.75))
-                    Text("— the mark —")
-                        .font(handFont(13))
-                        .foregroundStyle(Color.inkSepia.opacity(0.38))
+                if let s2 = symbol2 {
+                    // Egypt: show both marks side by side with individual captions
+                    HStack(spacing: 32) {
+                        VStack(spacing: 6) {
+                            Text(symbol1)
+                                .font(.system(size: 52))
+                                .foregroundStyle(Color.inkSepia.opacity(0.75))
+                            Text("— first mark —")
+                                .font(handFont(12))
+                                .foregroundStyle(Color.inkSepia.opacity(0.38))
+                        }
+                        VStack(spacing: 6) {
+                            Text(s2)
+                                .font(.system(size: 52))
+                                .foregroundStyle(Color.inkSepia.opacity(0.75))
+                            Text("— second mark —")
+                                .font(handFont(12))
+                                .foregroundStyle(Color.inkSepia.opacity(0.38))
+                        }
+                    }
+                } else {
+                    VStack(spacing: 6) {
+                        Text(symbol1)
+                            .font(.system(size: 52))
+                            .foregroundStyle(Color.inkSepia.opacity(0.75))
+                        Text("— the mark —")
+                            .font(handFont(13))
+                            .foregroundStyle(Color.inkSepia.opacity(0.38))
+                    }
                 }
                 Spacer()
             }
@@ -939,9 +965,11 @@ private struct KeyDiscoveryContent: View {
 
             SectionRule()
 
-            // Hint for the gate
+            // Closing note — plural for Egypt, singular for everyone else
             HandNote(
-                text: "This mark was found among the ruins. It does not belong to this civilization's known script.",
+                text: isEgypt
+                    ? "Both marks were found among the ruins. Neither belongs to Egypt's known script."
+                    : "This mark was found among the ruins. It does not belong to this civilization's known script.",
                 color: Color.inkBlue.opacity(0.65)
             )
         }
