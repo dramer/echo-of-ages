@@ -46,8 +46,8 @@ struct DebugView: View {
 
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 10) {
-                        // Latin-square civs only (Norse, Sumerian, Maya, and Chinese have dedicated sections below)
-                        ForEach(Civilization.all.filter { $0.id != .norse && $0.id != .sumerian && $0.id != .maya && $0.id != .chinese }) { civ in
+                        // Latin-square civs only (Norse, Sumerian, Maya, Celtic, and Chinese each have dedicated sections below)
+                        ForEach(Civilization.all.filter { $0.id != .norse && $0.id != .sumerian && $0.id != .maya && $0.id != .chinese && $0.id != .celtic }) { civ in
                             civExpandableSection(civ)
                         }
 
