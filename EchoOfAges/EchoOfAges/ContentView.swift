@@ -382,62 +382,25 @@ struct GameCompleteView: View {
 
                             ornamentalRule.padding(.top, 4)
 
-                            // Key clue cards — one per newly unlocked civ that has a required mark.
-                            // Completing Egypt unlocks both Norse and Sumerian, both need the same
-                            // Egypt key (𓊽), so this block shows that symbol twice — once per civ.
-                            let civsNeedingKey = newlyUnlocked.filter {
-                                TreeOfLifeKeys.required(by: $0.id) != nil
+                            // Tease the foreign marks without revealing the symbols —
+                            // the player must discover them by reading the Field Diary.
+                            HStack(alignment: .top, spacing: 12) {
+                                Image(systemName: "note.text")
+                                    .font(.system(size: 15))
+                                    .foregroundStyle(Color.goldDark.opacity(0.80))
+                                    .padding(.top, 2)
+                                Text("Among the final hieroglyphs, Dr. Mandu found marks that don't belong to Egypt's known script — deliberately placed, addressed to whoever came next. Read the Field Diary for her full notes on what was discovered.")
+                                    .font(EgyptFont.bodyItalic(15))
+                                    .foregroundStyle(Color.papyrus.opacity(0.80))
+                                    .lineSpacing(5)
                             }
-                            if !civsNeedingKey.isEmpty {
-                                VStack(alignment: .leading, spacing: 8) {
-                                    Label("Foreign Marks to Identify", systemImage: "key.fill")
-                                        .font(EgyptFont.title(12))
-                                        .foregroundStyle(Color.goldDark.opacity(0.85))
-                                        .tracking(1)
-
-                                    Text("A foreign mark appears in the opening puzzle of each new territory. You must identify the correct symbol before the first challenge will count as solved.")
-                                        .font(EgyptFont.bodyItalic(13))
-                                        .foregroundStyle(Color.papyrus.opacity(0.70))
-                                        .lineSpacing(4)
-
-                                    ForEach(civsNeedingKey) { civ in
-                                        let requiredKey = TreeOfLifeKeys.required(by: civ.id) ?? "?"
-                                        HStack(spacing: 14) {
-                                            // The key symbol the player must find
-                                            Text(requiredKey)
-                                                .font(.system(size: 32))
-                                                .foregroundStyle(Color.goldBright)
-                                                .shadow(color: Color.goldDark.opacity(0.55), radius: 6)
-                                                .frame(width: 44)
-                                            VStack(alignment: .leading, spacing: 3) {
-                                                Text(civ.name)
-                                                    .font(EgyptFont.titleBold(15))
-                                                    .foregroundStyle(civ.accentColor)
-                                                Text("Puzzle 1 — tap the symbol to cycle candidates")
-                                                    .font(EgyptFont.bodyItalic(12))
-                                                    .foregroundStyle(Color.papyrus.opacity(0.65))
-                                            }
-                                            Spacer()
-                                            Text(civ.emblem)
-                                                .font(.system(size: 22))
-                                                .foregroundStyle(civ.accentColor.opacity(0.75))
-                                        }
-                                        .padding(.horizontal, 12)
-                                        .padding(.vertical, 10)
-                                        .background(
-                                            RoundedRectangle(cornerRadius: 9)
-                                                .fill(Color.goldDark.opacity(0.08))
-                                                .overlay(RoundedRectangle(cornerRadius: 9)
-                                                    .stroke(Color.goldDark.opacity(0.35), lineWidth: 1))
-                                        )
-                                    }
-                                }
-                            } else {
-                                Text("Check your Field Diary — a new mark was found in the ruins.")
-                                    .font(EgyptFont.bodyItalic(14))
-                                    .foregroundStyle(Color.papyrus.opacity(0.65))
-                                    .multilineTextAlignment(.leading)
-                            }
+                            .padding(14)
+                            .background(
+                                RoundedRectangle(cornerRadius: 9)
+                                    .fill(Color.goldDark.opacity(0.08))
+                                    .overlay(RoundedRectangle(cornerRadius: 9)
+                                        .stroke(Color.goldDark.opacity(0.30), lineWidth: 1))
+                            )
                         }
                         .padding(20)
                         .background(
