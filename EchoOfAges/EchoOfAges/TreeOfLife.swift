@@ -3,20 +3,25 @@
 //
 // Constants for the Tree of Life meta-puzzle.
 //
-// Each of the six civilizations produces one key symbol when its Level 5
-// is completed. That key is required by the next civilization in the chain
-// to unlock its own Level 5 missing element. The chain:
+// TIER PROGRESSION (gate-key chain):
+// Each civilization produces a gate-key symbol at Level 5. That key is
+// required by the next civilization to unlock its own Level 5 element.
 //
-//   Egypt ──► Norse (needs Egypt's key)
-//   Egypt ──► Sumerian (needs Egypt's key)
-//   Norse ──► Maya (needs Norse's key)
-//   Sumerian ──► Celtic (needs Sumerian's key)
-//   Maya ──► China slot 1 (needs Maya's key)
-//   Celtic ──► China slot 2 (needs Celtic's key)
-//   China ──► Mandu Tablet (the completed form)
+//   Egypt ──► Norse    (needs Egypt's Djed 𓊽)
+//   Egypt ──► Sumerian (needs Egypt's Neter 𓊹)
+//   Norse ──► Maya     (needs Norse's Laguz ᛚ)
+//   Sumerian ──► Celtic (needs Sumerian's AN 𒀭)
+//   Maya ──► China slot 1 (needs Maya's Nion ᚅ)
+//   Celtic ──► China slot 2 (needs Celtic's Nion ᚅ)
+//   China ──► Mandu Tablet mastermind
 //
-// Mandu Tablet correct left-to-right placement order:
-//   Roots · Water · Trunk · Branches · Leaves · Sun
+// MANDU TABLET MASTERMIND (7 symbols, 6 slots):
+// Each civilization also contributes one tree-part symbol to the mastermind.
+// A 7th symbol — the Ramer mark ᚱ — was already on the tablet when found.
+// The player places 6 symbols in the correct order; ᚱ is always left over.
+//
+// Correct placement order (left to right):
+//   BOUGH · WATER · TRUNK · ROOTS · FROND · SOLAR
 //   Sumerian · Maya · Egypt · Norse · Celtic · China
 
 import Foundation
@@ -49,17 +54,65 @@ enum TreeOfLifeKeys {
     /// Qian trigram — three unbroken lines, heaven, the light that reveals all form.
     static let china    = "☰"
 
+    // MARK: - Ramer Mark
+
+    /// The seventh mastermind symbol — attached to no civilization.
+    /// References: Raidho rune (road/journey), German heritage, the Ramer name, cattle farmers.
+    /// It was carved on the Mandu Tablet before any of the six teaching tablets were found.
+    /// In the mastermind game ᚱ is always left over — it occupies no slot; it was already there.
+    static let ramerMark = "ᚱ"
+
+    // MARK: - Tree Part Symbols
+
+    /// Each civilization's contribution to the Mandu Tablet mastermind.
+    /// These represent the civilization's named role in the Tree of Life
+    /// (TRUNK · ROOTS · BOUGH · WATER · FROND · SOLAR).
+    ///
+    /// Distinct from the gate-key symbols used in the tier-progression unlock chain —
+    /// those are the foreign marks found hidden inside each civilization's final ruins.
+
+    static let treeTrunk = "𓊽"  // Egypt   — Djed pillar, the World Axis · TRUNK
+    static let treeRoots = "ᛇ"  // Norse   — Eihwaz, the cosmic Yew of Yggdrasil · ROOTS
+    static let treeBough = "𒀭"  // Sumerian — AN, the heavenward reach · BOUGH
+    static let treeWater = "☵"  // Maya    — Kan trigram, the primordial waters · WATER
+    static let treeFrond = "ᚅ"  // Celtic  — Nion/Ash, frond of the sacred grove · FROND
+    static let treeSolar = "☰"  // Chinese — Qian trigram, heaven and light · SOLAR
+
+    /// Returns the tree-part symbol for a civilization.
+    static func treePartSymbol(for civ: CivilizationID) -> String {
+        switch civ {
+        case .egyptian: return treeTrunk
+        case .norse:    return treeRoots
+        case .sumerian: return treeBough
+        case .maya:     return treeWater
+        case .celtic:   return treeFrond
+        case .chinese:  return treeSolar
+        }
+    }
+
+    /// All 7 mastermind symbols in display order: 6 tree parts + the Ramer mark.
+    static let masterMindSymbols: [String] = [
+        treeTrunk, treeRoots, treeBough, treeWater, treeFrond, treeSolar, ramerMark
+    ]
+
+    /// The correct 6-symbol left-to-right arrangement for the Mandu Tablet mastermind.
+    /// Derived from `tabletOrder` — each civilization's tree-part symbol in tablet sequence.
+    /// The Ramer mark is always left over and is never placed in a slot.
+    static var masterMindSolution: [String] {
+        tabletOrder.map { treePartSymbol(for: $0) }
+    }
+
     // MARK: Mandu Tablet
 
     /// Correct left-to-right placement order.
-    /// Roots → Water → Trunk → Branches → Leaves → Sun
+    /// BOUGH → WATER → TRUNK → ROOTS → FROND → SOLAR
     static let tabletOrder: [CivilizationID] = [
-        .sumerian,  // Roots  — oldest, buried underground, before the flood
-        .maya,      // Water  — the tree grows from the primordial sea
-        .egyptian,  // Trunk  — the World Pillar, axis connecting all
-        .norse,     // Branches — Yggdrasil's reach across nine worlds
-        .celtic,    // Leaves — each Ogham letter a leaf, each leaf a word
-        .chinese    // Sun    — the form only visible in light
+        .sumerian,  // BOUGH — the great branch; oldest carved stone above the flood
+        .maya,      // WATER — the tree grows from the primordial sea
+        .egyptian,  // TRUNK — the World Pillar, the axis connecting all
+        .norse,     // ROOTS — Yggdrasil's deep roots threading all nine worlds
+        .celtic,    // FROND — each Ogham letter a leaf, each leaf a word
+        .chinese    // SOLAR — the form only visible in the light above
     ]
 
     // MARK: Key Lookup
