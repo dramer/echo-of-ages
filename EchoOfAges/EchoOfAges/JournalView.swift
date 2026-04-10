@@ -964,9 +964,9 @@ private struct FieldNotesContent: View {
             ForEach(Array(level.inscriptions.enumerated()), id: \.offset) { i, note in
                 HStack(alignment: .top, spacing: 10) {
                     Text("—")
-                        .font(handFont(15))
+                        .font(handFont(20))
                         .foregroundStyle(Color.inkRed.opacity(0.7))
-                    HandBody(text: note)
+                    HandBody(text: note, size: 20)
                 }
                 if i < level.inscriptions.count - 1 {
                     Spacer(minLength: 4)

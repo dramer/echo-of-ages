@@ -455,17 +455,17 @@ struct FieldNotesModal: View {
                         ForEach(Array(gameState.currentLevel.inscriptions.enumerated()), id: \.offset) { _, note in
                             HStack(alignment: .top, spacing: 16) {
                                 Text("𓏲")
-                                    .font(.system(size: 26))
+                                    .font(.system(size: 36))
                                     .foregroundStyle(Color.goldDark)
-                                    .padding(.top, 3)
+                                    .padding(.top, 4)
                                 Text(note)
-                                    .font(EgyptFont.bodyItalic(22))
+                                    .font(EgyptFont.bodyItalic(30))
                                     .foregroundStyle(Color.papyrus)
-                                    .lineSpacing(8)
+                                    .lineSpacing(10)
                                     .fixedSize(horizontal: false, vertical: true)
                             }
                             .padding(.horizontal, 24)
-                            .padding(.vertical, 14)
+                            .padding(.vertical, 18)
                             .background(
                                 RoundedRectangle(cornerRadius: 10)
                                     .fill(Color.stoneMid.opacity(0.35))
