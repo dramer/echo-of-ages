@@ -884,8 +884,9 @@ final class GameState: ObservableObject {
     func sumerianScribeConfirmed(for levelId: Int) -> Bool { true }
 
     /// Cipher mappings shown in the Impressions Known panel.
-    /// Sources: anchor stones (pre-revealed positions), the foreign mark gate when
-    /// unlocked, and cells the player has manually placed in the tablet.
+    /// Sources: anchor stones only (pre-revealed positions) + the foreign mark gate when selected.
+    /// Player tablet placements are intentionally excluded — they are visible in the tablet itself
+    /// and must not feed back into Impressions Known, which shows only confirmed ground truth.
     var sumerianKnownMappings: [CuneiformGlyph: CuneiformGlyph] {
         let level = sumerianCurrentLevel
         var mappings: [CuneiformGlyph: CuneiformGlyph] = [:]
@@ -894,12 +895,12 @@ final class GameState: ObservableObject {
             let choice = gate.choices[idx % gate.choices.count]
             mappings[gate.encodedSymbol] = choice.decoded
         }
-        // Anchor stones and player placements
-        for (idx, encoded) in level.encodedSequence.enumerated() {
-            guard idx < playerSumerianDecoded.count else { continue }
-            if let decoded = playerSumerianDecoded[idx] {
-                mappings[encoded] = decoded
-            }
+        // Anchor stones only — pre-revealed positions are confirmed ground truth
+        for idx in level.revealedPositions {
+            guard idx < level.encodedSequence.count else { continue }
+            let encoded = level.encodedSequence[idx]
+            let decoded = level.cipherKey[encoded]!
+            mappings[encoded] = decoded
         }
         return mappings
     }
