@@ -278,24 +278,29 @@ struct SumerianGameView: View {
         .animation(.spring(response: 0.3, dampingFraction: 0.7), value: decoded)
     }
 
-    /// Cycling decipher stone for the foreign mark impression — Norse-style rotation.
-    /// Tapping the entire stone advances through nil("?") → choices[0] → choices[1] → choices[2] → wrap.
-    /// The currently shown mark feeds into Impressions Known in real time.
+    /// Cycling decipher stone for the foreign mark impression.
+    /// Left: impression display — encoded ▷▷▷ · ? (the ? updates live).
+    /// Right: tappable rotating box — shows the current Egyptian secret symbol; tap to cycle.
     private func cyclingForeignMarkStone(encoded: CuneiformGlyph, gate: ForeignMarkGate) -> some View {
         let idx = gameState.sumerianForeignMarkIndex
         let currentMark: String? = idx.map { gate.choices[$0 % gate.choices.count].mark }
         let isSelected = idx != nil
 
-        return Button {
-            withAnimation(.spring(response: 0.25, dampingFraction: 0.7)) {
-                gameState.advanceSumerianForeignMark()
-            }
-        } label: {
+        return HStack(spacing: 6) {
+            // ── Impression display (not tappable) ────────────────
             VStack(spacing: 3) {
-                HStack(spacing: 3) {
+                HStack(spacing: 4) {
                     Text(encoded.rawValue)
                         .font(.system(size: 28))
                         .foregroundStyle(clayDark.opacity(0.70))
+                    // Three triangles — visual "maps to" indicator
+                    HStack(spacing: 1) {
+                        ForEach(0..<3, id: \.self) { _ in
+                            Text("▷")
+                                .font(.system(size: 7, weight: .semibold))
+                                .foregroundStyle(clayDark.opacity(0.32))
+                        }
+                    }
                     Text("·")
                         .font(.system(size: 18, weight: .heavy))
                         .foregroundStyle(clayDark.opacity(0.35))
@@ -317,9 +322,9 @@ struct SumerianGameView: View {
                     Text("·")
                         .font(.system(size: 9))
                         .foregroundStyle(clayDark.opacity(0.20))
-                    Text(isSelected ? "tap to cycle" : "tap to reveal")
+                    Text("—")
                         .font(EgyptFont.body(10))
-                        .foregroundStyle(Color(red: 0.70, green: 0.50, blue: 0.20).opacity(0.70))
+                        .foregroundStyle(clayDark.opacity(0.25))
                 }
             }
             .frame(maxWidth: .infinity)
@@ -328,14 +333,41 @@ struct SumerianGameView: View {
                 RoundedRectangle(cornerRadius: 8)
                     .fill(isSelected
                           ? Color(red: 0.93, green: 0.80, blue: 0.58).opacity(0.65)
-                          : Color(red: 0.70, green: 0.50, blue: 0.20).opacity(0.18))
+                          : Color(red: 0.78, green: 0.61, blue: 0.40).opacity(0.28))
                     .overlay(
                         RoundedRectangle(cornerRadius: 8)
-                            .stroke(isSelected ? clayDark.opacity(0.38) : Color(red: 0.70, green: 0.50, blue: 0.20).opacity(0.45), lineWidth: 1)
+                            .stroke(isSelected ? clayDark.opacity(0.38) : clayDark.opacity(0.15), lineWidth: 1)
                     )
             )
+
+            // ── Rotating secret-symbol box (tappable) ────────────
+            Button {
+                withAnimation(.spring(response: 0.25, dampingFraction: 0.7)) {
+                    gameState.advanceSumerianForeignMark()
+                }
+            } label: {
+                VStack(spacing: 2) {
+                    Text(currentMark ?? "?")
+                        .font(.system(size: 26))
+                        .foregroundStyle(isSelected ? clayDark : clayDark.opacity(0.30))
+                        .transition(.scale.combined(with: .opacity))
+                    Image(systemName: "arrow.clockwise")
+                        .font(.system(size: 8, weight: .semibold))
+                        .foregroundStyle(clayDark.opacity(0.45))
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+                .background(
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color(red: 0.88, green: 0.73, blue: 0.45).opacity(0.85))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(clayDark.opacity(0.55), lineWidth: 1.5)
+                        )
+                )
+            }
+            .buttonStyle(.plain)
         }
-        .buttonStyle(.plain)
         .animation(.spring(response: 0.3, dampingFraction: 0.7), value: idx)
     }
 
