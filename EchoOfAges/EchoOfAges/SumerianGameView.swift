@@ -374,6 +374,7 @@ struct SumerianGameView: View {
     // MARK: Testimony Section
 
     private var testimonySection: some View {
+        let selectedId = gameState.sumerianSelectedScribeIds[level.id]
         let amber = Color(red: 0.90, green: 0.72, blue: 0.25)
 
         return VStack(spacing: 10) {
@@ -384,9 +385,16 @@ struct SumerianGameView: View {
                     .foregroundStyle(clayDark)
                     .tracking(2)
                 Spacer()
-                Text("Read · then Decipher")
-                    .font(EgyptFont.bodyItalic(12))
-                    .foregroundStyle(clayDark.opacity(0.50))
+                if selectedId != nil {
+                    Text("Filling key")
+                        .font(EgyptFont.bodyItalic(12))
+                        .foregroundStyle(amber.opacity(0.75))
+                        .transition(.opacity)
+                } else {
+                    Text("Tap to use a testimony")
+                        .font(EgyptFont.bodyItalic(12))
+                        .foregroundStyle(clayDark.opacity(0.45))
+                }
                 Button {
                     withAnimation { showHelpDialog = true }
                     helpTask?.cancel()
@@ -398,7 +406,7 @@ struct SumerianGameView: View {
                 .buttonStyle(.plain)
             }
 
-            // Scribe cards side by side — read-only reference
+            // Scribe cards side by side — tap to adopt testimony into cipher key panel
             HStack(spacing: 8) {
                 ForEach(level.scribes) { scribe in
                     scribeCard(scribe)
@@ -433,63 +441,81 @@ struct SumerianGameView: View {
         )
     }
 
-    /// Compact scribe card — read-only reference during play.
-    /// The truth-teller is identified after the tablet is deciphered correctly.
+    /// Compact scribe card — tap to adopt this testimony into the Impressions Known panel.
+    /// Tap again to deselect. Switching is free; the final commit is at Decipher time.
     private func scribeCard(_ scribe: SumerianScribe) -> some View {
-        let ink = Color(red: 0.14, green: 0.08, blue: 0.02)   // near-black for readability
+        let selected = gameState.sumerianSelectedScribeIds[level.id] == scribe.id
+        let amber    = Color(red: 0.90, green: 0.72, blue: 0.25)
+        let ink      = Color(red: 0.14, green: 0.08, blue: 0.02)
 
-        return VStack(alignment: .leading, spacing: 6) {
-            // Name
-            VStack(alignment: .leading, spacing: 1) {
-                Text(scribe.name)
-                    .font(EgyptFont.titleBold(16))
-                    .foregroundStyle(ink)
-                    .fixedSize(horizontal: false, vertical: true)
-                Text(scribe.title)
-                    .font(EgyptFont.bodyItalic(13))
-                    .foregroundStyle(ink.opacity(0.65))
-                    .fixedSize(horizontal: false, vertical: true)
+        return Button {
+            withAnimation(.easeInOut(duration: 0.20)) {
+                gameState.selectSumerianScribe(scribe.id)
             }
-
-            Divider().overlay(ink.opacity(0.20))
-
-            // Claims — each on its own line: symbol (NAME) → symbol (NAME)
-            VStack(alignment: .leading, spacing: 4) {
-                ForEach(scribe.claims.indices, id: \.self) { i in
-                    let c = scribe.claims[i]
-                    HStack(spacing: 4) {
-                        Text(c.encoded.rawValue).font(.system(size: 22))
-                        Text(c.encoded.displayName)
-                            .font(EgyptFont.body(13)).foregroundStyle(ink.opacity(0.55))
-                        Text("→").font(EgyptFont.bodySemiBold(14))
-                        Text(c.decoded.rawValue).font(.system(size: 22))
-                        Text(c.decoded.displayName)
-                            .font(EgyptFont.body(13)).foregroundStyle(ink.opacity(0.55))
-                    }
-                    .foregroundStyle(ink)
-                }
-                // Foreign mark line
-                if let mark = scribe.foreignMarkSymbol {
-                    HStack(spacing: 6) {
-                        Text(mark).font(.system(size: 22))
-                        Text("foreign mark")
+        } label: {
+            VStack(alignment: .leading, spacing: 6) {
+                // Name + indicator
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(scribe.name)
+                            .font(EgyptFont.titleBold(16))
+                            .foregroundStyle(selected ? amber : ink)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Text(scribe.title)
                             .font(EgyptFont.bodyItalic(13))
-                            .foregroundStyle(ink.opacity(0.65))
+                            .foregroundStyle(selected ? amber.opacity(0.80) : ink.opacity(0.65))
+                            .fixedSize(horizontal: false, vertical: true)
                     }
-                    .foregroundStyle(ink)
+                    Spacer(minLength: 4)
+                    Image(systemName: selected ? "checkmark.circle.fill" : "circle")
+                        .font(.system(size: 16))
+                        .foregroundStyle(selected ? amber : ink.opacity(0.30))
+                }
+
+                Divider().overlay(selected ? amber.opacity(0.40) : ink.opacity(0.20))
+
+                // Claims — each on its own line: symbol (NAME) → symbol (NAME)
+                VStack(alignment: .leading, spacing: 4) {
+                    ForEach(scribe.claims.indices, id: \.self) { i in
+                        let c = scribe.claims[i]
+                        HStack(spacing: 4) {
+                            Text(c.encoded.rawValue).font(.system(size: 22))
+                            Text(c.encoded.displayName)
+                                .font(EgyptFont.body(13)).foregroundStyle(ink.opacity(0.55))
+                            Text("→").font(EgyptFont.bodySemiBold(14))
+                            Text(c.decoded.rawValue).font(.system(size: 22))
+                            Text(c.decoded.displayName)
+                                .font(EgyptFont.body(13)).foregroundStyle(ink.opacity(0.55))
+                        }
+                        .foregroundStyle(selected ? amber : ink)
+                    }
+                    if let mark = scribe.foreignMarkSymbol {
+                        HStack(spacing: 6) {
+                            Text(mark).font(.system(size: 22))
+                            Text("foreign mark")
+                                .font(EgyptFont.bodyItalic(13))
+                                .foregroundStyle(selected ? amber.opacity(0.80) : ink.opacity(0.65))
+                        }
+                        .foregroundStyle(selected ? amber : ink)
+                    }
                 }
             }
+            .padding(10)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 9)
+                    .fill(selected
+                          ? Color(red: 0.35, green: 0.24, blue: 0.06).opacity(0.88)
+                          : Color(red: 0.88, green: 0.72, blue: 0.50).opacity(0.55))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 9)
+                            .stroke(selected ? amber.opacity(0.70) : ink.opacity(0.25),
+                                    lineWidth: selected ? 2 : 1)
+                    )
+            )
         }
-        .padding(10)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 9)
-                .fill(Color(red: 0.88, green: 0.72, blue: 0.50).opacity(0.55))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 9)
-                        .stroke(ink.opacity(0.25), lineWidth: 1)
-                )
-        )
+        .buttonStyle(.plain)
+        .animation(.easeInOut(duration: 0.20), value: selected)
     }
 
     // MARK: Help Dialog

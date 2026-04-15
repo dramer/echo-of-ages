@@ -831,6 +831,11 @@ final class GameState: ObservableObject {
     @Published var sumerianPendingComplete: Bool = false
     @Published var sumerianPendingDecodedMessage: String = ""
 
+    /// Maps level ID → the scribe ID the player has selected as "I believe this one".
+    /// Selected scribe's claims populate the Impressions Known panel (overridden by anchors/placements).
+    /// No tablet gate — switching scribes never resets the tablet.
+    @Published var sumerianSelectedScribeIds: [Int: Int] = [:]
+
     /// True after the player deciphers the tablet correctly — waiting for them to
     /// identify which scribe was the truth-teller. Wrong pick = full tablet reset.
     @Published var sumerianAwaitingTruthTellerPick: Bool = false
@@ -879,11 +884,19 @@ final class GameState: ObservableObject {
     func sumerianScribeConfirmed(for levelId: Int) -> Bool { true }
 
     /// Cipher mappings shown in the Impressions Known panel.
-    /// Built only from anchor stones and cells the player has filled in — no testimony.
-    /// Testimonies are reference-only; the player decodes by their own reasoning.
+    /// If the player has selected a scribe, their claims seed the panel.
+    /// Anchor stones and player placements override testimony claims.
     var sumerianKnownMappings: [CuneiformGlyph: CuneiformGlyph] {
         let level = sumerianCurrentLevel
         var mappings: [CuneiformGlyph: CuneiformGlyph] = [:]
+        // Seed with selected scribe's claims (tentative — may be wrong)
+        if let scribeId = sumerianSelectedScribeIds[level.id],
+           let scribe = level.scribes.first(where: { $0.id == scribeId }) {
+            for claim in scribe.claims {
+                mappings[claim.encoded] = claim.decoded
+            }
+        }
+        // Overlay with anchor + player placements — physical evidence always wins
         for (idx, encoded) in level.encodedSequence.enumerated() {
             guard idx < playerSumerianDecoded.count else { continue }
             if let decoded = playerSumerianDecoded[idx] {
@@ -914,7 +927,25 @@ final class GameState: ObservableObject {
         sumerianPendingComplete = false
         sumerianAwaitingTruthTellerPick = false
         let level = SumerianLevel.allLevels[sumerianCurrentLevelIndex]
+        sumerianSelectedScribeIds[level.id] = nil
         resetSumerianDecoded(for: level)
+    }
+
+    // MARK: Sumerian Scribe Selection
+
+    /// Player taps a scribe to tentatively adopt their testimony.
+    /// Their claims populate the Impressions Known panel immediately.
+    /// No gate, no tablet reset — switching is free. Final commitment is at Decipher time.
+    func selectSumerianScribe(_ scribeId: Int) {
+        let level = sumerianCurrentLevel
+        guard level.scribes.contains(where: { $0.id == scribeId }) else { return }
+        // Toggle off if already selected
+        if sumerianSelectedScribeIds[level.id] == scribeId {
+            sumerianSelectedScribeIds[level.id] = nil
+        } else {
+            sumerianSelectedScribeIds[level.id] = scribeId
+        }
+        HapticFeedback.tap()
     }
 
     // MARK: Sumerian Truth-Teller Pick
@@ -1462,6 +1493,7 @@ final class GameState: ObservableObject {
             sumerianPendingComplete = false
             sumerianPendingDecodedMessage = ""
             sumerianAwaitingTruthTellerPick = false
+            sumerianSelectedScribeIds = [:]
             resetSumerianDecoded(for: SumerianLevel.allLevels[0])
             UserDefaults.standard.removeObject(forKey: "EOA_sumerianUnlocked")
 
@@ -2030,6 +2062,7 @@ final class GameState: ObservableObject {
         sumerianPendingComplete = false
         sumerianPendingDecodedMessage = ""
         sumerianAwaitingTruthTellerPick = false
+        sumerianSelectedScribeIds = [:]
         resetSumerianDecoded(for: SumerianLevel.allLevels[0])
 
         // ── Maya ──────────────────────────────────────────────────
