@@ -179,7 +179,7 @@ struct SumerianGameView: View {
                 .padding(.vertical, 2)
             Text(level.scribes.isEmpty
                  ? "Deduce the cipher key from the anchor stones, then decode every blank"
-                 : "Use the anchor stones and testimonies to decode the tablet, then Decipher to reveal who told the truth")
+                 : "Read the testimonies, cross-check against the anchor stones, decode the tablet, then name the truth-teller")
                 .font(EgyptFont.body(16))
                 .foregroundStyle(clayDark.opacity(0.72))
                 .multilineTextAlignment(.center)
@@ -374,9 +374,6 @@ struct SumerianGameView: View {
     // MARK: Testimony Section
 
     private var testimonySection: some View {
-        let selectedId = gameState.sumerianSelectedScribeIds[level.id]
-        let amber = Color(red: 0.90, green: 0.72, blue: 0.25)
-
         return VStack(spacing: 10) {
             // Header row
             HStack {
@@ -385,16 +382,9 @@ struct SumerianGameView: View {
                     .foregroundStyle(clayDark)
                     .tracking(2)
                 Spacer()
-                if selectedId != nil {
-                    Text("Filling key")
-                        .font(EgyptFont.bodyItalic(12))
-                        .foregroundStyle(amber.opacity(0.75))
-                        .transition(.opacity)
-                } else {
-                    Text("Tap to use a testimony")
-                        .font(EgyptFont.bodyItalic(12))
-                        .foregroundStyle(clayDark.opacity(0.45))
-                }
+                Text("Cross-check against anchors")
+                    .font(EgyptFont.bodyItalic(12))
+                    .foregroundStyle(clayDark.opacity(0.45))
                 Button {
                     withAnimation { showHelpDialog = true }
                     helpTask?.cancel()
@@ -406,7 +396,7 @@ struct SumerianGameView: View {
                 .buttonStyle(.plain)
             }
 
-            // Scribe cards side by side — tap to adopt testimony into cipher key panel
+            // Scribe cards side by side — read-only reference for reasoning
             HStack(spacing: 8) {
                 ForEach(level.scribes) { scribe in
                     scribeCard(scribe)
@@ -415,11 +405,12 @@ struct SumerianGameView: View {
 
             // Level 1: foreign mark banner — shown after level is solved
             if level.id == 1, gameState.sumerianUnlockedLevels.contains(1) {
+                let markAmber = Color(red: 0.90, green: 0.72, blue: 0.25)
                 HStack(spacing: 10) {
-                    Text("𓊹").font(.system(size: 28)).foregroundStyle(amber)
+                    Text("𓊹").font(.system(size: 28)).foregroundStyle(markAmber)
                     Text("Egyptian divine mark — recorded in your diary")
                         .font(EgyptFont.bodyItalic(14))
-                        .foregroundStyle(amber.opacity(0.85))
+                        .foregroundStyle(markAmber.opacity(0.85))
                     Spacer()
                 }
                 .padding(.horizontal, 12).padding(.vertical, 8)
@@ -427,7 +418,7 @@ struct SumerianGameView: View {
                     RoundedRectangle(cornerRadius: 8)
                         .fill(Color(red: 0.28, green: 0.18, blue: 0.06).opacity(0.70))
                         .overlay(RoundedRectangle(cornerRadius: 8)
-                            .stroke(amber.opacity(0.55), lineWidth: 1.2))
+                            .stroke(markAmber.opacity(0.55), lineWidth: 1.2))
                 )
                 .transition(.move(edge: .top).combined(with: .opacity))
             }
@@ -441,81 +432,57 @@ struct SumerianGameView: View {
         )
     }
 
-    /// Compact scribe card — tap to adopt this testimony into the Impressions Known panel.
-    /// Tap again to deselect. Switching is free; the final commit is at Decipher time.
+    /// Compact scribe card — read-only. Compare their claims against the anchor stones
+    /// to determine who is lying. Decode the tablet manually, then Decipher to commit.
     private func scribeCard(_ scribe: SumerianScribe) -> some View {
-        let selected = gameState.sumerianSelectedScribeIds[level.id] == scribe.id
-        let amber    = Color(red: 0.90, green: 0.72, blue: 0.25)
-        let ink      = Color(red: 0.14, green: 0.08, blue: 0.02)
+        let ink = Color(red: 0.14, green: 0.08, blue: 0.02)
 
-        return Button {
-            withAnimation(.easeInOut(duration: 0.20)) {
-                gameState.selectSumerianScribe(scribe.id)
+        return VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 1) {
+                Text(scribe.name)
+                    .font(EgyptFont.titleBold(16))
+                    .foregroundStyle(ink)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text(scribe.title)
+                    .font(EgyptFont.bodyItalic(13))
+                    .foregroundStyle(ink.opacity(0.65))
+                    .fixedSize(horizontal: false, vertical: true)
             }
-        } label: {
-            VStack(alignment: .leading, spacing: 6) {
-                // Name + indicator
-                HStack(alignment: .top) {
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text(scribe.name)
-                            .font(EgyptFont.titleBold(16))
-                            .foregroundStyle(selected ? amber : ink)
-                            .fixedSize(horizontal: false, vertical: true)
-                        Text(scribe.title)
+
+            Divider().overlay(ink.opacity(0.20))
+
+            VStack(alignment: .leading, spacing: 4) {
+                ForEach(scribe.claims.indices, id: \.self) { i in
+                    let c = scribe.claims[i]
+                    HStack(spacing: 4) {
+                        Text(c.encoded.rawValue).font(.system(size: 22))
+                        Text(c.encoded.displayName)
+                            .font(EgyptFont.body(13)).foregroundStyle(ink.opacity(0.55))
+                        Text("→").font(EgyptFont.bodySemiBold(14))
+                        Text(c.decoded.rawValue).font(.system(size: 22))
+                        Text(c.decoded.displayName)
+                            .font(EgyptFont.body(13)).foregroundStyle(ink.opacity(0.55))
+                    }
+                    .foregroundStyle(ink)
+                }
+                if let mark = scribe.foreignMarkSymbol {
+                    HStack(spacing: 6) {
+                        Text(mark).font(.system(size: 22))
+                        Text("foreign mark")
                             .font(EgyptFont.bodyItalic(13))
-                            .foregroundStyle(selected ? amber.opacity(0.80) : ink.opacity(0.65))
-                            .fixedSize(horizontal: false, vertical: true)
+                            .foregroundStyle(ink.opacity(0.65))
                     }
-                    Spacer(minLength: 4)
-                    Image(systemName: selected ? "checkmark.circle.fill" : "circle")
-                        .font(.system(size: 16))
-                        .foregroundStyle(selected ? amber : ink.opacity(0.30))
-                }
-
-                Divider().overlay(selected ? amber.opacity(0.40) : ink.opacity(0.20))
-
-                // Claims — each on its own line: symbol (NAME) → symbol (NAME)
-                VStack(alignment: .leading, spacing: 4) {
-                    ForEach(scribe.claims.indices, id: \.self) { i in
-                        let c = scribe.claims[i]
-                        HStack(spacing: 4) {
-                            Text(c.encoded.rawValue).font(.system(size: 22))
-                            Text(c.encoded.displayName)
-                                .font(EgyptFont.body(13)).foregroundStyle(ink.opacity(0.55))
-                            Text("→").font(EgyptFont.bodySemiBold(14))
-                            Text(c.decoded.rawValue).font(.system(size: 22))
-                            Text(c.decoded.displayName)
-                                .font(EgyptFont.body(13)).foregroundStyle(ink.opacity(0.55))
-                        }
-                        .foregroundStyle(selected ? amber : ink)
-                    }
-                    if let mark = scribe.foreignMarkSymbol {
-                        HStack(spacing: 6) {
-                            Text(mark).font(.system(size: 22))
-                            Text("foreign mark")
-                                .font(EgyptFont.bodyItalic(13))
-                                .foregroundStyle(selected ? amber.opacity(0.80) : ink.opacity(0.65))
-                        }
-                        .foregroundStyle(selected ? amber : ink)
-                    }
+                    .foregroundStyle(ink)
                 }
             }
-            .padding(10)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                RoundedRectangle(cornerRadius: 9)
-                    .fill(selected
-                          ? Color(red: 0.35, green: 0.24, blue: 0.06).opacity(0.88)
-                          : Color(red: 0.88, green: 0.72, blue: 0.50).opacity(0.55))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 9)
-                            .stroke(selected ? amber.opacity(0.70) : ink.opacity(0.25),
-                                    lineWidth: selected ? 2 : 1)
-                    )
-            )
         }
-        .buttonStyle(.plain)
-        .animation(.easeInOut(duration: 0.20), value: selected)
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 9)
+                .fill(Color(red: 0.88, green: 0.72, blue: 0.50).opacity(0.55))
+                .overlay(RoundedRectangle(cornerRadius: 9).stroke(ink.opacity(0.25), lineWidth: 1))
+        )
     }
 
     // MARK: Help Dialog
@@ -540,15 +507,15 @@ struct SumerianGameView: View {
 
             if hasScribes {
                 helpRow(number: "1", title: "Read the anchor stones",
-                        body: "One or more decoded positions are already revealed in the tablet. Each shows a confirmed pairing — which encoded symbol maps to which decoded symbol.")
-                helpRow(number: "2", title: "Study the testimonies",
-                        body: "Each scribe swears to a complete cipher key. Compare their claims against the anchor stones — a liar's key will contradict the physical evidence.")
+                        body: "One or more decoded positions are pre-revealed in the tablet. Each is a confirmed pairing — physical evidence that cannot be wrong.")
+                helpRow(number: "2", title: "Find the contradiction",
+                        body: "Each scribe claims a complete cipher key. Compare their claims against the anchor. A liar will have at least one claim that contradicts the anchored evidence. Eliminate them.")
                 helpRow(number: "3", title: "Decode the tablet",
-                        body: "Tap a blank cell in the decoded row, then tap a symbol in the palette to place it. Use the Impressions Known panel to track what you've deduced from anchors and your own placements.")
+                        body: "Use the surviving scribe's claims to decode each blank cell. Tap a blank cell, then tap the symbol you believe it decodes to. The Impressions Known panel tracks every pairing you've placed.")
                 helpRow(number: "4", title: "Decipher",
-                        body: "When all blanks are filled, tap Decipher. If the tablet is wrong, cells flash red. If the tablet is correct, you'll be asked to name the truth-teller.")
+                        body: "When all blanks are filled, tap Decipher. Wrong cells flash red — adjust and try again. Correct tablet reveals the final question.")
                 helpRow(number: "5", title: "Name the truth-teller",
-                        body: "Pick the scribe whose testimony matches your decoded solution. Wrong choice resets the tablet — the answer is there in the evidence.")
+                        body: "Pick the scribe whose full testimony was consistent with your solution. Wrong answer resets the tablet. Right answer completes the level.")
             } else {
                 helpRow(number: "1", title: "Read the anchor stones",
                         body: "Two decoded positions are already revealed. Each gives you one confirmed cipher pairing — which encoded symbol maps to which decoded symbol.")
