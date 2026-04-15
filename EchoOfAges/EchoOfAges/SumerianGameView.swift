@@ -191,7 +191,10 @@ struct SumerianGameView: View {
     // MARK: Cipher Key Panel
 
     private var cipherKeyPanel: some View {
-        VStack(spacing: 10) {
+        let gate = level.foreignMarkGate
+        let gateUnlocked = gate == nil || gameState.sumerianForeignMarkUnlocked.contains(level.id)
+
+        return VStack(spacing: 10) {
             HStack {
                 Text("IMPRESSIONS KNOWN")
                     .font(EgyptFont.title(13))
@@ -205,14 +208,19 @@ struct SumerianGameView: View {
                     .foregroundStyle(clayDark.opacity(0.45))
             }
 
-            // One "decipher stone" per symbol in the level's alphabet.
-            // Shows the encoded glyph · its decoded partner (or ?) as a line of script.
-            // Stones fill in automatically when a truth-teller scribe is confirmed.
+            // One decipher stone per symbol. The gated symbol shows a lock until unlocked.
             HStack(spacing: 6) {
                 ForEach(level.symbols) { encoded in
                     let decoded = gameState.sumerianKnownMappings[encoded]
-                    decipherStone(encoded: encoded, decoded: decoded)
+                    let isGated = gate?.encodedSymbol == encoded && !gateUnlocked
+                    decipherStone(encoded: encoded, decoded: decoded, gated: isGated)
                 }
+            }
+
+            // Foreign mark picker — shown below stones when gate exists and not yet unlocked
+            if let gate, !gateUnlocked {
+                foreignMarkPicker(gate: gate)
+                    .transition(.move(edge: .top).combined(with: .opacity))
             }
         }
         .padding(12)
@@ -224,9 +232,70 @@ struct SumerianGameView: View {
                         .stroke(clayDark.opacity(0.22), lineWidth: 1)
                 )
         )
+        .animation(.spring(response: 0.35, dampingFraction: 0.80), value: gateUnlocked)
     }
 
-    private func decipherStone(encoded: CuneiformGlyph, decoded: CuneiformGlyph?) -> some View {
+    /// Three Egyptian mark buttons shown below the cipher stones.
+    /// Each shows `mark → ?`. Correct tap fills in the gated impression.
+    private func foreignMarkPicker(gate: ForeignMarkGate) -> some View {
+        let amber  = Color(red: 0.90, green: 0.72, blue: 0.25)
+        let ink    = Color(red: 0.14, green: 0.08, blue: 0.02)
+
+        return VStack(spacing: 8) {
+            HStack {
+                Text("𓂀")
+                    .font(.system(size: 14))
+                    .foregroundStyle(clayDark.opacity(0.50))
+                Text("IDENTIFY THE FOREIGN MARK")
+                    .font(EgyptFont.title(11))
+                    .foregroundStyle(clayDark.opacity(0.50))
+                    .tracking(1)
+                Spacer()
+            }
+
+            HStack(spacing: 8) {
+                ForEach(gate.choices, id: \.self) { mark in
+                    let isWrong = gameState.sumerianForeignMarkWrongChoice == mark
+                    Button {
+                        withAnimation(.spring(response: 0.25)) {
+                            gameState.pickSumerianForeignMark(mark)
+                        }
+                    } label: {
+                        HStack(spacing: 6) {
+                            Text(mark)
+                                .font(.system(size: 26))
+                            Image(systemName: "arrow.right")
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundStyle(ink.opacity(0.40))
+                            Text("?")
+                                .font(EgyptFont.titleBold(20))
+                                .foregroundStyle(ink.opacity(0.30))
+                        }
+                        .foregroundStyle(isWrong ? Color.white : ink)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .frame(maxWidth: .infinity)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(isWrong
+                                      ? Color(red: 0.60, green: 0.10, blue: 0.08)
+                                      : Color(red: 0.93, green: 0.80, blue: 0.58).opacity(0.65))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .stroke(isWrong ? Color.red.opacity(0.80) : ink.opacity(0.22),
+                                                lineWidth: isWrong ? 1.5 : 1)
+                                )
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .animation(.easeInOut(duration: 0.20), value: isWrong)
+                }
+            }
+        }
+        .padding(.top, 6)
+    }
+
+    private func decipherStone(encoded: CuneiformGlyph, decoded: CuneiformGlyph?, gated: Bool = false) -> some View {
         let known = decoded != nil
         return VStack(spacing: 3) {
             HStack(spacing: 3) {
@@ -241,6 +310,11 @@ struct SumerianGameView: View {
                         .font(.system(size: 28))
                         .foregroundStyle(clayDark)
                         .transition(.scale.combined(with: .opacity))
+                } else if gated {
+                    Image(systemName: "lock.fill")
+                        .font(.system(size: 18))
+                        .foregroundStyle(Color(red: 0.70, green: 0.50, blue: 0.20).opacity(0.70))
+                        .transition(.scale.combined(with: .opacity))
                 } else {
                     Text("?")
                         .font(EgyptFont.titleBold(24))
@@ -254,9 +328,11 @@ struct SumerianGameView: View {
                 Text("·")
                     .font(.system(size: 9))
                     .foregroundStyle(clayDark.opacity(0.25))
-                Text(decoded?.displayName ?? "—")
+                Text(gated && decoded == nil ? "pick below" : (decoded?.displayName ?? "—"))
                     .font(EgyptFont.body(10))
-                    .foregroundStyle(known ? clayDark.opacity(0.65) : clayDark.opacity(0.25))
+                    .foregroundStyle(gated && decoded == nil
+                                     ? Color(red: 0.70, green: 0.50, blue: 0.20).opacity(0.70)
+                                     : known ? clayDark.opacity(0.65) : clayDark.opacity(0.25))
             }
         }
         .frame(maxWidth: .infinity)
@@ -265,10 +341,14 @@ struct SumerianGameView: View {
             RoundedRectangle(cornerRadius: 8)
                 .fill(known
                       ? Color(red: 0.93, green: 0.80, blue: 0.58).opacity(0.65)
-                      : Color(red: 0.78, green: 0.61, blue: 0.40).opacity(0.28))
+                      : gated
+                          ? Color(red: 0.70, green: 0.50, blue: 0.20).opacity(0.22)
+                          : Color(red: 0.78, green: 0.61, blue: 0.40).opacity(0.28))
                 .overlay(
                     RoundedRectangle(cornerRadius: 8)
-                        .stroke(known ? clayDark.opacity(0.38) : clayDark.opacity(0.15), lineWidth: 1)
+                        .stroke(known ? clayDark.opacity(0.38)
+                                : gated ? Color(red: 0.70, green: 0.50, blue: 0.20).opacity(0.45)
+                                : clayDark.opacity(0.15), lineWidth: 1)
                 )
         )
         .animation(.spring(response: 0.3, dampingFraction: 0.7), value: decoded)

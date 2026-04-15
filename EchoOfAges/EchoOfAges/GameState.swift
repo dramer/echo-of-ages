@@ -831,6 +831,12 @@ final class GameState: ObservableObject {
     @Published var sumerianPendingComplete: Bool = false
     @Published var sumerianPendingDecodedMessage: String = ""
 
+    /// Level IDs where the player has correctly identified the Egyptian foreign mark,
+    /// unlocking the gated Impressions Known entry for that level.
+    @Published var sumerianForeignMarkUnlocked: Set<Int> = []
+    /// The mark symbol briefly flashing red after a wrong foreign mark pick.
+    @Published var sumerianForeignMarkWrongChoice: String? = nil
+
     /// True after the player deciphers the tablet correctly — waiting for them to
     /// identify which scribe was the truth-teller. Wrong pick = full tablet reset.
     @Published var sumerianAwaitingTruthTellerPick: Bool = false
@@ -879,11 +885,16 @@ final class GameState: ObservableObject {
     func sumerianScribeConfirmed(for levelId: Int) -> Bool { true }
 
     /// Cipher mappings shown in the Impressions Known panel.
-    /// Built only from anchor stones and cells the player has manually placed.
-    /// Testimonies are reference cards — the player reads them and decodes by reasoning, not auto-fill.
+    /// Sources: anchor stones (pre-revealed positions), the foreign mark gate when
+    /// unlocked, and cells the player has manually placed in the tablet.
     var sumerianKnownMappings: [CuneiformGlyph: CuneiformGlyph] {
         let level = sumerianCurrentLevel
         var mappings: [CuneiformGlyph: CuneiformGlyph] = [:]
+        // Foreign mark gate — adds one impression when the player picks correctly
+        if let gate = level.foreignMarkGate, sumerianForeignMarkUnlocked.contains(level.id) {
+            mappings[gate.encodedSymbol] = gate.decodedSymbol
+        }
+        // Anchor stones and player placements
         for (idx, encoded) in level.encodedSequence.enumerated() {
             guard idx < playerSumerianDecoded.count else { continue }
             if let decoded = playerSumerianDecoded[idx] {
@@ -914,7 +925,31 @@ final class GameState: ObservableObject {
         sumerianPendingComplete = false
         sumerianAwaitingTruthTellerPick = false
         let level = SumerianLevel.allLevels[sumerianCurrentLevelIndex]
+        sumerianForeignMarkUnlocked.remove(level.id)
+        sumerianForeignMarkWrongChoice = nil
         resetSumerianDecoded(for: level)
+    }
+
+    // MARK: Sumerian Foreign Mark Gate
+
+    /// Player taps one of the three Egyptian mark choices in the Impressions Known panel.
+    /// Correct pick unlocks the gated impression. Wrong pick flashes that mark briefly.
+    func pickSumerianForeignMark(_ mark: String) {
+        let level = sumerianCurrentLevel
+        guard let gate = level.foreignMarkGate else { return }
+        guard !sumerianForeignMarkUnlocked.contains(level.id) else { return }
+
+        if mark == gate.correctChoice {
+            HapticFeedback.success()
+            sumerianForeignMarkUnlocked.insert(level.id)
+        } else {
+            HapticFeedback.error()
+            sumerianForeignMarkWrongChoice = mark
+            Task {
+                try? await Task.sleep(nanoseconds: 800_000_000)
+                sumerianForeignMarkWrongChoice = nil
+            }
+        }
     }
 
     // MARK: Sumerian Truth-Teller Pick
@@ -1462,6 +1497,8 @@ final class GameState: ObservableObject {
             sumerianPendingComplete = false
             sumerianPendingDecodedMessage = ""
             sumerianAwaitingTruthTellerPick = false
+            sumerianForeignMarkUnlocked = []
+            sumerianForeignMarkWrongChoice = nil
             resetSumerianDecoded(for: SumerianLevel.allLevels[0])
             UserDefaults.standard.removeObject(forKey: "EOA_sumerianUnlocked")
 
@@ -2030,6 +2067,8 @@ final class GameState: ObservableObject {
         sumerianPendingComplete = false
         sumerianPendingDecodedMessage = ""
         sumerianAwaitingTruthTellerPick = false
+        sumerianForeignMarkUnlocked = []
+        sumerianForeignMarkWrongChoice = nil
         resetSumerianDecoded(for: SumerianLevel.allLevels[0])
 
         // ── Maya ──────────────────────────────────────────────────

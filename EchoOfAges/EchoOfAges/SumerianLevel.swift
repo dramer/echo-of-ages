@@ -108,6 +108,24 @@ struct SumerianScribe: Identifiable {
     }
 }
 
+// MARK: - ForeignMarkGate
+
+/// A special sub-puzzle embedded in the Impressions Known panel.
+/// One cipher impression cannot be deduced from the anchor alone —
+/// the player must identify the correct Egyptian foreign mark to unlock it.
+/// Three candidate marks are shown (one per scribe's claim); only one is correct.
+/// Correct pick → impression fills in. Wrong pick → brief error flash.
+struct ForeignMarkGate {
+    /// The encoded cuneiform symbol whose Impressions Known entry is gated.
+    let encodedSymbol: CuneiformGlyph
+    /// The decoded value revealed when the correct mark is chosen.
+    let decodedSymbol: CuneiformGlyph
+    /// Three Egyptian mark symbols shown as choices (order displayed as-is).
+    let choices: [String]
+    /// The one correct choice — the authentic Egyptian foreign mark.
+    let correctChoice: String
+}
+
 // MARK: - SumerianLevel
 
 struct SumerianLevel: Identifiable {
@@ -126,6 +144,10 @@ struct SumerianLevel: Identifiable {
 
     /// Three sworn scribes. Empty on Level 5 (pure deduction).
     let scribes: [SumerianScribe]
+
+    /// Optional sub-puzzle in the cipher key panel: player picks the correct Egyptian
+    /// foreign mark to unlock one impression. Only Level 1 uses this gate.
+    let foreignMarkGate: ForeignMarkGate?
 
     let decodedMessage: String
     let newGlyphs: [CuneiformGlyph]
@@ -203,6 +225,12 @@ extension SumerianLevel {
                          ScribeClaim(encoded: .a,  decoded: .ki, isTrue: false)],
                 foreignMarkSymbol: "𓃭", foreignMarkCorrect: false)
         ],
+        foreignMarkGate: ForeignMarkGate(
+            encodedSymbol: .ki,
+            decodedSymbol: .a,
+            choices: ["𓊹", "𓊽", "𓃭"],   // Enlil-bani · Nanna-iddin · Ur-Nammu
+            correctChoice: "𓊹"             // Egypt's Neter — the divine mark
+        ),
         decodedMessage: "In the great above, AN was fixed and named. Something pressed downward through the clay, seeking the dark waters below the world. Heaven was made real the moment it was written.",
         newGlyphs: [.an, .ki, .a],
         artifact: "𒀭",
@@ -263,6 +291,7 @@ extension SumerianLevel {
                          ScribeClaim(encoded: .a,  decoded: .ud, isTrue: false)],
                 foreignMarkSymbol: nil, foreignMarkCorrect: true)
         ],
+        foreignMarkGate: nil,
         decodedMessage: "In the great below, KI was planted and known. The Moon measured its depths and found: what grows in the dark grows as surely as what grows in the light. Time, it seems, has roots that go very deep.",
         newGlyphs: [.ud],
         artifact: "𒌓",
@@ -321,6 +350,7 @@ extension SumerianLevel {
                          ScribeClaim(encoded: .ud, decoded: .an, isTrue: false)],  // contradicts anchor 2!
                 foreignMarkSymbol: nil, foreignMarkCorrect: true)
         ],
+        foreignMarkGate: nil,
         decodedMessage: "What reaches upward also reaches downward. As AN is above, KI is below. As the branch grows outward, the root grows inward. The priests of Nippur knew: the world is divided into invisible chambers, and all of them are full.",
         newGlyphs: [],
         artifact: "𒆳",
@@ -386,6 +416,7 @@ extension SumerianLevel {
                          ScribeClaim(encoded: .gal, decoded: .ki,  isTrue: false)],
                 foreignMarkSymbol: nil, foreignMarkCorrect: true)
         ],
+        foreignMarkGate: nil,
         decodedMessage: "What grows toward AN-GAL — the great heaven — also grows toward KI-GAL — the great earth. The ziggurat reaches in both directions at once — seven levels descending into the earth, seven levels ascending into heaven, the middle level the world where people live. All growth has two directions. All things reach both ways.",
         newGlyphs: [.gal],
         artifact: "𒃲",
@@ -422,6 +453,7 @@ extension SumerianLevel {
         cipherKey: [.an: .ud, .ki: .gal, .a: .an, .ud: .ki, .gal: .a],
         revealedPositions: [0, 1],
         scribes: [],
+        foreignMarkGate: nil,
         decodedMessage: "The tree has no top and no bottom — only the endless middle, which is now. Inanna returned from the great below carrying this knowledge: what seemed like descent was always ascent seen from the other side. Something grows in both directions simultaneously, and you are always standing at its center.",
         newGlyphs: [],
         artifact: "𒀀",
