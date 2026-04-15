@@ -283,7 +283,9 @@ struct SumerianGameView: View {
     /// Right: tappable rotating box — shows the current Egyptian secret symbol; tap to cycle.
     private func cyclingForeignMarkStone(encoded: CuneiformGlyph, gate: ForeignMarkGate) -> some View {
         let idx = gameState.sumerianForeignMarkIndex
-        let currentMark: String? = idx.map { gate.choices[$0 % gate.choices.count].mark }
+        let currentChoice = idx.map { gate.choices[$0 % gate.choices.count] }
+        let currentMark: String? = currentChoice?.mark       // Egyptian symbol — shown in the box
+        let currentDecoded: CuneiformGlyph? = currentChoice?.decoded  // Cuneiform result — shown in the impression
         let isSelected = idx != nil
 
         return HStack(spacing: 6) {
@@ -304,9 +306,9 @@ struct SumerianGameView: View {
                     Text("·")
                         .font(.system(size: 18, weight: .heavy))
                         .foregroundStyle(clayDark.opacity(0.35))
-                    if let mark = currentMark {
-                        Text(mark)
-                            .font(.system(size: 26))
+                    if let decoded = currentDecoded {
+                        Text(decoded.rawValue)
+                            .font(.system(size: 28))
                             .foregroundStyle(clayDark)
                             .transition(.scale.combined(with: .opacity))
                     } else {
@@ -322,9 +324,9 @@ struct SumerianGameView: View {
                     Text("·")
                         .font(.system(size: 9))
                         .foregroundStyle(clayDark.opacity(0.20))
-                    Text("—")
+                    Text(currentDecoded?.displayName ?? "—")
                         .font(EgyptFont.body(10))
-                        .foregroundStyle(clayDark.opacity(0.25))
+                        .foregroundStyle(isSelected ? clayDark.opacity(0.65) : clayDark.opacity(0.25))
                 }
             }
             .frame(maxWidth: .infinity)
