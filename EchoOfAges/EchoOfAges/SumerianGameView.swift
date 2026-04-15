@@ -564,15 +564,6 @@ struct SumerianGameView: View {
                     }
                     .foregroundStyle(ink)
                 }
-                if let mark = scribe.foreignMarkSymbol {
-                    HStack(spacing: 6) {
-                        Text(mark).font(.system(size: 22))
-                        Text("foreign mark")
-                            .font(EgyptFont.bodyItalic(13))
-                            .foregroundStyle(ink.opacity(0.65))
-                    }
-                    .foregroundStyle(ink)
-                }
             }
         }
         .padding(10)
