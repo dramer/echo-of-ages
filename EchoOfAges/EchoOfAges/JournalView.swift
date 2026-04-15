@@ -1815,7 +1815,7 @@ private struct NorsePuzzleContent: View {
 private struct MesoamericanPuzzleContent: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            puzzlePageHeader(emblem: "ᚅ", civ: "Maya", puzzle: "Pattern & Rhythm",
+            puzzlePageHeader(emblem: "ᛚ", civ: "Maya", puzzle: "Pattern & Rhythm",
                              tagline: "Cycle · Calendar · The Interlocking Wheels")
             SectionRule()
             HandBody(text: "The Maya calendar tablets are pattern puzzles. Symbols repeat in precise, interlocking cycles — the 260-day Tzolk'in turning inside the 365-day Haab', producing a great cycle that repeats once every 52 years. Identify the rhythm and you can fill every gap.")
