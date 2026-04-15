@@ -20,13 +20,15 @@ import SwiftUI
 struct SumerianGameView: View {
     @EnvironmentObject var gameState: GameState
 
-    @State private var showComplete       = false
-    @State private var messageRevealed   = false
+    @State private var showComplete          = false
+    @State private var messageRevealed      = false
     @State private var inscriptionsExpanded = false
-    @State private var showKeyGateWarning = false
+    @State private var showTabletGateNote   = false
 
-    private var keyGateActive: Bool {
-        gameState.sumerianCurrentLevelIndex == 0 && gameState.needsKeyGate(for: .sumerian)
+    /// Tablet is locked until the truth-teller scribe is confirmed.
+    /// Levels with no scribes (L5) are auto-confirmed on load.
+    private var scribeGateActive: Bool {
+        !gameState.sumerianScribeConfirmed(for: level.id)
     }
 
     private var level: SumerianLevel { gameState.sumerianCurrentLevel }
@@ -65,6 +67,9 @@ struct SumerianGameView: View {
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 16) {
                         levelHeader
+                        if !level.scribes.isEmpty {
+                            testimonySection
+                        }
                         cipherKeyPanel
                         tabletSection
                         palette
@@ -151,7 +156,9 @@ struct SumerianGameView: View {
                 .fill(clayDark.opacity(0.22))
                 .frame(height: 1)
                 .padding(.vertical, 2)
-            Text("Deduce the cipher key from the anchor stones, then decode every blank")
+            Text(level.scribes.isEmpty
+                 ? "Deduce the cipher key from the anchor stones, then decode every blank"
+                 : "Identify the truth-teller, then use the cipher key to decode every blank")
                 .font(EgyptFont.body(16))
                 .foregroundStyle(clayDark.opacity(0.72))
                 .multilineTextAlignment(.center)
@@ -178,30 +185,13 @@ struct SumerianGameView: View {
             }
 
             // One "decipher stone" per symbol in the level's alphabet.
-            // Each stone shows the encoded glyph · its decoded partner (or ?)
-            // horizontally — reads like a line of script, not a table.
+            // Shows the encoded glyph · its decoded partner (or ?) as a line of script.
+            // Stones fill in automatically when a truth-teller scribe is confirmed.
             HStack(spacing: 6) {
                 ForEach(level.symbols) { encoded in
                     let decoded = gameState.sumerianKnownMappings[encoded]
                     decipherStone(encoded: encoded, decoded: decoded)
                 }
-                // Level 1: show the cycling foreign-mark stone until the key gate is passed
-                if keyGateActive {
-                    mysteryMarkStone
-                }
-            }
-
-            if keyGateActive {
-                HStack(spacing: 6) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .font(.system(size: 11))
-                        .foregroundStyle(Color(red: 0.90, green: 0.72, blue: 0.25).opacity(0.90))
-                    Text("Identify the foreign mark before deciphering the tablet")
-                        .font(EgyptFont.bodyItalic(12))
-                        .foregroundStyle(clayDark.opacity(0.70))
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .transition(.opacity)
             }
         }
         .padding(12)
@@ -296,16 +286,16 @@ struct SumerianGameView: View {
                 .frame(height: 1)
                 .padding(.vertical, 10)
 
-            // The decipherment — player fills this in (locked until key gate resolved on Level 1)
+            // The decipherment — player fills this in (locked until truth-teller scribe confirmed)
             decodedRow
 
-            // Warning when player tries to tap the tablet before identifying the foreign mark
-            if showKeyGateWarning {
+            // Note shown when player taps the tablet before confirming the truth-teller
+            if showTabletGateNote {
                 HStack(spacing: 8) {
                     Image(systemName: "lock.fill")
                         .font(.system(size: 13))
                         .foregroundStyle(Color(red: 0.90, green: 0.72, blue: 0.25))
-                    Text("Tap the '?' stone above to identify the foreign mark first")
+                    Text("Identify the truth-teller above before deciphering the tablet")
                         .font(EgyptFont.bodyItalic(13))
                         .foregroundStyle(clayDark.opacity(0.85))
                 }
@@ -360,68 +350,163 @@ struct SumerianGameView: View {
         }
     }
 
-    // MARK: Mystery Mark Stone (Sumerian Level 1 key gate — lives in the cipher key panel)
+    // MARK: Testimony Section
 
-    private var mysteryMarkStone: some View {
-        let symbol  = gameState.mysteryMarkCurrent(for: .sumerian)
-        let isWrong = gameState.mysteryMarkWrongFlash
-        let isEmpty = symbol.isEmpty
-
-        return Button {
-            gameState.cycleMysteryMark(for: .sumerian)
-        } label: {
-            VStack(spacing: 3) {
-                HStack(spacing: 3) {
-                    // Cycling symbol — or "?" before first tap
-                    ZStack {
-                        if isEmpty {
-                            Text("?")
-                                .font(EgyptFont.titleBold(24))
-                                .foregroundStyle(Color(red: 0.90, green: 0.72, blue: 0.25).opacity(0.90))
-                        } else {
-                            Text(symbol)
-                                .font(.system(size: 28))
-                                .foregroundStyle(isWrong
-                                    ? Color(red: 1.0, green: 0.55, blue: 0.45)
-                                    : Color(red: 0.95, green: 0.82, blue: 0.40))
-                                .contentTransition(.numericText())
-                        }
-                    }
-                    Image(systemName: "arrow.2.circlepath")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(Color(red: 0.90, green: 0.72, blue: 0.25).opacity(0.75))
-                }
-                HStack(spacing: 3) {
-                    Text("Foreign")
-                        .font(EgyptFont.body(10))
-                        .foregroundStyle(Color(red: 0.90, green: 0.72, blue: 0.25).opacity(0.80))
-                    Text("·")
-                        .font(.system(size: 9))
-                        .foregroundStyle(Color(red: 0.90, green: 0.72, blue: 0.25).opacity(0.40))
-                    Text("tap")
-                        .font(EgyptFont.body(10))
-                        .foregroundStyle(Color(red: 0.90, green: 0.72, blue: 0.25).opacity(0.60))
+    private var testimonySection: some View {
+        let isConfirmedAny = gameState.sumerianScribeConfirmed(for: level.id)
+        return VStack(spacing: 10) {
+            HStack {
+                Text("SWORN TESTIMONIES")
+                    .font(EgyptFont.title(13))
+                    .foregroundStyle(clayDark.opacity(0.55))
+                    .tracking(2)
+                Spacer()
+                if isConfirmedAny {
+                    Label("Truth-teller confirmed", systemImage: "checkmark.seal.fill")
+                        .font(EgyptFont.body(12))
+                        .foregroundStyle(Color(red: 0.75, green: 0.55, blue: 0.15))
+                } else {
+                    Text("Tap the honest scribe")
+                        .font(EgyptFont.bodyItalic(12))
+                        .foregroundStyle(clayDark.opacity(0.45))
                 }
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 8)
+
+            ForEach(level.scribes) { scribe in
+                scribeCard(scribe)
+            }
+
+            // Level 1 note about the foreign mark
+            if level.id == 1, let scribeId = gameState.sumerianConfirmedScribeIds[level.id],
+               let scribe = level.scribes.first(where: { $0.id == scribeId }),
+               let mark = scribe.foreignMarkSymbol {
+                HStack(spacing: 10) {
+                    Text(mark)
+                        .font(.system(size: 26))
+                        .foregroundStyle(Color(red: 0.90, green: 0.72, blue: 0.25))
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Egyptian divine mark identified")
+                            .font(EgyptFont.bodySemiBold(13))
+                            .foregroundStyle(Color(red: 0.90, green: 0.72, blue: 0.25))
+                        Text("The foreign mark from Egypt's ruins — now recorded")
+                            .font(EgyptFont.bodyItalic(12))
+                            .foregroundStyle(Color(red: 0.90, green: 0.72, blue: 0.25).opacity(0.70))
+                    }
+                    Spacer()
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color(red: 0.28, green: 0.18, blue: 0.06).opacity(0.70))
+                        .overlay(RoundedRectangle(cornerRadius: 8)
+                            .stroke(Color(red: 0.90, green: 0.72, blue: 0.25).opacity(0.55), lineWidth: 1.2))
+                )
+                .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color(red: 0.72, green: 0.55, blue: 0.35).opacity(0.30))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(clayDark.opacity(0.20), lineWidth: 1)
+                )
+        )
+        .animation(.spring(response: 0.35, dampingFraction: 0.80), value: isConfirmedAny)
+    }
+
+    private func scribeCard(_ scribe: SumerianScribe) -> some View {
+        let levelId     = level.id
+        let confirmed   = gameState.sumerianConfirmedScribeIds[levelId] == scribe.id
+        let anyConfirmed = gameState.sumerianScribeConfirmed(for: levelId)
+        let isWrong     = gameState.sumerianWrongScribeId == scribe.id
+        let amber       = Color(red: 0.90, green: 0.72, blue: 0.25)
+        let parchment   = Color(red: 0.93, green: 0.85, blue: 0.68)
+
+        return Button {
+            guard !anyConfirmed else { return }
+            gameState.confirmSumerianScribe(scribe.id)
+        } label: {
+            VStack(alignment: .leading, spacing: 8) {
+                // Name row
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(scribe.name)
+                            .font(EgyptFont.titleBold(15))
+                            .foregroundStyle(confirmed ? amber : clayDark)
+                        Text(scribe.title)
+                            .font(EgyptFont.bodyItalic(12))
+                            .foregroundStyle(confirmed ? amber.opacity(0.75) : clayDark.opacity(0.55))
+                    }
+                    Spacer()
+                    if confirmed {
+                        Image(systemName: "checkmark.seal.fill")
+                            .font(.system(size: 18))
+                            .foregroundStyle(amber)
+                            .transition(.scale.combined(with: .opacity))
+                    } else if !anyConfirmed {
+                        Image(systemName: "hand.tap")
+                            .font(.system(size: 14))
+                            .foregroundStyle(clayDark.opacity(0.30))
+                    }
+                }
+
+                // Claims list
+                VStack(alignment: .leading, spacing: 5) {
+                    ForEach(scribe.claims.indices, id: \.self) { i in
+                        let claim = scribe.claims[i]
+                        HStack(spacing: 8) {
+                            Text("·")
+                                .foregroundStyle(confirmed ? amber.opacity(0.60) : clayDark.opacity(0.40))
+                            Text("\(claim.encoded.rawValue)")
+                                .font(.system(size: 20))
+                            Text("(\(claim.encoded.displayName))")
+                                .font(EgyptFont.body(12))
+                            Text("→")
+                                .font(EgyptFont.body(13))
+                            Text("\(claim.decoded.rawValue)")
+                                .font(.system(size: 20))
+                            Text("(\(claim.decoded.displayName))")
+                                .font(EgyptFont.body(12))
+                        }
+                        .foregroundStyle(confirmed ? parchment : clayDark.opacity(0.80))
+                    }
+
+                    // Foreign mark claim (Level 1 only)
+                    if let mark = scribe.foreignMarkSymbol {
+                        HStack(spacing: 8) {
+                            Text("·")
+                                .foregroundStyle(confirmed ? amber.opacity(0.60) : clayDark.opacity(0.40))
+                            Text(mark)
+                                .font(.system(size: 20))
+                            Text("— the Egyptian foreign mark")
+                                .font(EgyptFont.bodyItalic(12))
+                        }
+                        .foregroundStyle(confirmed ? parchment : clayDark.opacity(0.75))
+                    }
+                }
+            }
+            .padding(12)
             .background(
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(isWrong
-                        ? Color(red: 0.55, green: 0.10, blue: 0.08).opacity(0.80)
-                        : Color(red: 0.28, green: 0.18, blue: 0.06).opacity(0.80))
+                RoundedRectangle(cornerRadius: 9)
+                    .fill(isWrong  ? Color(red: 0.55, green: 0.10, blue: 0.08).opacity(0.75)
+                          : confirmed ? Color(red: 0.38, green: 0.26, blue: 0.06).opacity(0.85)
+                          : Color(red: 0.72, green: 0.55, blue: 0.35).opacity(0.28))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(isWrong
-                                ? Color.red.opacity(0.70)
-                                : Color(red: 0.90, green: 0.72, blue: 0.25).opacity(0.75),
-                                    lineWidth: 1.5)
+                        RoundedRectangle(cornerRadius: 9)
+                            .stroke(isWrong  ? Color.red.opacity(0.65)
+                                    : confirmed ? amber.opacity(0.65)
+                                    : clayDark.opacity(0.18),
+                                    lineWidth: confirmed ? 1.5 : 1)
                     )
             )
         }
         .buttonStyle(.plain)
-        .animation(.easeInOut(duration: 0.25), value: isWrong)
-        .animation(.easeInOut(duration: 0.15), value: symbol)
+        .disabled(anyConfirmed)
+        .animation(.easeInOut(duration: 0.25), value: confirmed)
+        .animation(.easeInOut(duration: 0.20), value: isWrong)
     }
 
     private var decodedRow: some View {
@@ -475,12 +560,12 @@ struct SumerianGameView: View {
         let isSelected = gameState.sumerianSelectedDecodedIndex == index
 
         return Button {
-            if keyGateActive {
+            if scribeGateActive {
                 HapticFeedback.error()
-                withAnimation(.spring(response: 0.3)) { showKeyGateWarning = true }
+                withAnimation(.spring(response: 0.3)) { showTabletGateNote = true }
                 Task {
-                    try? await Task.sleep(nanoseconds: 2_500_000_000)
-                    withAnimation(.easeOut(duration: 0.4)) { showKeyGateWarning = false }
+                    try? await Task.sleep(nanoseconds: 2_000_000_000)
+                    withAnimation(.easeOut(duration: 0.4)) { showTabletGateNote = false }
                 }
                 return
             }
@@ -542,12 +627,12 @@ struct SumerianGameView: View {
             HStack(spacing: 8) {
                 ForEach(level.symbols) { glyph in
                     Button {
-                        if keyGateActive {
+                        if scribeGateActive {
                             HapticFeedback.error()
-                            withAnimation(.spring(response: 0.3)) { showKeyGateWarning = true }
+                            withAnimation(.spring(response: 0.3)) { showTabletGateNote = true }
                             Task {
-                                try? await Task.sleep(nanoseconds: 2_500_000_000)
-                                withAnimation(.easeOut(duration: 0.4)) { showKeyGateWarning = false }
+                                try? await Task.sleep(nanoseconds: 2_000_000_000)
+                                withAnimation(.easeOut(duration: 0.4)) { showTabletGateNote = false }
                             }
                             return
                         }

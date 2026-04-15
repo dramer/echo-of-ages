@@ -831,6 +831,14 @@ final class GameState: ObservableObject {
     @Published var sumerianPendingComplete: Bool = false
     @Published var sumerianPendingDecodedMessage: String = ""
 
+    /// Level IDs (1–5) for which the player has confirmed the truth-teller scribe.
+    /// Levels with no scribes (L5) are pre-confirmed when loaded.
+    @Published var sumerianConfirmedScribes: Set<Int> = []
+    /// Maps level ID → confirmed scribe ID (for UI highlighting).
+    @Published var sumerianConfirmedScribeIds: [Int: Int] = [:]
+    /// Scribe ID briefly set when the player taps a false scribe (triggers red flash).
+    @Published var sumerianWrongScribeId: Int? = nil
+
     // Maya
     @Published var mayanCurrentLevelIndex: Int = 0
     @Published var mayanUnlockedLevels: Set<Int> = []
@@ -871,11 +879,24 @@ final class GameState: ObservableObject {
 
     var sumerianHasProgress: Bool { !sumerianUnlockedLevels.isEmpty }
 
-    /// All cipher mappings discoverable from current decoded positions
-    /// (revealed anchors + player-filled cells combined).
+    /// True when the player has confirmed a truth-teller scribe (or level has no scribes).
+    func sumerianScribeConfirmed(for levelId: Int) -> Bool {
+        sumerianConfirmedScribes.contains(levelId)
+    }
+
+    /// All cipher mappings available in the cipher key panel:
+    /// confirmed scribe claims + revealed anchors + player-filled cells.
     var sumerianKnownMappings: [CuneiformGlyph: CuneiformGlyph] {
         let level = sumerianCurrentLevel
         var mappings: [CuneiformGlyph: CuneiformGlyph] = [:]
+        // Add confirmed scribe's true claims first
+        if let scribeId = sumerianConfirmedScribeIds[level.id],
+           let scribe = level.scribes.first(where: { $0.id == scribeId }) {
+            for claim in scribe.claims where claim.isTrue {
+                mappings[claim.encoded] = claim.decoded
+            }
+        }
+        // Overlay with anchor + player-placed positions (ground truth wins over scribe)
         for (idx, encoded) in level.encodedSequence.enumerated() {
             guard idx < playerSumerianDecoded.count else { continue }
             if let decoded = playerSumerianDecoded[idx] {
@@ -904,7 +925,41 @@ final class GameState: ObservableObject {
         sumerianSelectedDecodedIndex = nil
         sumerianErrorPositions = []
         sumerianPendingComplete = false
-        resetSumerianDecoded(for: SumerianLevel.allLevels[sumerianCurrentLevelIndex])
+        sumerianWrongScribeId = nil
+        let level = SumerianLevel.allLevels[sumerianCurrentLevelIndex]
+        resetSumerianDecoded(for: level)
+        // Levels with no scribes are auto-confirmed (no testimony required)
+        if level.scribes.isEmpty {
+            sumerianConfirmedScribes.insert(level.id)
+        }
+    }
+
+    // MARK: Sumerian Scribe Confirmation
+
+    /// Player taps a scribe card to identify the truth-teller.
+    /// Truthful scribe: confirms the level, on L1 also passes the key gate.
+    /// False scribe: flashes the card red.
+    func confirmSumerianScribe(_ scribeId: Int) {
+        let level = sumerianCurrentLevel
+        guard !sumerianConfirmedScribes.contains(level.id) else { return }
+        guard let scribe = level.scribes.first(where: { $0.id == scribeId }) else { return }
+
+        if scribe.isTruthful {
+            HapticFeedback.success()
+            sumerianConfirmedScribes.insert(level.id)
+            sumerianConfirmedScribeIds[level.id] = scribeId
+            // Level 1: confirming the truth-teller resolves Egypt's foreign mark gate
+            if sumerianCurrentLevelIndex == 0 && needsKeyGate(for: .sumerian) {
+                passKeyGate(for: .sumerian)
+            }
+        } else {
+            HapticFeedback.error()
+            sumerianWrongScribeId = scribeId
+            Task {
+                try? await Task.sleep(nanoseconds: 900_000_000)
+                sumerianWrongScribeId = nil
+            }
+        }
     }
 
     private func resetSumerianDecoded(for level: SumerianLevel) {
@@ -959,13 +1014,7 @@ final class GameState: ObservableObject {
             }
         }
         if mistakes.isEmpty {
-            // All cipher positions correct — still need the right mystery mark on Level 1
-            if sumerianCurrentLevelIndex == 0 && needsKeyGate(for: .sumerian)
-                && !mysteryMarkIsCorrect(for: .sumerian) {
-                flashMysteryMarkWrong()
-            } else {
-                HapticFeedback.success()
-            }
+            HapticFeedback.success()
         } else {
             HapticFeedback.error()
             sumerianErrorPositions = mistakes
@@ -981,11 +1030,8 @@ final class GameState: ObservableObject {
     private func checkSumerianSolution() {
         guard playerSumerianDecoded.allSatisfy({ $0 != nil }) else { return }
         guard sumerianCurrentLevel.isSolved(playerSumerianDecoded) else { return }
-        // Level 1 requires the correct mystery mark to complete
-        if sumerianCurrentLevelIndex == 0 && needsKeyGate(for: .sumerian) {
-            guard mysteryMarkIsCorrect(for: .sumerian) else { return }
-            passKeyGate(for: .sumerian)
-        }
+        // Scribe must be confirmed before level counts as solved
+        guard sumerianConfirmedScribes.contains(sumerianCurrentLevel.id) else { return }
         handleSumerianLevelComplete()
     }
 
@@ -998,6 +1044,7 @@ final class GameState: ObservableObject {
             recordKey(for: .sumerian)
         }
         UserDefaults.standard.set(Array(sumerianUnlockedLevels), forKey: "EOA_sumerianUnlocked")
+        UserDefaults.standard.set(Array(sumerianConfirmedScribes), forKey: "EOA_sumerianConfirmedScribes")
         Task {
             try? await Task.sleep(nanoseconds: 800_000_000)
             sumerianPendingComplete = true
@@ -1025,10 +1072,13 @@ final class GameState: ObservableObject {
         guard let idx = SumerianLevel.allLevels.firstIndex(where: { $0.id == level.id }) else { return }
         loadSumerianLevel(idx)
         let l = SumerianLevel.allLevels[idx]
-        // Pass the key gate automatically on Level 1
+        // Auto-confirm the truth-teller scribe on debug solve
+        if let truthfulScribe = l.scribes.first(where: { $0.isTruthful }) {
+            sumerianConfirmedScribes.insert(l.id)
+            sumerianConfirmedScribeIds[l.id] = truthfulScribe.id
+        }
+        // Pass the key gate on Level 1
         if idx == 0 && needsKeyGate(for: .sumerian) {
-            mysteryMarkIndex[.sumerian] = TreeOfLifeKeys.choices(for: .sumerian)
-                .firstIndex(of: TreeOfLifeKeys.egyptNeter) ?? 0
             passKeyGate(for: .sumerian)
         }
         playerSumerianDecoded = l.solution.map { Optional($0) }
@@ -1435,8 +1485,12 @@ final class GameState: ObservableObject {
             sumerianErrorPositions = []
             sumerianPendingComplete = false
             sumerianPendingDecodedMessage = ""
+            sumerianConfirmedScribes = []
+            sumerianConfirmedScribeIds = [:]
+            sumerianWrongScribeId = nil
             resetSumerianDecoded(for: SumerianLevel.allLevels[0])
             UserDefaults.standard.removeObject(forKey: "EOA_sumerianUnlocked")
+            UserDefaults.standard.removeObject(forKey: "EOA_sumerianConfirmedScribes")
 
         case .maya:
             mayanUnlockedLevels = []
@@ -1926,6 +1980,8 @@ final class GameState: ObservableObject {
 
         let sumerianIds = UserDefaults.standard.array(forKey: "EOA_sumerianUnlocked") as? [Int] ?? []
         sumerianUnlockedLevels = Set(sumerianIds)
+        let confirmedScribeIds = UserDefaults.standard.array(forKey: "EOA_sumerianConfirmedScribes") as? [Int] ?? []
+        sumerianConfirmedScribes = Set(confirmedScribeIds)
 
         mayanUnlockedLevels = Set(UserDefaults.standard.array(forKey: "EOA_mayanUnlocked") as? [Int] ?? [])
         mayanCurrentLevelIndex = min(mayanUnlockedLevels.count, MayanLevel.allLevels.count - 1)
