@@ -16,13 +16,16 @@
 //   China ──► Mandu Tablet mastermind
 //
 // MANDU TABLET MASTERMIND (7 symbols, 6 slots):
-// Each civilization also contributes one tree-part symbol to the mastermind.
+// Each civilization contributes one tree-part symbol to the mastermind.
+// The symbol a civilization contributes is either the key it received from the
+// previous civilization, or — for Egypt — the key it kept for itself.
 // A 7th symbol — the Ramer mark ᚱ — was already on the tablet when found.
 // The player places 6 symbols in the correct order; ᚱ is always left over.
 //
 // Correct placement order (left to right):
-//   BOUGH · WATER · TRUNK · ROOTS · FROND · SOLAR
-//   Sumerian · Maya · Egypt · Norse · Celtic · China
+//   BOUGH  · WATER · TRUNK · ROOTS · FROND · SOLAR
+//   𒀭 AN  · ᛚ Lag · 𓊹 Net · 𓊽 Djd · ᚅ Nion · ☰ Qian
+//   Sumer  · Maya  · Egypt · Norse · Celtic · China
 
 import Foundation
 
@@ -71,10 +74,13 @@ enum TreeOfLifeKeys {
     /// Distinct from the gate-key symbols used in the tier-progression unlock chain —
     /// those are the foreign marks found hidden inside each civilization's final ruins.
 
-    static let treeTrunk = "𓊽"  // Egypt   — Djed pillar, the World Axis · TRUNK
-    static let treeRoots = "ᛇ"  // Norse   — Eihwaz, the cosmic Yew of Yggdrasil · ROOTS
+    static let treeTrunk = "𓊹"  // Egypt   — Neter, the divine mark Egypt kept · TRUNK
+    //                              Egypt gave the Djed away to Norse; it kept the Neter.
+    static let treeRoots = "𓊽"  // Norse   — Djed pillar, received from Egypt · ROOTS
+    //                              What Egypt passed down, Norse carries into the ground.
     static let treeBough = "𒀭"  // Sumerian — AN, the heavenward reach · BOUGH
-    static let treeWater = "☵"  // Maya    — Kan trigram, the primordial waters · WATER
+    static let treeWater = "ᛚ"  // Maya    — Laguz rune, received from Norse · WATER
+    //                              The water rune travelled from Norse into Maya's rivers.
     static let treeFrond = "ᚅ"  // Celtic  — Nion/Ash, frond of the sacred grove · FROND
     static let treeSolar = "☰"  // Chinese — Qian trigram, heaven and light · SOLAR
 
