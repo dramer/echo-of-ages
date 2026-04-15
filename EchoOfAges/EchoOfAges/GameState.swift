@@ -831,10 +831,9 @@ final class GameState: ObservableObject {
     @Published var sumerianPendingComplete: Bool = false
     @Published var sumerianPendingDecodedMessage: String = ""
 
-    /// Maps level ID → selected scribe ID.
-    /// Any selection immediately unlocks the tablet; a wrong choice fails at Decipher.
-    /// Switching scribes mid-puzzle resets the decoded tablet.
-    @Published var sumerianSelectedScribeIds: [Int: Int] = [:]
+    /// True after the player deciphers the tablet correctly — waiting for them to
+    /// identify which scribe was the truth-teller. Wrong pick = full tablet reset.
+    @Published var sumerianAwaitingTruthTellerPick: Bool = false
 
     // Maya
     @Published var mayanCurrentLevelIndex: Int = 0
@@ -876,28 +875,15 @@ final class GameState: ObservableObject {
 
     var sumerianHasProgress: Bool { !sumerianUnlockedLevels.isEmpty }
 
-    /// True when the player has selected any scribe (or level has no scribes — tablet always open).
-    func sumerianScribeConfirmed(for levelId: Int) -> Bool {
-        if let level = SumerianLevel.allLevels.first(where: { $0.id == levelId }), level.scribes.isEmpty {
-            return true
-        }
-        return sumerianSelectedScribeIds[levelId] != nil
-    }
+    /// Tablet is always open — no testimony gate. Scribes are read-only reference.
+    func sumerianScribeConfirmed(for levelId: Int) -> Bool { true }
 
-    /// All cipher mappings shown in the cipher key panel:
-    /// selected scribe's full claim set + revealed anchors + player-filled cells.
-    /// Anchors and player placements override scribe claims (physical evidence wins).
+    /// Cipher mappings shown in the Impressions Known panel.
+    /// Built only from anchor stones and cells the player has filled in — no testimony.
+    /// Testimonies are reference-only; the player decodes by their own reasoning.
     var sumerianKnownMappings: [CuneiformGlyph: CuneiformGlyph] {
         let level = sumerianCurrentLevel
         var mappings: [CuneiformGlyph: CuneiformGlyph] = [:]
-        // Add ALL claims from the selected scribe (true and false alike — player chose this testimony)
-        if let scribeId = sumerianSelectedScribeIds[level.id],
-           let scribe = level.scribes.first(where: { $0.id == scribeId }) {
-            for claim in scribe.claims {
-                mappings[claim.encoded] = claim.decoded
-            }
-        }
-        // Overlay with anchor + player-placed positions (ground truth overrides testimony)
         for (idx, encoded) in level.encodedSequence.enumerated() {
             guard idx < playerSumerianDecoded.count else { continue }
             if let decoded = playerSumerianDecoded[idx] {
@@ -926,25 +912,33 @@ final class GameState: ObservableObject {
         sumerianSelectedDecodedIndex = nil
         sumerianErrorPositions = []
         sumerianPendingComplete = false
+        sumerianAwaitingTruthTellerPick = false
         let level = SumerianLevel.allLevels[sumerianCurrentLevelIndex]
         resetSumerianDecoded(for: level)
     }
 
-    // MARK: Sumerian Scribe Selection
+    // MARK: Sumerian Truth-Teller Pick
 
-    /// Player taps a scribe card to select their testimony.
-    /// Any selection immediately unlocks the tablet. Switching scribes resets the decoded tablet.
-    /// Whether the testimony is truthful is only revealed when Decipher is run.
-    func selectSumerianScribe(_ scribeId: Int) {
+    /// Called after the player correctly deciphers the tablet and picks a scribe as the truth-teller.
+    /// Correct pick → level complete. Wrong pick → full tablet reset.
+    func pickSumerianTruthTeller(_ scribeId: Int) {
         let level = sumerianCurrentLevel
-        guard level.scribes.contains(where: { $0.id == scribeId }) else { return }
-        let previousId = sumerianSelectedScribeIds[level.id]
-        // Switching to a different scribe: reset decoded tablet so prior work isn't poisoned
-        if let prev = previousId, prev != scribeId {
-            resetSumerianDecoded(for: level)
+        guard sumerianAwaitingTruthTellerPick else { return }
+        guard let scribe = level.scribes.first(where: { $0.id == scribeId }) else { return }
+
+        if scribe.isTruthful {
+            sumerianAwaitingTruthTellerPick = false
+            handleSumerianLevelComplete()
+        } else {
+            HapticFeedback.error()
+            sumerianAwaitingTruthTellerPick = false
+            // Full reset — they had the right tablet answer but named the wrong source
+            Task {
+                try? await Task.sleep(nanoseconds: 500_000_000)
+                resetSumerianDecoded(for: level)
+                sumerianErrorPositions = []
+            }
         }
-        sumerianSelectedScribeIds[level.id] = scribeId
-        HapticFeedback.tap()
     }
 
     private func resetSumerianDecoded(for level: SumerianLevel) {
@@ -981,7 +975,6 @@ final class GameState: ObservableObject {
         }
         sumerianSelectedDecodedIndex = nil
         HapticFeedback.tap()
-        checkSumerianSolution()
     }
 
     func resetSumerianCurrentLevel() {
@@ -992,14 +985,24 @@ final class GameState: ObservableObject {
 
     func verifySumerianPlacement() {
         let level = sumerianCurrentLevel
+        // Find cells that are wrong (placed but incorrect)
         var mistakes = Set<Int>()
         for (idx, glyph) in playerSumerianDecoded.enumerated() {
             if let placed = glyph, placed != level.solution[idx] {
                 mistakes.insert(idx)
             }
         }
-        if mistakes.isEmpty {
+        let allFilled = playerSumerianDecoded.allSatisfy { $0 != nil }
+
+        if mistakes.isEmpty && allFilled {
+            // Tablet is solved — levels without scribes complete immediately;
+            // levels with scribes prompt the player to name the truth-teller.
             HapticFeedback.success()
+            if level.scribes.isEmpty {
+                handleSumerianLevelComplete()
+            } else {
+                sumerianAwaitingTruthTellerPick = true
+            }
         } else {
             HapticFeedback.error()
             sumerianErrorPositions = mistakes
@@ -1010,13 +1013,7 @@ final class GameState: ObservableObject {
         }
     }
 
-    // MARK: Sumerian Solution Check
-
-    private func checkSumerianSolution() {
-        guard playerSumerianDecoded.allSatisfy({ $0 != nil }) else { return }
-        guard sumerianCurrentLevel.isSolved(playerSumerianDecoded) else { return }
-        handleSumerianLevelComplete()
-    }
+    // MARK: Sumerian Level Complete
 
     private func handleSumerianLevelComplete() {
         HapticFeedback.success()
@@ -1058,10 +1055,8 @@ final class GameState: ObservableObject {
         guard let idx = SumerianLevel.allLevels.firstIndex(where: { $0.id == level.id }) else { return }
         loadSumerianLevel(idx)
         let l = SumerianLevel.allLevels[idx]
-        // Auto-select the truthful scribe on debug solve
-        if let truthfulScribe = l.scribes.first(where: { $0.isTruthful }) {
-            sumerianSelectedScribeIds[l.id] = truthfulScribe.id
-        }
+        // Debug solve skips the truth-teller picker — complete immediately
+        sumerianAwaitingTruthTellerPick = false
         playerSumerianDecoded = l.solution.map { Optional($0) }
         handleSumerianLevelComplete()
         currentScreen = .sumerianGame
@@ -1466,7 +1461,7 @@ final class GameState: ObservableObject {
             sumerianErrorPositions = []
             sumerianPendingComplete = false
             sumerianPendingDecodedMessage = ""
-            sumerianSelectedScribeIds = [:]
+            sumerianAwaitingTruthTellerPick = false
             resetSumerianDecoded(for: SumerianLevel.allLevels[0])
             UserDefaults.standard.removeObject(forKey: "EOA_sumerianUnlocked")
 
@@ -2034,7 +2029,7 @@ final class GameState: ObservableObject {
         sumerianUnlockedLevels = []
         sumerianPendingComplete = false
         sumerianPendingDecodedMessage = ""
-        sumerianSelectedScribeIds = [:]
+        sumerianAwaitingTruthTellerPick = false
         resetSumerianDecoded(for: SumerianLevel.allLevels[0])
 
         // ── Maya ──────────────────────────────────────────────────
