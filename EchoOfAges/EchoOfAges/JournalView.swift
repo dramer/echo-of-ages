@@ -1867,72 +1867,92 @@ private struct GameDesignNotesContent: View {
                 HandNote(text: "Debug reference only — not visible in release builds.", color: Color.inkRed.opacity(0.7))
                 SectionRule()
 
-                // MARK: Tree of Life — Part Mapping
-                HandTitle(text: "Tree of Life — Civilization Roles")
-                designRow(symbol: "𓊽", civ: "Egypt", role: "TRUNK", note: "World Pillar — axis connecting heaven and underworld")
-                designRow(symbol: "𒀭", civ: "Sumerian", role: "ROOTS", note: "Oldest, buried underground, existed before the flood")
-                designRow(symbol: "ᛉ", civ: "Norse", role: "BRANCHES", note: "Yggdrasil reaches nine worlds — the rune path IS branches")
-                designRow(symbol: "ᚅ", civ: "Celtic", role: "LEAVES", note: "Each Ogham letter a leaf, each leaf a word")
-                designRow(symbol: "〄", civ: "Maya", role: "WATER", note: "Ceiba grows from primordial sea — calendar tracks water cycles")
-                designRow(symbol: "☰", civ: "China", role: "SUN", note: "Form only visible in light — Qian trigram, heaven")
+                // MARK: Civilization Roles — Mastermind Pieces
+                HandTitle(text: "Mastermind Pieces — Tree of Life Roles")
+                HandNote(text: "Each civ's mastermind piece is either the key it received from the previous civilization, or — for Egypt — the key it kept for itself.", color: Color.inkSepia.opacity(0.65))
+                designRow(symbol: "𒀭", civ: "Sumerian", role: "BOUGH",  note: "AN — the heavenward reach. Produced by Sumerian, kept as its own piece.")
+                designRow(symbol: "ᛚ",  civ: "Maya",     role: "WATER",  note: "Laguz — the water rune received from Norse. What Norse passed down, Maya carries.")
+                designRow(symbol: "𓊹", civ: "Egypt",    role: "TRUNK",  note: "Neter — the divine flag Egypt kept. It gave the Djed to Norse; kept the Neter.")
+                designRow(symbol: "𓊽", civ: "Norse",    role: "ROOTS",  note: "Djed pillar received from Egypt. What Egypt passed down, Norse carries into the ground.")
+                designRow(symbol: "ᚅ",  civ: "Celtic",   role: "FROND",  note: "Nion/Ash — produced by Celtic, kept as its own piece.")
+                designRow(symbol: "☰",  civ: "China",    role: "SOLAR",  note: "Qian trigram — unique to China. Not received from anyone; the final light.")
+                designRow(symbol: "ᚱ",  civ: "— (Ramer)", role: "DECOY", note: "Already on the tablet when found. Belongs to no civilization. Always left over.")
 
                 SectionRule()
 
                 // MARK: Mandu Tablet — Correct Order
                 HandTitle(text: "Mandu Tablet — Correct Left-to-Right Order")
-                HandNote(text: "Sumerian · Maya · Egypt · Norse · Celtic · China", color: Color.inkBlue)
-                HandNote(text: "Roots → Water → Trunk → Branches → Leaves → Sun", color: Color.inkSepia.opacity(0.7))
-                HandNote(text: "Logic: roots drink water, trunk rises, branches spread, leaves speak, sun reveals.", color: Color.inkSepia.opacity(0.55))
+                HandNote(text: "𒀭  ·  ᛚ  ·  𓊹  ·  𓊽  ·  ᚅ  ·  ☰", color: Color.inkBlue)
+                HandNote(text: "Sumerian · Maya · Egypt · Norse · Celtic · China", color: Color.inkSepia.opacity(0.75))
+                HandNote(text: "BOUGH · WATER · TRUNK · ROOTS · FROND · SOLAR", color: Color.inkSepia.opacity(0.55))
+                HandNote(text: "Logic: bough reaches up, water rises through it, trunk holds, roots drink, frond spreads, solar reveals all.", color: Color.inkSepia.opacity(0.45))
 
                 SectionRule()
 
-                // MARK: The Six Keys — Relay Chain
-                HandTitle(text: "The Six Keys — Relay Chain")
-                keyRow(from: "Egypt 𓊽", to: "Norse Level 5 + Sumerian Level 5", note: "Djed pillar — the mark that holds")
-                keyRow(from: "Norse ᛚ", to: "Maya Level 5", note: "Laguz (water rune) — branches reach the well")
-                keyRow(from: "Sumerian 𒀭", to: "Celtic Level 5", note: "AN mark (heaven/divine) — what was above before the flood")
-                keyRow(from: "Maya ᚅ", to: "China Level 5 slot 1", note: "Nion/Ash — the water was always reaching upward")
-                keyRow(from: "Celtic ᚅ", to: "China Level 5 slot 2", note: "Nion/Ash — same symbol from two sources (the player's aha moment)")
-                keyRow(from: "China ☰", to: "Mandu Tablet", note: "Qian trigram — the completed form")
+                // MARK: Gate Keys — Relay Chain
+                HandTitle(text: "Gate Keys — Relay Chain")
+                HandNote(text: "Egypt is the only civilization that produces TWO keys — one for each of its two Tier 2 successors.", color: Color.inkSepia.opacity(0.65))
+                keyChainRow(from: "Egypt", produces: "𓊽 Djed",  to: "Norse L1",        note: "The pillar — what endures when everything falls")
+                keyChainRow(from: "Egypt", produces: "𓊹 Neter", to: "Sumerian L1",     note: "The divine flag — before the name of every god")
+                keyChainRow(from: "Norse",    produces: "ᛚ Laguz", to: "Maya L1",        note: "Water rune — flow toward the lowest place")
+                keyChainRow(from: "Sumerian", produces: "𒀭 AN",   to: "Celtic L1",      note: "Heaven — the divine anchor above the flood")
+                keyChainRow(from: "Maya",     produces: "ᚅ Nion",  to: "China L1 slot 1", note: "The ash — water was always reaching upward")
+                keyChainRow(from: "Celtic",   produces: "ᚅ Nion",  to: "China L1 slot 2", note: "Same symbol, second source — the player's aha moment")
+                keyChainRow(from: "China",    produces: "—",        to: "Mandu Tablet",   note: "Final civ — no key produced, unlocks the mastermind")
 
                 SectionRule()
 
-                // MARK: Decoy Sets
+                // MARK: Key Chain → Mastermind Piece Traceability
+                HandTitle(text: "Key Chain → Mastermind Piece")
+                HandNote(text: "What you receive, you contribute.", color: Color.inkSepia.opacity(0.65))
+                traceRow(civ: "Egypt",    received: "nothing",   produced: "𓊽 𓊹", mastermind: "𓊹", logic: "Gave Djed to Norse, kept Neter")
+                traceRow(civ: "Norse",    received: "𓊽",        produced: "ᛚ",    mastermind: "𓊽", logic: "Carries what Egypt passed down")
+                traceRow(civ: "Sumerian", received: "𓊹",        produced: "𒀭",   mastermind: "𒀭", logic: "Keeps what it produces for Celtic")
+                traceRow(civ: "Maya",     received: "ᛚ",         produced: "ᚅ",    mastermind: "ᛚ",  logic: "Carries what Norse passed down")
+                traceRow(civ: "Celtic",   received: "𒀭",        produced: "ᚅ",    mastermind: "ᚅ",  logic: "Keeps what it produces for China")
+                traceRow(civ: "China",    received: "ᚅ ᚅ",       produced: "—",    mastermind: "☰",  logic: "Unique — the final light, not passed on")
+
+                SectionRule()
+
+                // MARK: Choice Picker — Decoy Sets
                 HandTitle(text: "Choice Picker — Decoy Sets")
-                decoyRow(puzzle: "Norse L5", correct: "𓊽", choices: "𓊽 · 𓅱 · 𓆑 · 𓇳 · 𓈖 · 𓊪")
-                decoyRow(puzzle: "Sumerian L5", correct: "𓊽", choices: "𓊽 · 𓏏 · 𓂀 · 𓇌 · 𓊹 · 𓃭")
-                decoyRow(puzzle: "Maya L5", correct: "ᛚ", choices: "ᛚ · ᚠ · ᚢ · ᛟ · ᛏ · ᚾ")
-                decoyRow(puzzle: "Celtic L5", correct: "𒀭", choices: "𒀭 · 𒀯 · 𒆷 · 𒄑 · 𒐈 · 𒀰")
-                decoyRow(puzzle: "China L5 slot 1", correct: "ᚅ", choices: "ᚅ · ᚁ · ᚂ · ᚃ · ᚄ · ᛚ")
-                decoyRow(puzzle: "China L5 slot 2", correct: "ᚅ", choices: "ᚅ · 𒀭 · 𓊽 · ᛚ · 𓇳 · 𒆷")
+                HandNote(text: "Six candidates shown when player taps the '?' in a Level 1 key gate. Correct answer marked ✓.", color: Color.inkSepia.opacity(0.55))
+                decoyRow(puzzle: "Norse L1",          correct: "𓊽", choices: "𓊽 · 𓅱 · 𓆑 · 𓇳 · 𓈖 · 𓊪")
+                decoyRow(puzzle: "Sumerian L1",       correct: "𓊹", choices: "𓊽 · 𓏏 · 𓂀 · 𓇌 · 𓊹 · 𓃭")
+                decoyRow(puzzle: "Maya L1",           correct: "ᛚ",  choices: "ᛚ · ᚠ · ᚢ · ᛟ · ᛏ · ᚾ")
+                decoyRow(puzzle: "Celtic L1",         correct: "𒀭", choices: "𒀭 · 𒀯 · 𒆷 · 𒄑 · 𒐈 · 𒀰")
+                decoyRow(puzzle: "China L1 slot 1",   correct: "ᚅ",  choices: "ᚅ · ᚁ · ᚂ · ᚃ · ᚄ · ᛚ")
+                decoyRow(puzzle: "China L1 slot 2",   correct: "ᚅ",  choices: "ᚅ · 𒀭 · 𓊽 · ᛚ · 𓇳 · 𒆷")
 
                 SectionRule()
 
                 // MARK: Tier Progression
                 HandTitle(text: "Tier Progression")
-                HandNote(text: "Tier 1 — Egypt (unlocked at start)", color: Color.inkSepia)
-                HandNote(text: "Tier 2 — Norse + Sumerian (after Egypt complete)", color: Color.inkSepia)
-                HandNote(text: "Tier 3 — Maya + Celtic (after Norse AND Sumerian complete)", color: Color.inkSepia)
-                HandNote(text: "Tier 4 — China (after Maya OR Celtic complete)", color: Color.inkSepia)
-                HandNote(text: "Mandu Tablet — accessible always, completable after all six", color: Color.inkSepia)
+                tierRow(tier: "Tier 1", civs: "Egypt",           note: "Unlocked at start")
+                tierRow(tier: "Tier 2", civs: "Norse + Sumerian", note: "Unlocked after Egypt Level 5 complete")
+                tierRow(tier: "Tier 3", civs: "Maya + Celtic",    note: "Unlocked after Norse AND Sumerian Level 5 complete")
+                tierRow(tier: "Tier 4", civs: "China",            note: "Unlocked after Maya OR Celtic Level 5 complete")
+                HandNote(text: "Mandu Tablet — accessible at any time, solvable only after all six civilizations complete.", color: Color.inkSepia.opacity(0.55))
 
                 SectionRule()
 
-                // MARK: Build Phases
-                HandTitle(text: "Build Phases")
-                HandNote(text: "✅ Phase 1 — Content (keys, diary entries, final message)", color: Color.inkSepia)
-                HandNote(text: "◻ Phase 2 — GameState: discoveredKeys system", color: Color.inkSepia.opacity(0.6))
-                HandNote(text: "◻ Phase 3 — Mandu Tablet: row UI + placement logic", color: Color.inkSepia.opacity(0.6))
-                HandNote(text: "◻ Phase 4 — Mandu Tablet: oak tree growth animation", color: Color.inkSepia.opacity(0.6))
-                HandNote(text: "◻ Phase 5 — Level 5 key-selection UI per civilization", color: Color.inkSepia.opacity(0.6))
-                HandNote(text: "◻ Phase 6 — Journal post-Level 5 diary entries", color: Color.inkSepia.opacity(0.6))
-                HandNote(text: "◻ Phase 7 — Integration + polish", color: Color.inkSepia.opacity(0.6))
+                // MARK: Acrostic Words
+                HandTitle(text: "Acrostic Words — Puzzle Inscription Hints")
+                HandNote(text: "Each civilization's 5 levels spell out its tree-part role. The first letter of the first inscription in each level is underlined.", color: Color.inkSepia.opacity(0.65))
+                acrosticRow(civ: "Egypt",    word: "TRUNK",  letters: "T · R · U · N · K")
+                acrosticRow(civ: "Norse",    word: "ROOTS",  letters: "R · O · O · T · S")
+                acrosticRow(civ: "Sumerian", word: "BOUGH",  letters: "B · O · U · G · H")
+                acrosticRow(civ: "Maya",     word: "WATER",  letters: "W · A · T · E · R")
+                acrosticRow(civ: "Celtic",   word: "FROND",  letters: "F · R · O · N · D")
+                acrosticRow(civ: "Chinese",  word: "SOLAR",  letters: "S · O · L · A · R")
 
                 Spacer(minLength: 24)
             }
             .padding(.horizontal, 4)
         }
     }
+
+    // MARK: - Row Builders
 
     private func designRow(symbol: String, civ: String, role: String, note: String) -> some View {
         HStack(alignment: .top, spacing: 10) {
@@ -1952,23 +1972,52 @@ private struct GameDesignNotesContent: View {
         }
     }
 
-    private func keyRow(from: String, to: String, note: String) -> some View {
+    private func keyChainRow(from: String, produces: String, to: String, note: String) -> some View {
         VStack(alignment: .leading, spacing: 2) {
-            HStack(spacing: 6) {
+            HStack(spacing: 5) {
                 Text(from)
-                    .font(handFont(13, bold: true))
+                    .font(handFont(12, bold: true))
+                    .foregroundStyle(Color.inkSepia)
+                Text("produces")
+                    .font(handFont(11))
+                    .foregroundStyle(Color.inkSepia.opacity(0.45))
+                Text(produces)
+                    .font(handFont(14, bold: true))
                     .foregroundStyle(Color.inkBlue)
                 Text("→")
-                    .font(handFont(13))
-                    .foregroundStyle(Color.inkSepia.opacity(0.5))
+                    .font(handFont(12))
+                    .foregroundStyle(Color.inkSepia.opacity(0.4))
                 Text(to)
-                    .font(handFont(13))
+                    .font(handFont(12))
                     .foregroundStyle(Color.inkSepia)
             }
             Text(note)
                 .font(handFont(11))
-                .foregroundStyle(Color.inkSepia.opacity(0.55))
+                .foregroundStyle(Color.inkSepia.opacity(0.50))
                 .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private func traceRow(civ: String, received: String, produced: String, mastermind: String, logic: String) -> some View {
+        HStack(alignment: .top, spacing: 6) {
+            Text(mastermind)
+                .font(handFont(18))
+                .foregroundStyle(Color.inkBlue)
+                .frame(width: 28)
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 4) {
+                    Text(civ)
+                        .font(handFont(12, bold: true))
+                        .foregroundStyle(Color.inkSepia)
+                    Text("received \(received)  ·  produced \(produced)")
+                        .font(handFont(11))
+                        .foregroundStyle(Color.inkSepia.opacity(0.55))
+                }
+                Text(logic)
+                    .font(handFont(11))
+                    .foregroundStyle(Color.inkSepia.opacity(0.45))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
     }
 
@@ -1978,14 +2027,50 @@ private struct GameDesignNotesContent: View {
                 .font(handFont(12, bold: true))
                 .foregroundStyle(Color.inkSepia)
             HStack(spacing: 4) {
-                Text("✓")
+                Text("✓ \(correct)")
+                    .font(handFont(13))
+                    .foregroundStyle(Color.inkRed.opacity(0.8))
+                Text("from:")
                     .font(handFont(11))
-                    .foregroundStyle(Color.inkRed)
+                    .foregroundStyle(Color.inkSepia.opacity(0.40))
                 Text(choices)
                     .font(handFont(13))
                     .foregroundStyle(Color.inkBlue)
                     .fixedSize(horizontal: false, vertical: true)
             }
+        }
+    }
+
+    private func tierRow(tier: String, civs: String, note: String) -> some View {
+        HStack(alignment: .top, spacing: 8) {
+            Text(tier)
+                .font(handFont(12, bold: true))
+                .foregroundStyle(Color.inkRed.opacity(0.75))
+                .frame(width: 52, alignment: .leading)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(civs)
+                    .font(handFont(12, bold: true))
+                    .foregroundStyle(Color.inkSepia)
+                Text(note)
+                    .font(handFont(11))
+                    .foregroundStyle(Color.inkSepia.opacity(0.50))
+            }
+        }
+    }
+
+    private func acrosticRow(civ: String, word: String, letters: String) -> some View {
+        HStack(spacing: 8) {
+            Text(civ)
+                .font(handFont(12, bold: true))
+                .foregroundStyle(Color.inkSepia)
+                .frame(width: 64, alignment: .leading)
+            Text(word)
+                .font(handFont(12, bold: true))
+                .foregroundStyle(Color.inkBlue)
+                .frame(width: 44, alignment: .leading)
+            Text(letters)
+                .font(handFont(12))
+                .foregroundStyle(Color.inkSepia.opacity(0.60))
         }
     }
 }
