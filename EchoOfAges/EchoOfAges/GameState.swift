@@ -315,7 +315,9 @@ final class GameState: ObservableObject {
     }
 
     func closeDebug() {
-        currentScreen = previousScreen
+        // Always return to title — previousScreen can be stale when debugJumpTo*
+        // functions navigate directly without updating it.
+        currentScreen = .title
     }
 
     /// Jump directly to any level, bypassing unlock requirements. Debug only.
