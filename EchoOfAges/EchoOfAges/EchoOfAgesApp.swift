@@ -1,9 +1,9 @@
+// EchoOfAgesApp.swift
+// EchoOfAges
 //
-//  EchoOfAgesApp.swift
-//  EchoOfAges
-//
-//  Created by David Ramer on 4/2/26.
-//
+// App entry point — bootstraps the SwiftUI lifecycle.
+// ContentView is the single root view; all in-game navigation is driven by
+// GameState.currentScreen rather than SwiftUI's NavigationStack.
 
 import SwiftUI
 

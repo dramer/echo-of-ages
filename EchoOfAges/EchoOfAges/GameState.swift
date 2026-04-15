@@ -1,5 +1,21 @@
 // GameState.swift
 // EchoOfAges
+//
+// Central @MainActor ObservableObject that owns all mutable game state.
+// Views never write state directly — every interaction flows through a
+// GameState method, which publishes changes back to the SwiftUI render tree.
+//
+// Responsibilities:
+//   • Screen routing (currentScreen / GameScreen enum)
+//   • Egyptian Latin-square puzzle state (grid, palette, error flash)
+//   • Norse pathfinding puzzle state (path, waypoints, error cells)
+//   • Sumerian substitution-cipher state (decoded grid, known mappings)
+//   • Maya calendar-pattern state (player sequences, cycle detection)
+//   • Celtic Ogham ordering state (grid, sums, constraint checking)
+//   • Chinese wooden-box puzzle state (piece placement, rotation)
+//   • Mastermind (Tablet of Mandu) state — slots, guess history, key gate
+//   • Progress persistence via UserDefaults (save / load / master reset)
+//   • Key gate chain — each civilization unlocks the next via its Level 5 symbol
 
 import SwiftUI
 import Combine

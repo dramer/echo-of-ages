@@ -1,5 +1,10 @@
 // GlyphCellView.swift
 // EchoOfAges
+//
+// A single cell in the Egyptian Latin-square puzzle grid.
+// Displays a Glyph (or blank), highlights fixed/locked positions,
+// flashes errors red on a failed Decipher check, and plays a
+// press animation on tap. Long-press clears a player-placed glyph.
 
 import SwiftUI
 

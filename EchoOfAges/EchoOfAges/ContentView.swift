@@ -1,5 +1,11 @@
 // ContentView.swift
 // EchoOfAges
+//
+// Root view of the application. Creates the single GameState instance and
+// injects it as an environment object for the entire view hierarchy.
+//
+// Navigation is a ZStack switch on GameState.currentScreen — no NavigationStack.
+// All screen transitions are driven by animated state changes in GameState.
 
 import SwiftUI
 

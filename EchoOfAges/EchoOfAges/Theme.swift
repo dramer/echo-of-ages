@@ -1,12 +1,32 @@
 // Theme.swift
 // EchoOfAges
 //
-// Add these font files to the Xcode project and list them under
-// "Fonts provided by application" in Info.plist:
-//   Cinzel-Regular.ttf, Cinzel-Bold.ttf
-//   CrimsonText-Regular.ttf, CrimsonText-Italic.ttf, CrimsonText-SemiBold.ttf
-// Download from: https://fonts.google.com/specimen/Cinzel
-//                https://fonts.google.com/specimen/Crimson+Text
+// Centralised design system — colors, fonts, reusable UI components, and
+// haptic feedback helpers used across the entire app.
+//
+// Colors (Color extensions):
+//   stoneDark / stoneMid / stoneLight / stoneSurface — dark earthy stone palette
+//   goldDark / goldMid / goldBright                  — hieroglyphic gold accents
+//   papyrus                                          — warm parchment background
+//   rubyRed                                          — error / penalty highlight
+//
+// Fonts (EgyptFont):
+//   Cinzel (title, titleBold) and Crimson Text (body, bodyItalic) are the
+//   primary typefaces. The app silently falls back to the system font if the
+//   .ttf files are absent. To install:
+//     1. Download from https://fonts.google.com/specimen/Cinzel
+//                  and https://fonts.google.com/specimen/Crimson+Text
+//     2. Drag the .ttf files into Xcode (copy to bundle).
+//     3. List each filename under "Fonts provided by application" in Info.plist.
+//   Required files: Cinzel-Regular.ttf, Cinzel-Bold.ttf,
+//                   CrimsonText-Regular.ttf, CrimsonText-Italic.ttf,
+//                   CrimsonText-SemiBold.ttf
+//
+// Components:
+//   StoneButton      — standard labelled button with stone/gold variants
+//   HapticFeedback   — thin wrapper around UIImpactFeedbackGenerator
+//   acrosticUnderlined(_:letter:) — returns an AttributedString with the first
+//                                   matching letter underlined (acrostic hint)
 
 import SwiftUI
 

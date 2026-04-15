@@ -1,5 +1,11 @@
 // TitleView.swift
-// EchoOfAges — main landing / menu screen
+// EchoOfAges
+//
+// Main landing / menu screen shown after the intro sequence.
+// Presents the game title with a gold glow pulse and three actions:
+//   • Begin / Continue — starts or resumes the Egyptian puzzle track
+//   • Field Diary      — opens JournalView to review unlocked lore entries
+//   • Settings         — opens the settings / debug panel
 
 import SwiftUI
 
