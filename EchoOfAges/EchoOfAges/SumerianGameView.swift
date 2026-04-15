@@ -67,12 +67,12 @@ struct SumerianGameView: View {
                     VStack(spacing: 16) {
                         levelHeader
                         cipherKeyPanel
-                        if !level.scribes.isEmpty {
-                            testimonySection
-                        }
                         tabletSection
                         palette
                         actionRow
+                        if !level.scribes.isEmpty {
+                            testimonySection
+                        }
                         inscriptionsSection
                     }
                     .padding(.horizontal, 18)
