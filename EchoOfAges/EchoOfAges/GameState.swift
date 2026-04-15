@@ -831,11 +831,10 @@ final class GameState: ObservableObject {
     @Published var sumerianPendingComplete: Bool = false
     @Published var sumerianPendingDecodedMessage: String = ""
 
-    /// Level IDs where the player has correctly identified the Egyptian foreign mark,
-    /// unlocking the gated Impressions Known entry for that level.
-    @Published var sumerianForeignMarkUnlocked: Set<Int> = []
-    /// The mark symbol briefly flashing red after a wrong foreign mark pick.
-    @Published var sumerianForeignMarkWrongChoice: String? = nil
+    /// Norse-style cycling index for the Egyptian foreign mark gate.
+    /// nil = unselected ("?"), 0/1/2 = which choice in gate.choices is currently shown.
+    /// Tapping the stone advances the index; the selected choice feeds into sumerianKnownMappings in real time.
+    @Published var sumerianForeignMarkIndex: Int? = nil
 
     /// True after the player deciphers the tablet correctly — waiting for them to
     /// identify which scribe was the truth-teller. Wrong pick = full tablet reset.
@@ -890,9 +889,10 @@ final class GameState: ObservableObject {
     var sumerianKnownMappings: [CuneiformGlyph: CuneiformGlyph] {
         let level = sumerianCurrentLevel
         var mappings: [CuneiformGlyph: CuneiformGlyph] = [:]
-        // Foreign mark gate — adds one impression when the player picks correctly
-        if let gate = level.foreignMarkGate, sumerianForeignMarkUnlocked.contains(level.id) {
-            mappings[gate.encodedSymbol] = gate.decodedSymbol
+        // Foreign mark gate — adds one impression based on currently cycled choice
+        if let gate = level.foreignMarkGate, let idx = sumerianForeignMarkIndex {
+            let choice = gate.choices[idx % gate.choices.count]
+            mappings[gate.encodedSymbol] = choice.decoded
         }
         // Anchor stones and player placements
         for (idx, encoded) in level.encodedSequence.enumerated() {
@@ -925,31 +925,26 @@ final class GameState: ObservableObject {
         sumerianPendingComplete = false
         sumerianAwaitingTruthTellerPick = false
         let level = SumerianLevel.allLevels[sumerianCurrentLevelIndex]
-        sumerianForeignMarkUnlocked.remove(level.id)
-        sumerianForeignMarkWrongChoice = nil
+        sumerianForeignMarkIndex = nil
         resetSumerianDecoded(for: level)
     }
 
     // MARK: Sumerian Foreign Mark Gate
 
-    /// Player taps one of the three Egyptian mark choices in the Impressions Known panel.
-    /// Correct pick unlocks the gated impression. Wrong pick flashes that mark briefly.
-    func pickSumerianForeignMark(_ mark: String) {
+    /// Cycles the Egyptian foreign mark gate to the next choice — Norse-style rotation.
+    /// Tapping the cycling stone advances nil→0→1→2→0. Each index maps to a gate.choices entry,
+    /// whose .decoded value flows directly into sumerianKnownMappings in real time.
+    func advanceSumerianForeignMark() {
         let level = sumerianCurrentLevel
         guard let gate = level.foreignMarkGate else { return }
-        guard !sumerianForeignMarkUnlocked.contains(level.id) else { return }
-
-        if mark == gate.correctChoice {
-            HapticFeedback.success()
-            sumerianForeignMarkUnlocked.insert(level.id)
+        let count = gate.choices.count
+        guard count > 0 else { return }
+        if let current = sumerianForeignMarkIndex {
+            sumerianForeignMarkIndex = (current + 1) % count
         } else {
-            HapticFeedback.error()
-            sumerianForeignMarkWrongChoice = mark
-            Task {
-                try? await Task.sleep(nanoseconds: 800_000_000)
-                sumerianForeignMarkWrongChoice = nil
-            }
+            sumerianForeignMarkIndex = 0
         }
+        HapticFeedback.tap()
     }
 
     // MARK: Sumerian Truth-Teller Pick
@@ -1497,8 +1492,7 @@ final class GameState: ObservableObject {
             sumerianPendingComplete = false
             sumerianPendingDecodedMessage = ""
             sumerianAwaitingTruthTellerPick = false
-            sumerianForeignMarkUnlocked = []
-            sumerianForeignMarkWrongChoice = nil
+            sumerianForeignMarkIndex = nil
             resetSumerianDecoded(for: SumerianLevel.allLevels[0])
             UserDefaults.standard.removeObject(forKey: "EOA_sumerianUnlocked")
 
@@ -2067,8 +2061,7 @@ final class GameState: ObservableObject {
         sumerianPendingComplete = false
         sumerianPendingDecodedMessage = ""
         sumerianAwaitingTruthTellerPick = false
-        sumerianForeignMarkUnlocked = []
-        sumerianForeignMarkWrongChoice = nil
+        sumerianForeignMarkIndex = nil
         resetSumerianDecoded(for: SumerianLevel.allLevels[0])
 
         // ── Maya ──────────────────────────────────────────────────

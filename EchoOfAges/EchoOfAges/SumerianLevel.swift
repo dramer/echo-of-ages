@@ -116,13 +116,12 @@ struct SumerianScribe: Identifiable {
 /// Three candidate marks are shown (one per scribe's claim); only one is correct.
 /// Correct pick → impression fills in. Wrong pick → brief error flash.
 struct ForeignMarkGate {
-    /// The encoded cuneiform symbol whose Impressions Known entry is gated.
+    /// The encoded cuneiform symbol whose Impressions Known entry cycles on tap.
     let encodedSymbol: CuneiformGlyph
-    /// The decoded value revealed when the correct mark is chosen.
-    let decodedSymbol: CuneiformGlyph
-    /// Three Egyptian mark symbols shown as choices (order displayed as-is).
-    let choices: [String]
-    /// The one correct choice — the authentic Egyptian foreign mark.
+    /// Ordered choices: each pairs a foreign mark symbol with what it decodes the gated symbol to.
+    /// Tapping the stone cycles through these in order, wrapping around.
+    let choices: [(mark: String, decoded: CuneiformGlyph)]
+    /// The authentic Egyptian foreign mark — the correct choice.
     let correctChoice: String
 }
 
@@ -227,9 +226,12 @@ extension SumerianLevel {
         ],
         foreignMarkGate: ForeignMarkGate(
             encodedSymbol: .ki,
-            decodedSymbol: .a,
-            choices: ["𓊹", "𓊽", "𓃭"],   // Enlil-bani · Nanna-iddin · Ur-Nammu
-            correctChoice: "𓊹"             // Egypt's Neter — the divine mark
+            choices: [
+                (mark: "𓊹", decoded: .a),    // Enlil-bani — correct (Neter → KI decodes as A)
+                (mark: "𓊽", decoded: .an),   // Nanna-iddin — wrong (Djed)
+                (mark: "𓃭", decoded: .an)    // Ur-Nammu — wrong
+            ],
+            correctChoice: "𓊹"               // Egypt's Neter — the divine mark
         ),
         decodedMessage: "In the great above, AN was fixed and named. Something pressed downward through the clay, seeking the dark waters below the world. Heaven was made real the moment it was written.",
         newGlyphs: [.an, .ki, .a],
