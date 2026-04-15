@@ -5,24 +5,28 @@
 //
 // Mechanic: A clay tablet shows a row of ENCODED cuneiform symbols.
 // Beneath it the player fills in the DECODED symbols.
-// A cipher panel shows discovered symbol mappings as the player progresses.
 //
-// Testimony mechanic: Each level presents 2–3 scribes who have sworn testimony
-// about the cipher key. Exactly one scribe tells the truth on every count.
-// One or more anchors (pre-revealed decoded positions) provide ground truth
-// the player uses to cross-check each scribe's claims and identify the liar(s).
-// Once the truth-teller is confirmed, their claims fill the cipher panel and
-// the tablet unlocks for decoding.
+// Testimony mechanic: Each level presents exactly 3 scribes. Each scribe offers
+// a complete cipher key — a claim for every symbol in the level's alphabet.
+// The player selects one scribe's testimony; their key fills the Impressions Known
+// panel and the tablet unlocks immediately for decoding.
 //
-// Level 1 special: The truth-teller also identifies the Egyptian foreign mark
-// found in the Sumerian ruins — resolving Egypt's key gate.
+// If the player chose the wrong testimony, their decoded positions will be incorrect
+// and the Decipher check will flag them. The player can switch to another scribe —
+// the tablet resets and they try again with the new key.
+//
+// Anchor stones (pre-revealed decoded positions) are physical evidence the player
+// can use to cross-check each scribe's claims before committing.
+//
+// Level 1 special: the truthful scribe also identifies Egypt's foreign mark (𓊹).
+// Level 5: no scribes — two anchors only, pure deduction.
 //
 // Difficulty progression:
-//   L1 — 3 symbols, 1 anchor, 2 scribes (1 liar — contradicts anchor directly)
-//   L2 — 4 symbols, 1 anchor, 2 scribes (1 liar — contradicts anchor directly)
-//   L3 — 4 symbols, 2 anchors, 3 scribes (2 liars — each ruled out by one anchor)
-//   L4 — 5 symbols, 2 anchors, 3 scribes (partial liar — bijection violation)
-//   L5 — 5 symbols, 1 anchor, 3 scribes (bijection violation as only differentiator)
+//   L1 — 3 symbols, 1 anchor, 3 scribes (2 wrong — one contradicts anchor)
+//   L2 — 4 symbols, 1 anchor, 3 scribes (2 wrong — one contradicts anchor)
+//   L3 — 4 symbols, 2 anchors, 3 scribes (2 wrong — each caught by a different anchor)
+//   L4 — 5 symbols, 2 anchors, 3 scribes (bijection violation visible in cipher panel)
+//   L5 — 5 symbols, 2 anchors, no scribes — pure elimination
 
 import Foundation
 
@@ -77,9 +81,7 @@ enum CuneiformGlyph: String, CaseIterable, Codable, Equatable, Hashable, Identif
 
 /// A single claim a scribe makes about one cipher mapping.
 struct ScribeClaim: Equatable {
-    /// The encoded (input) symbol this scribe claims to have deciphered.
     let encoded: CuneiformGlyph
-    /// The decoded (output) symbol this scribe claims the encoded maps to.
     let decoded: CuneiformGlyph
     /// Whether this claim matches the actual cipher key.
     let isTrue: Bool
@@ -87,24 +89,20 @@ struct ScribeClaim: Equatable {
 
 // MARK: - SumerianScribe
 
-/// A court scribe who has sworn testimony about the cipher key.
-/// Exactly one scribe per level is truthful — all their claims are correct.
-/// Liars make at least one false claim that can be detected using the anchor positions.
+/// A court scribe offering a complete cipher key as sworn testimony.
+/// Each level has exactly three scribes. Exactly one is truthful on all counts.
+/// The player selects one testimony to work with — if wrong, Decipher reveals it.
 struct SumerianScribe: Identifiable {
     let id: Int
     let name: String
     let title: String
-    /// Sworn claims about specific cipher mappings.
+    /// Complete cipher key claim — one entry per symbol in the level's alphabet.
     let claims: [ScribeClaim]
-    /// Level 1 only: the Egyptian symbol this scribe claims is the foreign mark
-    /// hidden in the Sumerian ruins. nil on levels 2–5.
+    /// Level 1 only: the Egyptian symbol this scribe claims is the foreign mark.
     let foreignMarkSymbol: String?
-    /// Whether this scribe's foreign mark claim is correct.
-    /// Vacuously true (true) when foreignMarkSymbol is nil.
+    /// Whether this scribe's foreign mark claim is correct (vacuously true if nil).
     let foreignMarkCorrect: Bool
 
-    /// A truthful scribe makes only correct cipher claims and (on Level 1)
-    /// a correct foreign mark claim.
     var isTruthful: Bool {
         claims.allSatisfy { $0.isTrue } && foreignMarkCorrect
     }
@@ -119,20 +117,14 @@ struct SumerianLevel: Identifiable {
     let lore: String
     let inscriptions: [String]
 
-    /// The subset of glyphs used in this level's cipher (3, 4, or 5 symbols).
     let symbols: [CuneiformGlyph]
-
-    /// The encoded sequence shown to the player on the tablet (fixed, never changes).
     let encodedSequence: [CuneiformGlyph]
-
-    /// The hidden one-to-one mapping: encoded symbol → decoded symbol.
     let cipherKey: [CuneiformGlyph: CuneiformGlyph]
 
-    /// Indices where the decoded symbol is pre-revealed as an anchor (ground truth).
-    /// These are the evidence the player uses to cross-check scribe testimony.
+    /// Pre-revealed decoded positions (anchor stones — physical evidence).
     let revealedPositions: Set<Int>
 
-    /// The sworn scribes for this level. Exactly one is truthful.
+    /// Three sworn scribes. Empty on Level 5 (pure deduction).
     let scribes: [SumerianScribe]
 
     let decodedMessage: String
@@ -141,25 +133,16 @@ struct SumerianLevel: Identifiable {
     let journalTitle: String
     let journalBody: String
 
-    /// The full decoded sequence (solution).
-    var solution: [CuneiformGlyph] {
-        encodedSequence.map { cipherKey[$0]! }
-    }
+    var solution: [CuneiformGlyph] { encodedSequence.map { cipherKey[$0]! } }
 
     var romanNumeral: String {
         switch id {
-        case 1: return "I"
-        case 2: return "II"
-        case 3: return "III"
-        case 4: return "IV"
-        case 5: return "V"
-        default: return "\(id)"
+        case 1: return "I";  case 2: return "II"; case 3: return "III"
+        case 4: return "IV"; case 5: return "V";  default: return "\(id)"
         }
     }
 
-    func isRevealed(_ index: Int) -> Bool {
-        revealedPositions.contains(index)
-    }
+    func isRevealed(_ index: Int) -> Bool { revealedPositions.contains(index) }
 
     func isSolved(_ decoded: [CuneiformGlyph?]) -> Bool {
         guard decoded.count == solution.count else { return false }
@@ -168,75 +151,57 @@ struct SumerianLevel: Identifiable {
 }
 
 // MARK: - Level Definitions
-//
-// Key notation:  AN KI A UD GAL
-// Each level's cipherKey is a bijection (one-to-one) over the level's symbol set.
-//
-// Testimony design rule: every liar makes at least one claim that directly
-// contradicts a pre-revealed anchor OR violates the bijection (two symbols
-// claiming the same output). The truth-teller is the only scribe consistent
-// with ALL anchor positions and ALL bijection constraints.
 
 extension SumerianLevel {
     static let allLevels: [SumerianLevel] = [level1, level2, level3, level4, level5]
 
     // ─────────────────────────────────────────────────
-    // LEVEL 1 · 3 symbols · 1 anchor · 4 blanks
+    // LEVEL 1 · 3 symbols · 1 anchor · 3 scribes
     //
-    // Key:   AN→KI   KI→A   A→AN       (cyclic shift)
+    // Key:   AN→KI   KI→A   A→AN
     // Seq:   AN  KI  A   AN  KI  A
     // Sol:   KI  A   AN  KI  A   AN
-    // Anchor: {0}  →  position 0: encoded AN, decoded KI  →  AN→KI revealed
+    // Anchor: {0} → AN decoded as KI → AN→KI confirmed
     //
-    // Scribe Enlil-bani (truthful):
-    //   "AN decodes to KI" ✓  |  "KI decodes to A" ✓  |  foreignMark = 𓊹 ✓
-    // Scribe Nanna-iddin (liar):
-    //   "AN decodes to A" ✗  CONTRADICTS anchor!
-    //   "KI decodes to AN" ✗
-    //   foreignMark = 𓊽 ✗
+    // Scribes (each gives all 3 claims + foreign mark):
+    //   Enlil-bani (true):    AN→KI ✓  KI→A ✓   A→AN ✓   mark=𓊹 ✓
+    //   Nanna-iddin (false):  AN→A  ✗  KI→AN ✗  A→KI ✗   mark=𓊽 ✗  ← anchor catches AN→A
+    //   Ur-Nammu (false):     AN→KI ✓  KI→AN ✗  A→KI ✗   mark=𓃭 ✗  ← anchor doesn't catch; try it
     //
-    // Deduction: anchor shows AN→KI; Nanna-iddin claims AN→A → contradiction
-    //            → Nanna-iddin lies → Enlil-bani is truthful.
-    //            Confirmed: AN→KI, KI→A → A→AN by elimination.
+    // Deduction: Nanna-iddin contradicts anchor (AN→KI). Ur-Nammu agrees with anchor
+    // but his KI→AN is wrong — the player discovers this when Decipher fails.
     // ─────────────────────────────────────────────────
     static let level1 = SumerianLevel(
         id: 1,
         title: "Tablet of Ur-Namma",
         subtitle: "The Sworn Testimonies",
-        lore: "The law code of Ur-Namma is the oldest written law on earth — pressed into clay before any other civilization dared put justice into words. His scribes encoded their records using a substitution cipher. Two scribes have been called to testify before the court. One anchor position is already revealed, showing you one true pairing. Cross-check each scribe's claims against that evidence. Only one speaks the whole truth.",
+        lore: "The law code of Ur-Namma is the oldest written law on earth. His scribes encoded their records using a substitution cipher. Three scribes have been called to testify. One anchor position is already revealed — a confirmed pairing pressed into the clay. Select the testimony you believe, unlock the tablet, and begin decoding. If you are wrong, Decipher will tell you.",
         inscriptions: [
-            "One position on the tablet is already deciphered — an anchor pressed into the clay itself. It shows you one true substitution: which sign it is, and what it becomes. Now read what each scribe has sworn. One of them contradicts that anchor. The contradiction is proof of a lie.",
-            "Enlil-bani and Nanna-iddin cannot both be telling the truth. The anchor shows AN becomes KI. One scribe agrees. The other does not. That disagreement is not ambiguity — it is evidence.",
-            "Once you have identified the truth-teller, his testimony fills two pairings. The third pairing writes itself: only one symbol remains unused as an output. There is only one place it can go.",
-            "I confirmed Enlil-bani first. His claim matched the anchor. Then Nanna-iddin's claim contradicted it directly. Two scribes, one contradiction — it was not difficult to see which one had been bribed."
+            "One position on the tablet is already deciphered — an anchor stone showing one true substitution. Compare it against what each scribe claims for that same symbol. A scribe who contradicts physical evidence has been paid to lie.",
+            "Two scribes agree with the anchor. One does not — eliminate him immediately. Between the remaining two, their cipher keys differ on what KI becomes. Select one and decode. Decipher will confirm or deny your choice.",
+            "If Decipher flags errors, switch to the other testimony. The tablet will reset. Apply the new key and decode again.",
+            "I identified the liar at the anchor stone and chose between the two remaining scribes. One of them also named the Egyptian foreign mark found in the ruins — pressed apart from the inscription, unattached to any word."
         ],
         symbols: [.an, .ki, .a],
         encodedSequence: [.an, .ki, .a, .an, .ki, .a],
         cipherKey: [.an: .ki, .ki: .a, .a: .an],
         revealedPositions: [0],
         scribes: [
-            SumerianScribe(
-                id: 1,
-                name: "Enlil-bani",
-                title: "Royal Scribe of Ur-Namma",
-                claims: [
-                    ScribeClaim(encoded: .an, decoded: .ki, isTrue: true),
-                    ScribeClaim(encoded: .ki, decoded: .a,  isTrue: true)
-                ],
-                foreignMarkSymbol: "𓊹",
-                foreignMarkCorrect: true
-            ),
-            SumerianScribe(
-                id: 2,
-                name: "Nanna-iddin",
-                title: "Temple Archivist of Nanna",
-                claims: [
-                    ScribeClaim(encoded: .an, decoded: .a,  isTrue: false),   // contradicts anchor!
-                    ScribeClaim(encoded: .ki, decoded: .an, isTrue: false)
-                ],
-                foreignMarkSymbol: "𓊽",
-                foreignMarkCorrect: false
-            )
+            SumerianScribe(id: 1, name: "Enlil-bani", title: "Royal Scribe of Ur-Namma",
+                claims: [ScribeClaim(encoded: .an, decoded: .ki, isTrue: true),
+                         ScribeClaim(encoded: .ki, decoded: .a,  isTrue: true),
+                         ScribeClaim(encoded: .a,  decoded: .an, isTrue: true)],
+                foreignMarkSymbol: "𓊹", foreignMarkCorrect: true),
+            SumerianScribe(id: 2, name: "Nanna-iddin", title: "Temple Archivist of Nanna",
+                claims: [ScribeClaim(encoded: .an, decoded: .a,  isTrue: false),  // contradicts anchor!
+                         ScribeClaim(encoded: .ki, decoded: .an, isTrue: false),
+                         ScribeClaim(encoded: .a,  decoded: .ki, isTrue: false)],
+                foreignMarkSymbol: "𓊽", foreignMarkCorrect: false),
+            SumerianScribe(id: 3, name: "Ur-Nammu", title: "Palace Record Keeper",
+                claims: [ScribeClaim(encoded: .an, decoded: .ki, isTrue: true),   // matches anchor
+                         ScribeClaim(encoded: .ki, decoded: .an, isTrue: false),  // wrong — only Decipher reveals
+                         ScribeClaim(encoded: .a,  decoded: .ki, isTrue: false)],
+                foreignMarkSymbol: "𓃭", foreignMarkCorrect: false)
         ],
         decodedMessage: "In the great above, AN was fixed and named. Something pressed downward through the clay, seeking the dark waters below the world. Heaven was made real the moment it was written.",
         newGlyphs: [.an, .ki, .a],
@@ -246,65 +211,57 @@ extension SumerianLevel {
     )
 
     // ─────────────────────────────────────────────────
-    // LEVEL 2 · 4 symbols · 1 anchor · 5 blanks
+    // LEVEL 2 · 4 symbols · 1 anchor · 3 scribes
     //
     // Key:   AN→KI   KI→UD   UD→A   A→AN
     // Seq:   AN  A   UD  KI  AN  KI  A   UD
     // Sol:   KI  AN  A   UD  KI  UD  AN  A
-    // Anchor: {0}  →  position 0: encoded AN, decoded KI  →  AN→KI revealed
+    // Anchor: {0} → AN decoded as KI → AN→KI confirmed
     //
-    // Scribe Ninlil-ama (truthful — gives only 2 of 4 mappings):
-    //   "AN decodes to KI" ✓  |  "KI decodes to UD" ✓
-    // Scribe Ur-Enlil (liar):
-    //   "AN decodes to UD" ✗  CONTRADICTS anchor!
-    //   "KI decodes to A" ✗
+    // Scribes (each gives all 4 claims):
+    //   Ninlil-ama (true):  AN→KI ✓  KI→UD ✓  UD→A ✓   A→AN ✓
+    //   Ur-Enlil (false):   AN→UD ✗  KI→A  ✗  UD→KI ✗  A→AN ✓ (1 accidentally correct)
+    //                       ← anchor catches AN→UD immediately
+    //   Nanna-ama (false):  AN→KI ✓  KI→AN ✗  UD→KI ✗  A→UD ✗
+    //                       ← matches anchor; only Decipher reveals the error
     //
-    // Deduction: anchor shows AN→KI; Ur-Enlil claims AN→UD → contradiction
-    //            → Ur-Enlil lies → Ninlil-ama is truthful.
-    // Confirmed: AN→KI, KI→UD (from scribe) + AN→KI (anchor).
-    // Remaining: A and UD map to {A, AN}. Player deduces from sequence.
-    //   Encoded pos 1 = A, pos 2 = UD, pos 6 = A, pos 7 = UD.
-    //   Try A→AN: pos 1 = AN, pos 6 = AN. Try UD→A: pos 2 = A, pos 7 = A.
-    //   Full solution: KI AN A UD KI UD AN A  ← consistent → correct.
+    // Deduction: Ur-Enlil contradicts anchor. Ninlil-ama and Nanna-ama both match it.
+    // Player picks between the two; wrong one fails on Decipher.
     // ─────────────────────────────────────────────────
     static let level2 = SumerianLevel(
         id: 2,
         title: "Temple of Nanna",
         subtitle: "The Half-Key",
-        lore: "The Moon god Nanna's priests encoded their temple records with a four-sign substitution. Two scribes have been brought before the court. The honest scribe is modest — he will only swear to the two pairings he personally witnessed. The other two substitutions you must work out from the tablet itself. One anchor is pre-revealed. Identify the liar, use what the truth-teller knows, and deduce the rest.",
+        lore: "The Moon god Nanna's priests encoded their temple records with a four-sign substitution. Three scribes have testified. One anchor position reveals a confirmed pairing. One scribe contradicts it immediately — eliminate him. Between the remaining two, select the testimony you believe and decode the tablet.",
         inscriptions: [
-            "The anchor shows you the first pairing. One scribe agrees with it; the other contradicts it. Once the liar is eliminated, you have two confirmed pairings — but four are needed. The remaining two must come from the tablet itself.",
-            "Look at the encoded symbols that are not yet explained by the two known pairings. Which inputs remain? Which outputs have not yet been assigned? In a one-to-one cipher, each output appears exactly once — use that constraint to narrow the possibilities.",
-            "The two unknown mappings each have only two possible answers. Apply one tentatively: does it create a consistent decoded sequence? If the same symbol appears in the solution where you expect it, you are on the right path.",
-            "I found the last two pairings by looking at positions where A and UD appeared as encoded signs. Only two decoded values were left unclaimed. One arrangement made the inscription coherent. The other did not."
+            "The anchor at position one shows you what AN truly becomes. One scribe contradicts this directly — he is the liar. The other two both agree with the anchor but differ on what KI, UD, and A become.",
+            "Select one of the two consistent testimonies and decode the tablet. Decipher will confirm your choice. If it fails, switch to the other testimony — the tablet resets and you try again with the new cipher key.",
+            "Four symbols, four substitutions. The full key is in one of the testimonies. Trust the anchor to eliminate one scribe. Trust Decipher to confirm the other.",
+            "The moon's light revealed the liar at the first stone. Between the remaining two testimonies, I chose the one whose KI-claim felt consistent with the pattern. Decipher confirmed it."
         ],
         symbols: [.an, .ki, .a, .ud],
         encodedSequence: [.an, .a, .ud, .ki, .an, .ki, .a, .ud],
         cipherKey: [.an: .ki, .ki: .ud, .ud: .a, .a: .an],
         revealedPositions: [0],
         scribes: [
-            SumerianScribe(
-                id: 1,
-                name: "Ninlil-ama",
-                title: "Moon Temple Recordkeeper",
-                claims: [
-                    ScribeClaim(encoded: .an, decoded: .ki, isTrue: true),
-                    ScribeClaim(encoded: .ki, decoded: .ud, isTrue: true)
-                ],
-                foreignMarkSymbol: nil,
-                foreignMarkCorrect: true
-            ),
-            SumerianScribe(
-                id: 2,
-                name: "Ur-Enlil",
-                title: "Archive Deputy",
-                claims: [
-                    ScribeClaim(encoded: .an, decoded: .ud, isTrue: false),   // contradicts anchor!
-                    ScribeClaim(encoded: .ki, decoded: .a,  isTrue: false)
-                ],
-                foreignMarkSymbol: nil,
-                foreignMarkCorrect: true
-            )
+            SumerianScribe(id: 1, name: "Ninlil-ama", title: "Moon Temple Recordkeeper",
+                claims: [ScribeClaim(encoded: .an, decoded: .ki, isTrue: true),
+                         ScribeClaim(encoded: .ki, decoded: .ud, isTrue: true),
+                         ScribeClaim(encoded: .ud, decoded: .a,  isTrue: true),
+                         ScribeClaim(encoded: .a,  decoded: .an, isTrue: true)],
+                foreignMarkSymbol: nil, foreignMarkCorrect: true),
+            SumerianScribe(id: 2, name: "Ur-Enlil", title: "Archive Deputy",
+                claims: [ScribeClaim(encoded: .an, decoded: .ud, isTrue: false),  // contradicts anchor!
+                         ScribeClaim(encoded: .ki, decoded: .a,  isTrue: false),
+                         ScribeClaim(encoded: .ud, decoded: .ki, isTrue: false),
+                         ScribeClaim(encoded: .a,  decoded: .an, isTrue: true)],  // 1 accidentally correct
+                foreignMarkSymbol: nil, foreignMarkCorrect: true),
+            SumerianScribe(id: 3, name: "Nanna-ama", title: "Tablet House Warden",
+                claims: [ScribeClaim(encoded: .an, decoded: .ki, isTrue: true),   // matches anchor
+                         ScribeClaim(encoded: .ki, decoded: .an, isTrue: false),  // wrong — Decipher reveals
+                         ScribeClaim(encoded: .ud, decoded: .ki, isTrue: false),
+                         ScribeClaim(encoded: .a,  decoded: .ud, isTrue: false)],
+                foreignMarkSymbol: nil, foreignMarkCorrect: true)
         ],
         decodedMessage: "In the great below, KI was planted and known. The Moon measured its depths and found: what grows in the dark grows as surely as what grows in the light. Time, it seems, has roots that go very deep.",
         newGlyphs: [.ud],
@@ -314,82 +271,55 @@ extension SumerianLevel {
     )
 
     // ─────────────────────────────────────────────────
-    // LEVEL 3 · 4 symbols · 2 anchors · 5 blanks
+    // LEVEL 3 · 4 symbols · 2 anchors · 3 scribes
     //
     // Key:   AN→A   KI→AN   A→UD   UD→KI
     // Seq:   KI  AN  UD  A   KI  A   AN  UD
     // Sol:   AN  A   KI  UD  AN  UD  A   KI
-    // Anchors: {0, 2}
-    //   position 0: encoded KI, decoded AN  →  KI→AN
-    //   position 2: encoded UD, decoded KI  →  UD→KI
+    // Anchors: {0} KI→AN  |  {2} UD→KI
     //
-    // Scribe Adad-shuma (truthful):
-    //   "KI decodes to AN" ✓  |  "AN decodes to A" ✓  |  "A decodes to UD" ✓
-    // Scribe Enlil-iqisha (liar):
-    //   "KI decodes to A" ✗  CONTRADICTS anchor 1!
-    //   "AN decodes to KI" ✗
-    //   "A decodes to AN" ✗
-    // Scribe Anu-balassu (liar):
-    //   "KI decodes to AN" ✓  (matches anchor 1)
-    //   "AN decodes to UD" ✗
-    //   "UD decodes to AN" ✗  CONTRADICTS anchor 2!
+    // Scribes (each gives all 4 claims):
+    //   Adad-shuma (true):    KI→AN ✓  AN→A ✓   A→UD ✓   UD→KI ✓
+    //   Enlil-iqisha (false): KI→A  ✗  AN→KI ✗  A→AN ✗   UD→AN ✗  ← anchor 1 catches KI→A
+    //   Anu-balassu (false):  KI→AN ✓  AN→UD ✗  A→KI ✗   UD→AN ✗  ← anchor 2 catches UD→AN
     //
-    // Deduction: Enlil-iqisha says KI→A, anchor 1 shows KI→AN → eliminated.
-    //            Anu-balassu says UD→AN, anchor 2 shows UD→KI → eliminated.
-    //            Only Adad-shuma is consistent with both anchors → truthful.
+    // Deduction: two anchors, two liars — each caught by a different anchor.
+    // Only Adad-shuma survives both. Player can verify before selecting.
     // ─────────────────────────────────────────────────
     static let level3 = SumerianLevel(
         id: 3,
         title: "Sacred Precinct of Nippur",
         subtitle: "The Court of Two Witnesses",
-        lore: "Nippur's archives were protected by a different cipher rotation — not the same as the Moon Temple's. Three scribes have been called to testify, but two have been paid to mislead. Two anchor positions are revealed in the tablet. Each liar contradicts one of them. Your task: use both anchors to eliminate both liars and find the single scribe whose testimony survives all scrutiny.",
+        lore: "Nippur's archives used a different cipher rotation. Three scribes have testified, two of them paid to mislead. Two anchor positions are revealed — enough physical evidence to rule out both liars. Each liar contradicts a different anchor. Select the testimony that survives both checks, then decode the inscription.",
         inscriptions: [
-            "Two anchor positions are deciphered in the tablet — two confirmed pairings. Read each one carefully: which encoded sign, which decoded sign. Now read each scribe's testimony. Each liar contradicts exactly one anchor. If a scribe claims a pairing that the tablet itself contradicts — that scribe has lied.",
-            "Enlil-iqisha makes a claim about KI. The first anchor shows what KI actually becomes. Compare them. Anu-balassu makes a claim about UD. The second anchor shows what UD actually becomes. Compare that too. One truth-teller survives both comparisons.",
-            "Once the two liars are eliminated, the truth-teller's remaining claims fill three pairings. The fourth writes itself. With all four substitutions known, work across every blank position in the tablet.",
-            "Three scribes. Two anchors. Two liars, one for each anchor. I eliminated Enlil-iqisha at the first stone, Anu-balassu at the second. Adad-shuma was the only one left standing."
+            "Two anchor positions are deciphered in the tablet. The first shows what KI becomes. The second shows what UD becomes. Check each scribe's claims against both anchors. A scribe who contradicts either is lying.",
+            "Enlil-iqisha makes a claim about KI — check it against the first anchor. Anu-balassu makes a claim about UD — check it against the second. One truth-teller survives both checks.",
+            "Select the testimony that agrees with both anchors, then decode the tablet. If you chose correctly, Decipher will confirm it. The fourth substitution — the one neither anchor shows — follows from what remains after the other three are known.",
+            "Three scribes, two anchors, two liars. I eliminated them one at a time at the anchor stones. Adad-shuma was the only one left standing."
         ],
         symbols: [.an, .ki, .a, .ud],
         encodedSequence: [.ki, .an, .ud, .a, .ki, .a, .an, .ud],
         cipherKey: [.an: .a, .ki: .an, .a: .ud, .ud: .ki],
         revealedPositions: [0, 2],
         scribes: [
-            SumerianScribe(
-                id: 1,
-                name: "Adad-shuma",
-                title: "Archive Master of Nippur",
-                claims: [
-                    ScribeClaim(encoded: .ki, decoded: .an, isTrue: true),
-                    ScribeClaim(encoded: .an, decoded: .a,  isTrue: true),
-                    ScribeClaim(encoded: .a,  decoded: .ud, isTrue: true)
-                ],
-                foreignMarkSymbol: nil,
-                foreignMarkCorrect: true
-            ),
-            SumerianScribe(
-                id: 2,
-                name: "Enlil-iqisha",
-                title: "Deputy Recordkeeper",
-                claims: [
-                    ScribeClaim(encoded: .ki, decoded: .a,  isTrue: false),   // contradicts anchor 1!
-                    ScribeClaim(encoded: .an, decoded: .ki, isTrue: false),
-                    ScribeClaim(encoded: .a,  decoded: .an, isTrue: false)
-                ],
-                foreignMarkSymbol: nil,
-                foreignMarkCorrect: true
-            ),
-            SumerianScribe(
-                id: 3,
-                name: "Anu-balassu",
-                title: "Tablet Room Keeper",
-                claims: [
-                    ScribeClaim(encoded: .ki, decoded: .an, isTrue: true),    // matches anchor 1
-                    ScribeClaim(encoded: .an, decoded: .ud, isTrue: false),
-                    ScribeClaim(encoded: .ud, decoded: .an, isTrue: false)    // contradicts anchor 2!
-                ],
-                foreignMarkSymbol: nil,
-                foreignMarkCorrect: true
-            )
+            SumerianScribe(id: 1, name: "Adad-shuma", title: "Archive Master of Nippur",
+                claims: [ScribeClaim(encoded: .ki, decoded: .an, isTrue: true),
+                         ScribeClaim(encoded: .an, decoded: .a,  isTrue: true),
+                         ScribeClaim(encoded: .a,  decoded: .ud, isTrue: true),
+                         ScribeClaim(encoded: .ud, decoded: .ki, isTrue: true)],
+                foreignMarkSymbol: nil, foreignMarkCorrect: true),
+            SumerianScribe(id: 2, name: "Enlil-iqisha", title: "Deputy Recordkeeper",
+                claims: [ScribeClaim(encoded: .ki, decoded: .a,  isTrue: false),  // contradicts anchor 1!
+                         ScribeClaim(encoded: .an, decoded: .ki, isTrue: false),
+                         ScribeClaim(encoded: .a,  decoded: .an, isTrue: false),
+                         ScribeClaim(encoded: .ud, decoded: .an, isTrue: false)],
+                foreignMarkSymbol: nil, foreignMarkCorrect: true),
+            SumerianScribe(id: 3, name: "Anu-balassu", title: "Tablet Room Keeper",
+                claims: [ScribeClaim(encoded: .ki, decoded: .an, isTrue: true),   // matches anchor 1
+                         ScribeClaim(encoded: .an, decoded: .ud, isTrue: false),
+                         ScribeClaim(encoded: .a,  decoded: .ki, isTrue: false),
+                         ScribeClaim(encoded: .ud, decoded: .an, isTrue: false)],  // contradicts anchor 2!
+                foreignMarkSymbol: nil, foreignMarkCorrect: true)
         ],
         decodedMessage: "What reaches upward also reaches downward. As AN is above, KI is below. As the branch grows outward, the root grows inward. The priests of Nippur knew: the world is divided into invisible chambers, and all of them are full.",
         newGlyphs: [],
@@ -399,86 +329,62 @@ extension SumerianLevel {
     )
 
     // ─────────────────────────────────────────────────
-    // LEVEL 4 · 5 symbols · 2 anchors · 6 blanks
+    // LEVEL 4 · 5 symbols · 2 anchors · 3 scribes
     //
     // Key:   AN→GAL   KI→AN   A→KI   UD→A   GAL→UD
     // Seq:   AN  KI  A   UD  GAL  AN  A   KI  GAL  UD
     // Sol:   GAL AN  KI  A   UD   GAL KI  AN  UD   A
-    // Anchors: {0, 3}
-    //   position 0: encoded AN, decoded GAL  →  AN→GAL
-    //   position 3: encoded UD, decoded A    →  UD→A
+    // Anchors: {0} AN→GAL  |  {3} UD→A
     //
-    // Scribe Marduk-nadin (truthful):
-    //   "AN→GAL" ✓  |  "KI→AN" ✓  |  "A→KI" ✓  |  "UD→A" ✓
-    // Scribe Enlil-nasir (liar):
-    //   "AN→KI" ✗  CONTRADICTS anchor 1!
-    //   "KI→A" ✗
-    //   "A→AN" ✗
-    // Scribe Adad-apla (partial liar — bijection violation):
-    //   "AN→GAL" ✓  (matches anchor 1)
-    //   "UD→A" ✓   (matches anchor 2)
-    //   "KI→GAL" ✗  GAL is already AN's output — cannot be KI's output too.
-    //               This is a bijection violation, not just a factual error.
+    // Scribes (each gives all 5 claims):
+    //   Marduk-nadin (true):  AN→GAL ✓  KI→AN ✓  A→KI ✓   UD→A ✓   GAL→UD ✓
+    //   Enlil-nasir (false):  AN→KI  ✗  KI→A  ✗  A→AN ✗   UD→KI ✗  GAL→UD ✓ (1 correct)
+    //                         ← anchor 1 catches AN→KI immediately
+    //   Adad-apla (false):    AN→GAL ✓  KI→GAL ✗  A→AN ✗  UD→A ✓   GAL→KI ✗
+    //                         ← both anchors match! But cipher panel shows AN→GAL AND KI→GAL
+    //                           — same output twice = bijection violation visible in the panel
     //
-    // Deduction: Enlil-nasir says AN→KI, anchor 1 shows AN→GAL → eliminated.
-    //            Adad-apla's third claim "KI→GAL" is impossible: AN→GAL (anchor)
-    //            already uses GAL as an output; a one-to-one cipher cannot assign
-    //            GAL to KI as well → bijection violation → eliminated.
-    //            Only Marduk-nadin remains → truthful.
+    // Deduction: Enlil-nasir caught by anchor 1. Adad-apla matches both anchors but
+    // assigns GAL to two inputs — the bijection violation is visible when his key fills
+    // the cipher panel. Only Marduk-nadin is fully consistent.
     // ─────────────────────────────────────────────────
     static let level4 = SumerianLevel(
         id: 4,
         title: "Ziggurat of Eridu",
         subtitle: "The Five-Step Descent",
-        lore: "Eridu's ziggurat had seven levels, but its cipher used five. Three scribes have testified — one honest, one who contradicts the physical evidence, and one who has made a subtler error: he has assigned the same output symbol to two different inputs. In a true substitution cipher, every input maps to a unique output. A cipher that assigns the same output twice is no cipher at all.",
+        lore: "Eridu's ziggurat had seven levels; its cipher used five signs. Three scribes have testified. Two anchor positions are revealed. One scribe contradicts the first anchor. A second scribe agrees with both anchors — but his cipher key assigns the same output to two different inputs, which is impossible in a true substitution cipher. Select the testimony with no contradictions and no repeated outputs.",
         inscriptions: [
-            "Two anchor positions are revealed. They show you two confirmed pairings. Read each scribe's testimony carefully. Enlil-nasir contradicts one anchor directly. Adad-apla's claims are trickier — he agrees with both anchors, but one of his other claims assigns an output that is already taken. In a one-to-one cipher, every output can only appear once.",
-            "The key insight: the first anchor already tells you what AN maps to. If any scribe then claims that a different sign also maps to that same output, that scribe has made a logical error. The cipher cannot assign the same output to two inputs. This is the flaw to find.",
-            "Once both false scribes are eliminated, the truth-teller's four claims fill four pairings. The fifth writes itself: the remaining input and the remaining output belong together.",
-            "I recognized Adad-apla's error when I checked his third claim against the first anchor stone. The output he named for KI was already spoken for. He had not thought his false testimony all the way through. A liar's trap: consistency requires more effort than honesty."
+            "Two anchors are revealed. Check each scribe's claim for AN against anchor one, and for UD against anchor two. One scribe fails immediately at anchor one.",
+            "The second liar is subtler: his claims match both anchors, but when his key fills the cipher panel, look carefully. Two different encoded signs map to the same decoded sign. In a one-to-one cipher, every output can only appear once. That is the forgery.",
+            "Only one testimony has no anchor contradictions and no repeated outputs. Select it and decode the ten-position inscription.",
+            "I found the bijection violation when the cipher panel showed the same sign appearing as an output twice. No true cipher does that. I switched to the third testimony and Decipher confirmed it."
         ],
         symbols: [.an, .ki, .a, .ud, .gal],
         encodedSequence: [.an, .ki, .a, .ud, .gal, .an, .a, .ki, .gal, .ud],
         cipherKey: [.an: .gal, .ki: .an, .a: .ki, .ud: .a, .gal: .ud],
         revealedPositions: [0, 3],
         scribes: [
-            SumerianScribe(
-                id: 1,
-                name: "Marduk-nadin",
-                title: "Chief Scribe of Eridu",
-                claims: [
-                    ScribeClaim(encoded: .an,  decoded: .gal, isTrue: true),
-                    ScribeClaim(encoded: .ki,  decoded: .an,  isTrue: true),
-                    ScribeClaim(encoded: .a,   decoded: .ki,  isTrue: true),
-                    ScribeClaim(encoded: .ud,  decoded: .a,   isTrue: true)
-                ],
-                foreignMarkSymbol: nil,
-                foreignMarkCorrect: true
-            ),
-            SumerianScribe(
-                id: 2,
-                name: "Enlil-nasir",
-                title: "Tablet House Warden",
-                claims: [
-                    ScribeClaim(encoded: .an,  decoded: .ki,  isTrue: false),   // contradicts anchor 1!
-                    ScribeClaim(encoded: .ki,  decoded: .a,   isTrue: false),
-                    ScribeClaim(encoded: .a,   decoded: .an,  isTrue: false)
-                ],
-                foreignMarkSymbol: nil,
-                foreignMarkCorrect: true
-            ),
-            SumerianScribe(
-                id: 3,
-                name: "Adad-apla",
-                title: "Junior Archivist",
-                claims: [
-                    ScribeClaim(encoded: .an,  decoded: .gal, isTrue: true),    // matches anchor 1
-                    ScribeClaim(encoded: .ud,  decoded: .a,   isTrue: true),    // matches anchor 2
-                    ScribeClaim(encoded: .ki,  decoded: .gal, isTrue: false)    // bijection violation! GAL already taken by AN
-                ],
-                foreignMarkSymbol: nil,
-                foreignMarkCorrect: true
-            )
+            SumerianScribe(id: 1, name: "Marduk-nadin", title: "Chief Scribe of Eridu",
+                claims: [ScribeClaim(encoded: .an,  decoded: .gal, isTrue: true),
+                         ScribeClaim(encoded: .ki,  decoded: .an,  isTrue: true),
+                         ScribeClaim(encoded: .a,   decoded: .ki,  isTrue: true),
+                         ScribeClaim(encoded: .ud,  decoded: .a,   isTrue: true),
+                         ScribeClaim(encoded: .gal, decoded: .ud,  isTrue: true)],
+                foreignMarkSymbol: nil, foreignMarkCorrect: true),
+            SumerianScribe(id: 2, name: "Enlil-nasir", title: "Tablet House Warden",
+                claims: [ScribeClaim(encoded: .an,  decoded: .ki,  isTrue: false),  // contradicts anchor 1!
+                         ScribeClaim(encoded: .ki,  decoded: .a,   isTrue: false),
+                         ScribeClaim(encoded: .a,   decoded: .an,  isTrue: false),
+                         ScribeClaim(encoded: .ud,  decoded: .ki,  isTrue: false),
+                         ScribeClaim(encoded: .gal, decoded: .ud,  isTrue: true)],  // 1 accidentally correct
+                foreignMarkSymbol: nil, foreignMarkCorrect: true),
+            SumerianScribe(id: 3, name: "Adad-apla", title: "Junior Archivist",
+                claims: [ScribeClaim(encoded: .an,  decoded: .gal, isTrue: true),   // matches anchor 1
+                         ScribeClaim(encoded: .ki,  decoded: .gal, isTrue: false),  // bijection! GAL used twice
+                         ScribeClaim(encoded: .a,   decoded: .an,  isTrue: false),
+                         ScribeClaim(encoded: .ud,  decoded: .a,   isTrue: true),   // matches anchor 2
+                         ScribeClaim(encoded: .gal, decoded: .ki,  isTrue: false)],
+                foreignMarkSymbol: nil, foreignMarkCorrect: true)
         ],
         decodedMessage: "What grows toward AN-GAL — the great heaven — also grows toward KI-GAL — the great earth. The ziggurat reaches in both directions at once — seven levels descending into the earth, seven levels ascending into heaven, the middle level the world where people live. All growth has two directions. All things reach both ways.",
         newGlyphs: [.gal],
@@ -488,36 +394,28 @@ extension SumerianLevel {
     )
 
     // ─────────────────────────────────────────────────
-    // LEVEL 5 · 5 symbols · 2 anchors · 8 blanks · NO SCRIBES
+    // LEVEL 5 · 5 symbols · 2 anchors · NO SCRIBES
     //
     // Key:   AN→UD   KI→GAL   A→AN   UD→KI   GAL→A
     // Seq:   AN  KI  A   UD  GAL  AN  KI  GAL  A   UD  KI  AN
     // Sol:   UD  GAL AN  KI  A    UD  GAL A    AN  KI  GAL UD
-    // Anchors: {0, 1}
-    //   position 0: encoded AN, decoded UD  →  AN→UD
-    //   position 1: encoded KI, decoded GAL →  KI→GAL
+    // Anchors: {0} AN→UD  |  {1} KI→GAL
     //
-    // NO SCRIBES. The scribes have left. Two anchors are all that remain.
-    //
-    // Deduction from anchors alone:
-    //   AN→UD and KI→GAL are known. Outputs used: UD, GAL.
+    // No scribes. Pure deduction from 2 anchors + bijection elimination.
+    //   Known: AN→UD, KI→GAL. Outputs used: UD, GAL.
     //   Remaining inputs: A, UD, GAL. Remaining outputs: AN, KI, A.
-    //   Look at the sequence — encoded A appears at positions 2, 8.
-    //   Look at encoded UD: position 3. Look at encoded GAL: positions 4, 7.
-    //   From bijection: A→{AN, KI, or A}. UD→{AN, KI, or A}. GAL→{AN, KI, or A}.
-    //   Each remaining output used exactly once across these three inputs.
-    //   Step: UD→KI, A→AN, GAL→A are the only valid bijection. Verify against sol.
+    //   From structure: UD→KI, A→AN, GAL→A (only valid bijection).
     // ─────────────────────────────────────────────────
     static let level5 = SumerianLevel(
         id: 5,
         title: "The Great Descent",
         subtitle: "Inanna's Silence",
-        lore: "Inanna descended through seven gates. At each gate she surrendered one truth — crown, robe, lapis beads, breastplate, ring, scepter, robe of ladyship — until at the bottom she held nothing and understood everything. The scribes who kept her cipher have gone. No testimony remains. Only two anchor stones are pressed into the clay. From them, and from the structure of the cipher itself, everything must be deduced.",
+        lore: "Inanna descended through seven gates. At each she surrendered one truth — until at the bottom she held nothing and understood everything. The scribes who kept her cipher have gone. No testimony remains. Only two anchor stones are pressed into the clay. From them, and from the structure of the cipher itself, everything must be deduced.",
         inscriptions: [
-            "Two anchor positions are revealed — the only evidence remaining. Each gives one confirmed pairing: one encoded sign and what it becomes. Write them down. Five inputs, five outputs, two already known. Three pairs remain to be found.",
-            "Identify the three remaining inputs — the encoded signs not yet explained by the two anchors. Identify the three remaining outputs — the decoded signs not yet assigned to any input. In a one-to-one cipher, each of the three remaining inputs must take one of the three remaining outputs. There are only six possible arrangements. Eliminate impossible ones.",
-            "Look at the tablet. Which encoded signs appear most often? Where does each unknown encoded sign appear in the sequence? If you tentatively assign an output to an input, does the resulting decoded sequence look internally consistent? Every symbol appearing multiple times as the same encoded sign must decode to the same value, every time.",
-            "Inanna gave up everything to gain understanding. Here: the testimonies are gone, the witnesses have fled, the court is empty. Only the marks in the clay remain. The cipher yields its last secret not through trust — but through logic alone."
+            "Two anchor positions are revealed — the only evidence remaining. Each gives one confirmed pairing. Write them down. Five inputs, five outputs, two already known. Three pairs remain to be found.",
+            "Identify the three remaining inputs — the encoded signs not yet explained. Identify the three remaining outputs — the decoded signs not yet assigned. Each remaining input takes one remaining output. Eliminate impossible arrangements.",
+            "Look at the tablet. Where does each unknown encoded sign appear? If you tentatively assign an output to an input, does the resulting decoded sequence remain internally consistent? Every encoded sign must decode to the same value wherever it appears.",
+            "Inanna gave up everything to gain understanding. Here: the testimonies are gone, the witnesses have fled. Only the marks in the clay remain. The cipher yields its last secret not through trust — but through logic alone."
         ],
         symbols: [.an, .ki, .a, .ud, .gal],
         encodedSequence: [.an, .ki, .a, .ud, .gal, .an, .ki, .gal, .a, .ud, .ki, .an],
