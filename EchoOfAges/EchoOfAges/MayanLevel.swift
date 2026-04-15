@@ -327,7 +327,7 @@ extension MayanLevel {
             )
         ],
         sequenceLength: 8,
-        decodedMessage: "The fourth root is the root of IK — wind, breath, the invisible force that moves all visible things. The World Tree does not grow into the sky. The sky grows around the Tree. Every breath a human takes is the sky acknowledging the Tree at the centre of the world. IK is the proof.",
+        decodedMessage: "The fourth root is the root of IK — wind, breath, the invisible force that moves all visible things. Wakah-Chan does not grow into the sky. The sky grows around it. Every breath a human takes is the sky acknowledging what stands at the centre of the world. IK is the proof.",
         newGlyphs: [],
         artifact: "wind",
         journalTitle: "Arriving Mid-Cycle",
@@ -358,7 +358,7 @@ extension MayanLevel {
             "Running at once: three wheels with independent periods of three, four, and five. Together they do not repeat for sixty positions — you see nine. Solve each row entirely on its own terms: find the period, locate the revealed anchors within it, and fill the blanks.",
             "The Sun Wheel is period 3: KIN, IMIX, IK repeating. Five positions are revealed — more than enough to confirm the rhythm. The two blanks in the middle and the two near the end follow directly from the pattern.",
             "The Year Wheel is period 4: HAAB, TZʼ, KIN, IMIX repeating. Five positions revealed. The four blanks all fall in positions not yet shown — use the period to locate each one in the cycle.",
-            "The Long Wheel is period 5, all five glyphs in order. Six positions revealed across nine total. The three blanks are at positions 3, 4, and 8 — all uniquely determined. When all three rows are filled, you have decoded the Calendar Round: the great machine that the Maya used to measure the breath of the World Tree."
+            "The Long Wheel is period 5, all five glyphs in order. Six positions revealed across nine total. The three blanks are at positions 3, 4, and 8 — all uniquely determined. When all three rows are filled, you have decoded the Calendar Round: the great machine that the Maya used to measure the breath of the world."
         ],
         cycles: [
             MayanCycle(
@@ -381,7 +381,7 @@ extension MayanLevel {
             )
         ],
         sequenceLength: 9,
-        decodedMessage: "The tree does not grow — it turns. The World Tree is the axle of the world, and the world is the wheel. Every ending is the beginning of the same cycle wearing a different name. KIN returns. HAAB returns. The Calendar Round returns every fifty-two years. The Tree has been turning since before the first human opened their eyes. It will be turning after the last one closes theirs. Stand at the centre. Feel it turn.",
+        decodedMessage: "Wakah-Chan does not grow — it turns. The World Tree is the axle of the world, and the world is the wheel. Every ending is the beginning of the same cycle wearing a different name. KIN returns. HAAB returns. The Calendar Round returns every fifty-two years. Wakah-Chan has been turning since before the first human opened their eyes. It will be turning after the last one closes theirs. Stand at the centre. Feel it turn.",
         newGlyphs: [],
         artifact: "globe.americas.fill",
         journalTitle: "The Calendar Round",

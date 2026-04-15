@@ -22,6 +22,9 @@ struct PathGameView: View {
     @State private var idleHintTask:  Task<Void, Never>? = nil
     @State private var hasInteracted: Bool = false
 
+    // Inscription panel
+    @State private var showRuneInscriptions: Bool = false
+
     // MARK: Body
 
     var body: some View {
@@ -40,6 +43,13 @@ struct PathGameView: View {
                     completionOverlay
                         .transition(.opacity)
                         .zIndex(8)
+                }
+
+                // Inscription panel overlay
+                if showRuneInscriptions {
+                    runeInscriptionPanel
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .zIndex(7)
                 }
 
                 // Toast overlay
@@ -158,6 +168,12 @@ struct PathGameView: View {
             }
             norseToolbarButton(icon: "arrow.counterclockwise", label: "Clear") {
                 gameState.resetNorsePath()
+            }
+            norseToolbarButton(icon: showRuneInscriptions ? "scroll.fill" : "scroll",
+                               label: "Runes") {
+                withAnimation(.spring(response: 0.38, dampingFraction: 0.78)) {
+                    showRuneInscriptions.toggle()
+                }
             }
             norseToolbarButton(icon: "gearshape.fill", label: "Settings") {
                 gameState.openSettings()
@@ -586,6 +602,81 @@ struct PathGameView: View {
         idleHintTask = nil
     }
 
+    // MARK: Rune Inscription Panel
+
+    private var runeInscriptionPanel: some View {
+        let level    = gameState.norseCurrentLevel
+        let acrostic = TreeOfLifeKeys.acrosticLetter(for: .norse,
+                                                     levelIndex: gameState.norseCurrentLevelIndex)
+        return VStack(spacing: 0) {
+            Spacer()
+            VStack(spacing: 0) {
+                // Handle / title bar
+                HStack {
+                    Text("RUNESTONE INSCRIPTION")
+                        .font(EgyptFont.title(12))
+                        .tracking(2)
+                        .foregroundStyle(Color(red: 0.55, green: 0.85, blue: 1.0))
+                    Spacer()
+                    Button {
+                        withAnimation(.spring(response: 0.38, dampingFraction: 0.78)) {
+                            showRuneInscriptions = false
+                        }
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 20))
+                            .foregroundStyle(Color.white.opacity(0.38))
+                    }
+                }
+                .padding(.horizontal, 18)
+                .padding(.top, 14)
+                .padding(.bottom, 10)
+
+                Divider()
+                    .background(Color(red: 0.45, green: 0.75, blue: 1.0).opacity(0.20))
+
+                // Inscriptions with acrostic underline on the first note
+                ScrollView(showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 14) {
+                        ForEach(Array(level.inscriptions.enumerated()), id: \.offset) { i, note in
+                            Group {
+                                if i == 0 {
+                                    Text(acrosticUnderlined(note, letter: acrostic))
+                                } else {
+                                    Text(note)
+                                }
+                            }
+                            .font(EgyptFont.bodyItalic(15))
+                            .foregroundStyle(Color(red: 0.85, green: 0.92, blue: 1.0).opacity(0.80))
+                            .lineSpacing(4)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+
+                            if i < level.inscriptions.count - 1 {
+                                Divider()
+                                    .background(Color.white.opacity(0.08))
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 18)
+                    .padding(.vertical, 14)
+                }
+                .frame(maxHeight: 220)
+            }
+            .background(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(Color(red: 0.05, green: 0.10, blue: 0.18).opacity(0.97))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .stroke(Color(red: 0.45, green: 0.75, blue: 1.0).opacity(0.22), lineWidth: 1)
+                    )
+            )
+            .shadow(color: .black.opacity(0.55), radius: 14, x: 0, y: -5)
+            .padding(.horizontal, 8)
+            .padding(.bottom, 8)
+        }
+        .ignoresSafeArea(edges: .bottom)
+    }
+
     // MARK: Background
 
     private var norseBackground: some View {
@@ -741,8 +832,10 @@ private struct PathCellView: View {
         } else if let wp = waypoint {
             // Waypoint — show rune symbol + small label
             let reached = isInPath
+            // Keep showing the mystery mark symbol after the start cell is placed in the path
+            let displayRune = (mysteryMarkSymbol != nil && wp.isStart) ? (mysteryMarkSymbol ?? wp.rune) : wp.rune
             VStack(spacing: 1) {
-                Text(wp.rune)
+                Text(displayRune)
                     .font(.system(size: size * 0.42))
                     .foregroundStyle(reached
                         ? Color(red: 0.40, green: 0.95, blue: 0.65)

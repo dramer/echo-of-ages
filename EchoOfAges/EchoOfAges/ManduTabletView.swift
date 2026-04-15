@@ -1,43 +1,23 @@
 // ManduTabletView.swift
 // EchoOfAges
 //
-// The Tablet of Mandu — the final puzzle of Echo of Ages.
+// The Tablet of Mandu — the final mastermind puzzle of Echo of Ages.
 //
-// The player has six civilization stones, each earned by completing a
-// civilization's puzzles. The stones must be placed on the tablet in the
-// correct left-to-right order matching the parts of the Tree of Life.
+// Seven symbols. Six rows. Six slots per row.
+// Six of the seven belong in the tablet — one does not.
+// The player must find the correct six AND their correct order.
+// The Ramer mark ᚱ is always the symbol left over.
 //
-// Feedback is Mastermind-style: the player fills all six slots and submits.
-// They learn how many are in the right position — but NOT which ones.
-// Each failed attempt is recorded as a history row. The reveal triggers
-// only when all six are placed correctly.
+// Each row is one attempt. After all six symbols are placed, submit to
+// see how many are in the right position (●) and how many are the right
+// symbol but in the wrong position (○). Six chances to solve it.
+// If the sixth row is submitted without a solution, the board resets.
 
 import SwiftUI
 
-// MARK: - Tree Slot Data
+// MARK: - Peg state
 
-private struct TreeSlotInfo {
-    let index: Int
-    let part: String
-    let subtitle: String
-}
-
-private let treeSlots: [TreeSlotInfo] = [
-    TreeSlotInfo(index: 0, part: "Roots",    subtitle: "Before the flood"),
-    TreeSlotInfo(index: 1, part: "Water",    subtitle: "The primordial sea"),
-    TreeSlotInfo(index: 2, part: "Trunk",    subtitle: "The world pillar"),
-    TreeSlotInfo(index: 3, part: "Branches", subtitle: "Across nine worlds"),
-    TreeSlotInfo(index: 4, part: "Leaves",   subtitle: "Each word, a leaf"),
-    TreeSlotInfo(index: 5, part: "Sun",      subtitle: "Visible in light"),
-]
-
-// MARK: - Attempt Record
-
-private struct ManduAttempt: Identifiable {
-    let id = UUID()
-    let civIds: [String?]   // snapshot of the 6 slots at submission (index 0–5)
-    let correct: Int        // how many were in the right position
-}
+private enum Peg { case exact, near, empty }
 
 // MARK: - ManduTabletView
 
@@ -50,11 +30,9 @@ struct ManduTabletView: View {
     @State private var showFullMsg  = false
     @State private var isAnimating  = false
 
-    // Mastermind attempt history
-    @State private var attempts: [ManduAttempt] = []
-
-    // True when all 6 slots are filled (regardless of correctness)
-    private var isManduFull: Bool { gameState.manduPlayerGrid.count == 6 }
+    private var currentRowIndex: Int { gameState.masterMindGuessHistory.count }
+    private var allSlotsFilled: Bool { !gameState.masterMindPlayerSlots.contains(nil) }
+    private var gameOver: Bool { gameState.masterMindIsDefeated || gameState.masterMindIsComplete }
 
     var body: some View {
         ZStack {
@@ -63,13 +41,18 @@ struct ManduTabletView: View {
             VStack(spacing: 0) {
                 headerBar
                 ScrollView(showsIndicators: false) {
-                    VStack(spacing: 24) {
-                        titleStrip
-                        stoneRow
-                        civTray
-                        instructionBanner
-                        actionRow
-                        if !attempts.isEmpty { attemptsHistory }
+                    VStack(spacing: 18) {
+                        titleBlock
+                        gameBoard
+                        paletteSection
+                        if let armed = gameState.masterMindArmedSymbol {
+                            armedBanner(symbol: armed)
+                                .transition(.move(edge: .top).combined(with: .opacity))
+                        }
+                        if allSlotsFilled && !gameOver {
+                            checkButton
+                                .transition(.scale.combined(with: .opacity))
+                        }
                         loreNote
                     }
                     .padding(.horizontal, 16)
@@ -84,6 +67,9 @@ struct ManduTabletView: View {
                 revealOverlay.zIndex(10)
             }
         }
+        .animation(.spring(response: 0.4, dampingFraction: 0.80), value: gameState.masterMindArmedSymbol)
+        .animation(.spring(response: 0.4), value: allSlotsFilled)
+        .animation(.easeInOut(duration: 0.3), value: currentRowIndex)
     }
 
     // MARK: - Header
@@ -114,352 +100,402 @@ struct ManduTabletView: View {
         .background(ink.opacity(0.88))
     }
 
-    // MARK: - Title Strip
+    // MARK: - Title Block
 
-    private var titleStrip: some View {
-        VStack(spacing: 10) {
-            Text("Found on a nameless island. No map charts its location.")
-                .font(EgyptFont.bodyItalic(22))
-                .foregroundStyle(ink.opacity(0.97))
-                .multilineTextAlignment(.center)
-
-            Text("Fill all six slots, then submit to learn how many are correct.")
-                .font(EgyptFont.body(18))
-                .foregroundStyle(ink.opacity(0.90))
-                .multilineTextAlignment(.center)
-        }
-    }
-
-    // MARK: - Stone Slot Row
-
-    private var stoneRow: some View {
+    private var titleBlock: some View {
         VStack(spacing: 8) {
-            Text("ARRANGE THE STONES")
-                .font(EgyptFont.title(15))
-                .tracking(2)
-                .foregroundStyle(ink.opacity(0.92))
-
-            HStack(spacing: 6) {
-                ForEach(treeSlots, id: \.index) { slot in
-                    slotCell(slot)
-                }
-            }
+            Text("Seven marks. Six chances.")
+                .font(EgyptFont.bodyItalic(24))
+                .foregroundStyle(ink)
+                .multilineTextAlignment(.center)
+            Text("● right position  ·  ○ right mark, wrong position")
+                .font(EgyptFont.body(15))
+                .foregroundStyle(ink.opacity(0.75))
+                .multilineTextAlignment(.center)
         }
-        .padding(14)
-        .background(
-            RoundedRectangle(cornerRadius: 14)
-                .fill(Color(red: 0.78, green: 0.68, blue: 0.50).opacity(0.40))
-                .overlay(RoundedRectangle(cornerRadius: 14)
-                    .stroke(ink.opacity(0.30), lineWidth: 1.5))
-        )
     }
 
-    private func slotCell(_ slot: TreeSlotInfo) -> some View {
-        let placedRaw = gameState.manduPlayerGrid[slot.index]
-        let placedCiv: CivilizationID? = placedRaw.flatMap { CivilizationID(rawValue: $0) }
-        let civInfo = placedCiv.flatMap { id in Civilization.all.first(where: { $0.id == id }) }
-        let isArmedTarget = gameState.manduArmedCiv != nil
-        let placed = civInfo != nil
+    // MARK: - Game Board (grows with each attempt)
 
-        return Button { gameState.tapManduSlot(slot.index) } label: {
-            VStack(spacing: 3) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(slotFill(placed: placed, accent: civInfo?.accentColor))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(slotBorder(placed: placed, accent: civInfo?.accentColor,
-                                                   armedTarget: isArmedTarget),
-                                        lineWidth: isArmedTarget && !placed ? 1.5 : 1.0)
-                        )
+    private var gameBoard: some View {
+        let history      = gameState.masterMindGuessHistory
+        let maxAttempts  = gameState.masterMindMaxAttempts
+        let attemptsLeft = maxAttempts - history.count
 
-                    if let civ = civInfo {
-                        Text(civ.emblem)
-                            .font(.system(size: 24))
-                            .foregroundStyle(ink.opacity(0.85))
-                    } else {
-                        Text("+")
-                            .font(.system(size: 18, weight: .light))
-                            .foregroundStyle(isArmedTarget ? gold.opacity(0.75) : ink.opacity(0.35))
+        return VStack(spacing: 5) {
+            // Past rows — locked, results shown
+            ForEach(Array(history.enumerated()), id: \.offset) { _, guess in
+                boardRow(
+                    symbols:      guess.symbols.map { $0.isEmpty ? nil : $0 },
+                    isActive:     false,
+                    exactMatches: guess.exactMatches,
+                    nearMatches:  guess.nearMatches,
+                    isWin:        guess.exactMatches == 6
+                )
+            }
+
+            // Active row — player fills this one now
+            if !gameState.masterMindIsComplete {
+                boardRow(
+                    symbols:      gameState.masterMindPlayerSlots,
+                    isActive:     true,
+                    exactMatches: nil,
+                    nearMatches:  nil,
+                    isWin:        false
+                )
+            }
+
+            // Attempts remaining indicator
+            if !gameState.masterMindIsComplete && attemptsLeft > 0 {
+                HStack(spacing: 6) {
+                    ForEach(0..<attemptsLeft, id: \.self) { _ in
+                        Circle()
+                            .fill(paper.opacity(0.25))
+                            .overlay(Circle().stroke(paper.opacity(0.30), lineWidth: 1))
+                            .frame(width: 8, height: 8)
                     }
                 }
-                .frame(height: 54)
-
-                Text(slot.subtitle)
-                    .font(EgyptFont.bodyItalic(12))
-                    .foregroundStyle(ink.opacity(0.80))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.6)
+                .padding(.top, 4)
             }
         }
-        .buttonStyle(.plain)
-        .frame(maxWidth: .infinity)
-        .animation(.easeInOut(duration: 0.15), value: placedCiv?.rawValue)
-    }
-
-    private func slotFill(placed: Bool, accent: Color?) -> Color {
-        if placed { return Color(red: 0.85, green: 0.77, blue: 0.60) }
-        return Color(red: 0.70, green: 0.62, blue: 0.48).opacity(0.30)
-    }
-
-    private func slotBorder(placed: Bool, accent: Color?, armedTarget: Bool) -> Color {
-        if placed   { return ink.opacity(0.35) }
-        if armedTarget { return gold.opacity(0.60) }
-        return ink.opacity(0.22)
-    }
-
-    // MARK: - Civilization Token Tray
-
-    private var civTray: some View {
-        VStack(spacing: 8) {
-            Text("YOUR CIVILIZATION STONES")
-                .font(EgyptFont.title(15))
-                .tracking(2)
-                .foregroundStyle(ink.opacity(0.92))
-
-            HStack(spacing: 6) {
-                ForEach(Civilization.all) { civ in
-                    civToken(civ)
-                }
-            }
-        }
-        .padding(14)
+        .padding(12)
         .background(
             RoundedRectangle(cornerRadius: 14)
-                .fill(Color(red: 0.86, green: 0.78, blue: 0.60).opacity(0.45))
-                .overlay(RoundedRectangle(cornerRadius: 14)
-                    .stroke(ink.opacity(0.22), lineWidth: 1))
+                .fill(slab.opacity(0.88))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .stroke(gold.opacity(0.30), lineWidth: 1.5)
+                )
+        )
+        .animation(.easeOut(duration: 0.35), value: history.count)
+    }
+
+    private func boardRow(
+        symbols: [String?],
+        isActive: Bool,
+        exactMatches: Int?,
+        nearMatches: Int?,
+        isWin: Bool
+    ) -> some View {
+        HStack(spacing: 8) {
+            // Six symbol cells
+            HStack(spacing: 4) {
+                ForEach(0..<6, id: \.self) { i in
+                    boardCell(sym: symbols[i], index: i, isActive: isActive)
+                }
+            }
+
+            // Peg result grid — 3 columns × 2 rows
+            pegGrid(
+                exact:   exactMatches ?? 0,
+                near:    nearMatches  ?? 0,
+                show:    exactMatches != nil,
+                isWin:   isWin
+            )
+        }
+        .padding(.horizontal, 6)
+        .padding(.vertical, 5)
+        .background(
+            Group {
+                if isWin {
+                    RoundedRectangle(cornerRadius: 9)
+                        .fill(gold.opacity(0.18))
+                        .overlay(RoundedRectangle(cornerRadius: 9).stroke(gold.opacity(0.70), lineWidth: 1.5))
+                } else if isActive {
+                    RoundedRectangle(cornerRadius: 9)
+                        .fill(Color.white.opacity(0.06))
+                        .overlay(RoundedRectangle(cornerRadius: 9).stroke(gold.opacity(0.60), lineWidth: 1.5))
+                } else {
+                    Color.clear
+                }
+            }
         )
     }
 
-    private func civToken(_ civ: Civilization) -> some View {
-        let isArmed = gameState.manduArmedCiv == civ.id
-        let isPlaced = gameState.manduPlayerGrid.values.contains(civ.id.rawValue)
-        let isAvailable = gameState.civilizationsCompletedForMandu.contains(civ.id)
+    private func boardCell(sym: String?, index: Int, isActive: Bool) -> some View {
+        let armed    = gameState.masterMindArmedSymbol
+        let isTarget = armed != nil && isActive
 
-        return Button { if isAvailable { gameState.tapManduCiv(civ.id) } } label: {
+        return Button {
+            guard isActive else { return }
+            gameState.tapMasterMindSlot(index)
+        } label: {
+            ZStack {
+                RoundedRectangle(cornerRadius: 7)
+                    .fill(sym != nil ? cell : slot)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 7)
+                            .stroke(sym != nil
+                                    ? ink.opacity(0.40)
+                                    : (isTarget ? gold : gold.opacity(isActive ? 0.35 : 0.15)),
+                                    lineWidth: isTarget && sym == nil ? 2.0 : 1.2)
+                    )
+
+                if let s = sym {
+                    Text(s)
+                        .font(.system(size: 24))
+                        .foregroundStyle(ink)
+                } else if isActive {
+                    Text("·")
+                        .font(.system(size: 20))
+                        .foregroundStyle(isTarget ? gold.opacity(0.80) : paper.opacity(0.30))
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 50)
+        }
+        .buttonStyle(.plain)
+        .disabled(!isActive)
+        .animation(.easeInOut(duration: 0.12), value: sym)
+    }
+
+    // Peg grid: 3 columns × 2 rows, ordered exact → near → empty
+    private func pegGrid(exact: Int, near: Int, show: Bool, isWin: Bool) -> some View {
+        let pegs: [Peg] = show
+            ? (Array(repeating: Peg.exact, count: exact)
+               + Array(repeating: Peg.near,  count: near)
+               + Array(repeating: Peg.empty, count: 6 - exact - near))
+            : Array(repeating: Peg.empty, count: 6)
+
+        return LazyVGrid(
+            columns: [GridItem(.fixed(11)), GridItem(.fixed(11)), GridItem(.fixed(11))],
+            spacing: 4
+        ) {
+            ForEach(0..<6, id: \.self) { i in
+                switch pegs[i] {
+                case .exact:
+                    Circle()
+                        .fill(isWin ? gold : gold.opacity(0.90))
+                        .frame(width: 10, height: 10)
+                case .near:
+                    Circle()
+                        .fill(Color.clear)
+                        .overlay(Circle().stroke(gold.opacity(0.72), lineWidth: 1.5))
+                        .frame(width: 10, height: 10)
+                case .empty:
+                    Circle()
+                        .fill(Color.clear)
+                        .overlay(Circle().stroke(paper.opacity(show ? 0.35 : 0.18), lineWidth: 1.0))
+                        .frame(width: 10, height: 10)
+                }
+            }
+        }
+        .frame(width: 37)
+    }
+
+    // MARK: - Symbol Palette
+
+    private var paletteSection: some View {
+        VStack(spacing: 10) {
+            Text("YOUR MARKS")
+                .font(EgyptFont.title(14))
+                .tracking(2)
+                .foregroundStyle(paper)
+
+            HStack(spacing: 3) {
+                ForEach(CivilizationID.allCases, id: \.self) { civ in
+                    paletteToken(for: civ)
+                }
+                ramerPaletteToken
+            }
+
+            Text("One of these seven does not belong. Place only the six that do.")
+                .font(EgyptFont.bodyItalic(14))
+                .foregroundStyle(paper.opacity(0.70))
+                .multilineTextAlignment(.center)
+        }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(slab.opacity(0.88))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .stroke(gold.opacity(0.30), lineWidth: 1.2)
+                )
+        )
+        .disabled(gameOver)
+        .opacity(gameOver ? 0.45 : 1.0)
+    }
+
+    private func paletteToken(for civ: CivilizationID) -> some View {
+        let symbol   = TreeOfLifeKeys.treePartSymbol(for: civ)
+        let earned   = gameState.masterMindSymbolsEarned.contains(symbol)
+        let isArmed  = gameState.masterMindArmedSymbol == symbol
+        let isPlaced = gameState.masterMindPlayerSlots.contains(symbol)
+        let accent   = Civilization.all.first(where: { $0.id == civ })?.accentColor ?? gold
+
+        return Button {
+            if earned && !gameOver { gameState.tapMasterMindSymbol(symbol) }
+        } label: {
             VStack(spacing: 4) {
                 ZStack {
                     Circle()
-                        .fill(isArmed ? civ.accentColor.opacity(0.25)
-                              : (isPlaced ? ink.opacity(0.06) : ink.opacity(0.09)))
+                        .fill(isArmed  ? accent.opacity(0.30)
+                              : (earned ? slot : slab.opacity(0.60)))
                         .overlay(
                             Circle()
-                                .stroke(isArmed ? civ.accentColor : (isPlaced ? ink.opacity(0.18) : ink.opacity(0.30)),
-                                        lineWidth: isArmed ? 2.0 : 1.0)
+                                .stroke(isArmed ? accent
+                                        : (earned ? (isPlaced ? paper.opacity(0.25) : paper.opacity(0.50)) : paper.opacity(0.15)),
+                                        lineWidth: isArmed ? 2.5 : 1.5)
                         )
-                        .frame(width: 40, height: 40)
+                        .frame(width: 44, height: 44)
 
-                    Text(civ.emblem)
-                        .font(.system(size: 20))
-                        .foregroundStyle(
-                            isArmed ? civ.accentColor
-                            : (isAvailable ? (isPlaced ? ink.opacity(0.40) : ink.opacity(0.85))
-                               : ink.opacity(0.18))
-                        )
+                    if earned {
+                        Text(symbol)
+                            .font(.system(size: 22))
+                            .foregroundStyle(isArmed ? accent
+                                             : (isPlaced ? paper.opacity(0.40) : paper))
+                    } else {
+                        Image(systemName: "lock.fill")
+                            .font(.system(size: 13))
+                            .foregroundStyle(paper.opacity(0.22))
+                    }
                 }
-
-                Text(civ.name.components(separatedBy: " ").first ?? civ.name)
-                    .font(EgyptFont.body(12))
-                    .foregroundStyle(isArmed ? civ.accentColor.opacity(0.95)
-                                    : (isAvailable ? ink.opacity(isPlaced ? 0.55 : 0.88) : ink.opacity(0.25)))
+                Text(civShortName(civ))
+                    .font(EgyptFont.body(11))
+                    .foregroundStyle(earned
+                                     ? (isArmed ? accent.opacity(0.95) : (isPlaced ? paper.opacity(0.40) : paper.opacity(0.80)))
+                                     : paper.opacity(0.28))
                     .lineLimit(1)
-                    .minimumScaleFactor(0.7)
+                    .minimumScaleFactor(0.6)
             }
             .frame(maxWidth: .infinity)
         }
         .buttonStyle(.plain)
-        .disabled(!isAvailable)
+        .disabled(!earned || gameOver)
         .animation(.easeInOut(duration: 0.15), value: isArmed)
         .animation(.easeInOut(duration: 0.15), value: isPlaced)
     }
 
-    // MARK: - Instruction Banner
+    private var ramerPaletteToken: some View {
+        let symbol   = TreeOfLifeKeys.ramerMark
+        let isArmed  = gameState.masterMindArmedSymbol == symbol
+        let isPlaced = gameState.masterMindPlayerSlots.contains(symbol)
 
-    @ViewBuilder
-    private var instructionBanner: some View {
-        if let civ = gameState.manduArmedCiv,
-           let civInfo = Civilization.all.first(where: { $0.id == civ }) {
-            HStack(spacing: 12) {
-                Text(civInfo.emblem)
-                    .font(.system(size: 26))
-                    .foregroundStyle(civInfo.accentColor)
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(civInfo.name)
-                        .font(EgyptFont.title(17))
-                        .tracking(1)
-                        .foregroundStyle(civInfo.accentColor)
-                    Text("Tap a slot above to place this stone")
-                        .font(EgyptFont.bodyItalic(19))
-                        .foregroundStyle(ink.opacity(0.95))
-                }
-                Spacer()
-                Button { gameState.manduArmedCiv = nil } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 20))
-                        .foregroundStyle(ink.opacity(0.35))
-                }
-            }
-            .padding(.horizontal, 14).padding(.vertical, 12)
-            .background(
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(civInfo.accentColor.opacity(0.10))
-                    .overlay(RoundedRectangle(cornerRadius: 10)
-                        .stroke(civInfo.accentColor.opacity(0.42), lineWidth: 1))
-            )
-            .transition(.move(edge: .top).combined(with: .opacity))
-            .animation(.spring(response: 0.4, dampingFraction: 0.75), value: civ.rawValue)
-        } else {
-            Text("Tap a civilization stone, then tap where it belongs on the tree.")
-                .font(EgyptFont.bodyItalic(20))
-                .foregroundStyle(ink.opacity(0.95))
-                .multilineTextAlignment(.center)
-                .padding(.vertical, 4)
-        }
-    }
-
-    // MARK: - Action Row
-
-    private var actionRow: some View {
-        HStack(spacing: 12) {
-            // Clear — always available
-            Button { gameState.resetManduGrid() } label: {
-                Label("Clear All", systemImage: "arrow.counterclockwise")
-                    .font(EgyptFont.body(18))
-                    .foregroundStyle(ink.opacity(0.92))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 13)
-                    .background(
-                        RoundedRectangle(cornerRadius: 9)
-                            .fill(ink.opacity(0.07))
-                            .overlay(RoundedRectangle(cornerRadius: 9)
-                                .stroke(ink.opacity(0.22), lineWidth: 1))
-                    )
-            }
-            .buttonStyle(.plain)
-
-            // Check Arrangement — only when all 6 slots filled
-            if isManduFull {
-                Button { checkArrangement() } label: {
-                    Label("Check Arrangement", systemImage: "checkmark.seal")
-                        .font(EgyptFont.titleBold(18))
-                        .foregroundStyle(Color(red: 0.10, green: 0.08, blue: 0.02))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 13)
-                        .background(
-                            RoundedRectangle(cornerRadius: 9)
-                                .fill(gold)
-                                .overlay(RoundedRectangle(cornerRadius: 9)
-                                    .stroke(gold.opacity(0.50), lineWidth: 1))
+        return Button {
+            if !gameOver { gameState.tapMasterMindSymbol(symbol) }
+        } label: {
+            VStack(spacing: 4) {
+                ZStack {
+                    Circle()
+                        .fill(isArmed ? inkRed.opacity(0.30) : slot)
+                        .overlay(
+                            Circle()
+                                .stroke(isArmed ? inkRed
+                                        : (isPlaced ? inkRed.opacity(0.30) : inkRed.opacity(0.75)),
+                                        lineWidth: isArmed ? 2.5 : 1.5)
                         )
+                        .frame(width: 44, height: 44)
+
+                    Text(symbol)
+                        .font(.system(size: 22))
+                        .foregroundStyle(isArmed ? inkRed
+                                         : (isPlaced ? inkRed.opacity(0.40) : Color(red: 0.90, green: 0.55, blue: 0.50)))
                 }
-                .buttonStyle(.plain)
-                .transition(.scale.combined(with: .opacity))
+                Text("?")
+                    .font(EgyptFont.body(11))
+                    .foregroundStyle(isArmed ? inkRed.opacity(0.90) : Color(red: 0.85, green: 0.45, blue: 0.40).opacity(0.80))
             }
+            .frame(maxWidth: .infinity)
         }
-        .animation(.spring(response: 0.4), value: isManduFull)
+        .buttonStyle(.plain)
+        .disabled(gameOver)
+        .animation(.easeInOut(duration: 0.15), value: isArmed)
+        .animation(.easeInOut(duration: 0.15), value: isPlaced)
     }
 
-    // MARK: - Mastermind: Check Arrangement
-
-    private func checkArrangement() {
-        let snapshot: [String?] = (0..<6).map { gameState.manduPlayerGrid[$0] }
-        let correct = gameState.manduCorrectCount
-
-        let attempt = ManduAttempt(civIds: snapshot, correct: correct)
-        withAnimation(.spring(response: 0.45, dampingFraction: 0.80)) {
-            attempts.append(attempt)
-        }
-
-        if correct == 6 {
-            HapticFeedback.success()
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                startReveal()
-            }
-        } else {
-            HapticFeedback.heavy()
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                gameState.resetManduGrid()
-            }
+    private func civShortName(_ civ: CivilizationID) -> String {
+        switch civ {
+        case .egyptian: return "Egypt"
+        case .norse:    return "Norse"
+        case .sumerian: return "Sumer"
+        case .maya:     return "Maya"
+        case .celtic:   return "Celtic"
+        case .chinese:  return "China"
         }
     }
 
-    // MARK: - Attempts History
+    // MARK: - Armed Banner
 
-    private var attemptsHistory: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("PREVIOUS ARRANGEMENTS")
-                .font(EgyptFont.title(14))
-                .tracking(2)
-                .foregroundStyle(ink.opacity(0.85))
+    private func armedBanner(symbol: String) -> some View {
+        HStack(spacing: 12) {
+            Text(symbol)
+                .font(.system(size: 28))
+                .foregroundStyle(symbol == TreeOfLifeKeys.ramerMark ? inkRed.opacity(0.88) : ink.opacity(0.90))
+                .frame(width: 40)
 
-            ForEach(attempts) { attempt in
-                attemptRow(attempt)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Mark selected")
+                    .font(EgyptFont.title(14))
+                    .tracking(1)
+                    .foregroundStyle(ink.opacity(0.88))
+                Text("Tap an empty slot on the active row to place it")
+                    .font(EgyptFont.bodyItalic(14))
+                    .foregroundStyle(ink.opacity(0.65))
+            }
+            Spacer()
+            Button { gameState.tapMasterMindSymbol(symbol) } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.system(size: 20))
+                    .foregroundStyle(ink.opacity(0.30))
             }
         }
-        .padding(14)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
         .background(
-            RoundedRectangle(cornerRadius: 14)
-                .fill(ink.opacity(0.06))
-                .overlay(RoundedRectangle(cornerRadius: 14)
-                    .stroke(ink.opacity(0.22), lineWidth: 1))
+            RoundedRectangle(cornerRadius: 10)
+                .fill(gold.opacity(0.10))
+                .overlay(RoundedRectangle(cornerRadius: 10).stroke(gold.opacity(0.35), lineWidth: 1))
         )
     }
 
-    private func attemptRow(_ attempt: ManduAttempt) -> some View {
-        HStack(spacing: 8) {
-            // 6 stone dots showing which civ was placed (order preserved)
-            HStack(spacing: 4) {
-                ForEach(0..<6, id: \.self) { i in
-                    let raw = attempt.civIds[i]
-                    let civ = raw.flatMap { CivilizationID(rawValue: $0) }
-                    let civInfo = civ.flatMap { id in Civilization.all.first(where: { $0.id == id }) }
-                    ZStack {
-                        Circle()
-                            .fill(civInfo.map { $0.accentColor.opacity(0.22) } ?? ink.opacity(0.10))
-                            .overlay(Circle()
-                                .stroke(civInfo.map { $0.accentColor.opacity(0.55) } ?? ink.opacity(0.18),
-                                        lineWidth: 1))
-                            .frame(width: 32, height: 32)
-                        if let info = civInfo {
-                            Text(info.emblem)
-                                .font(.system(size: 14))
-                        }
-                    }
+    // MARK: - Check Button
+
+    private var checkButton: some View {
+        Button { handleSubmit() } label: {
+            Label("Check Arrangement", systemImage: "checkmark.seal")
+                .font(EgyptFont.titleBold(17))
+                .foregroundStyle(Color(red: 0.10, green: 0.08, blue: 0.02))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .background(
+                    RoundedRectangle(cornerRadius: 9)
+                        .fill(gold)
+                        .overlay(RoundedRectangle(cornerRadius: 9).stroke(gold.opacity(0.50), lineWidth: 1))
+                )
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: - Submit Logic
+
+    private func handleSubmit() {
+        let guess = gameState.submitMasterMindGuess()
+        if guess.exactMatches == 6 {
+            // Win
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) { startReveal() }
+        } else if gameState.masterMindIsDefeated {
+            // All 6 rows used, no win — clear the board silently after a beat
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+                withAnimation(.easeInOut(duration: 0.5)) {
+                    gameState.resetMasterMind()
                 }
             }
-
-            Spacer()
-
-            // Result badge
-            VStack(spacing: 1) {
-                Text("\(attempt.correct)")
-                    .font(EgyptFont.titleBold(22))
-                    .foregroundStyle(attempt.correct == 6 ? gold : ink.opacity(0.92))
-                Text("of 6")
-                    .font(EgyptFont.body(13))
-                    .foregroundStyle(ink.opacity(0.72))
+        } else {
+            // Wrong, still have attempts — clear slots so the new active row is fresh
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                gameState.resetMasterMindSlots()
             }
-            .frame(minWidth: 48)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-            .background(
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(attempt.correct == 6 ? gold.opacity(0.18) : ink.opacity(0.08))
-                    .overlay(RoundedRectangle(cornerRadius: 8)
-                        .stroke(attempt.correct == 6 ? gold.opacity(0.55) : ink.opacity(0.20), lineWidth: 1))
-            )
         }
     }
 
     // MARK: - Lore Note
 
     private var loreNote: some View {
-        Text("Six civilizations. One stone. One message.")
-            .font(EgyptFont.bodyItalic(21))
-            .foregroundStyle(ink.opacity(0.95))
+        Text("Six civilizations. Seven marks. One belongs to none of them.")
+            .font(EgyptFont.bodyItalic(20))
+            .foregroundStyle(ink)
             .multilineTextAlignment(.center)
-            .lineSpacing(5)
             .padding(.top, 4)
     }
 
@@ -535,12 +571,17 @@ struct ManduTabletView: View {
     private func civRevealCard(_ civ: Civilization) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 10) {
-                Text(civ.emblem).font(.system(size: 18)).foregroundStyle(civ.accentColor)
+                Text(civ.emblem)
+                    .font(.system(size: 18))
+                    .foregroundStyle(civ.accentColor)
                 Text(civ.name.uppercased())
                     .font(EgyptFont.title(13))
                     .tracking(2)
                     .foregroundStyle(civ.accentColor.opacity(0.80))
                 Spacer()
+                Text(TreeOfLifeKeys.treePartSymbol(for: civ.id))
+                    .font(.system(size: 20))
+                    .foregroundStyle(civ.accentColor.opacity(0.70))
             }
             Text(civ.tabletLine)
                 .font(EgyptFont.bodyItalic(17))
@@ -552,8 +593,10 @@ struct ManduTabletView: View {
         .background(
             RoundedRectangle(cornerRadius: 10)
                 .fill(civ.accentColor.opacity(0.12))
-                .overlay(RoundedRectangle(cornerRadius: 10)
-                    .stroke(civ.accentColor.opacity(0.30), lineWidth: 1))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10)
+                        .stroke(civ.accentColor.opacity(0.30), lineWidth: 1)
+                )
         )
     }
 
@@ -586,19 +629,26 @@ struct ManduTabletView: View {
         }
     }
 
-    // MARK: - Colors
+    // MARK: - Colors & Helpers
 
     private var sandBackground: some View {
         ZStack {
             Color(red: 0.93, green: 0.87, blue: 0.73)
-            RadialGradient(colors: [.clear, ink.opacity(0.10)],
+            RadialGradient(colors: [.clear, ink.opacity(0.12)],
                            center: .center, startRadius: 220, endRadius: 650)
         }
     }
 
-    private var gold:  Color { Color(red: 0.92, green: 0.75, blue: 0.35) }
-    private var ink:   Color { Color(red: 0.16, green: 0.10, blue: 0.04) }
-    private var paper: Color { Color(red: 0.93, green: 0.87, blue: 0.73) }
+    private var gold:    Color { Color(red: 0.92, green: 0.75, blue: 0.35) }
+    private var ink:     Color { Color(red: 0.16, green: 0.10, blue: 0.04) }
+    private var paper:   Color { Color(red: 0.93, green: 0.87, blue: 0.73) }
+    private var inkRed:  Color { Color(red: 0.72, green: 0.18, blue: 0.12) }
+    /// Dark stone slab — the board and palette containers sit on this
+    private var slab:    Color { Color(red: 0.20, green: 0.14, blue: 0.07) }
+    /// Carved empty slot inside the board
+    private var slot:    Color { Color(red: 0.28, green: 0.20, blue: 0.10) }
+    /// Filled cell — warm parchment so the symbol pops against dark slab
+    private var cell:    Color { Color(red: 0.91, green: 0.82, blue: 0.58) }
 
     private var goldRule: some View {
         Rectangle()

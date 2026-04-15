@@ -66,6 +66,9 @@ struct DebugView: View {
                         // Celtic Ogham ordering
                         celticExpandableSection
 
+                        // Mandu Tablet mastermind
+                        manduMastermindSection
+
                         Spacer(minLength: 40)
                     }
                     .padding(.horizontal, 16)
@@ -885,6 +888,206 @@ struct DebugView: View {
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
         .background(levelBackground(solved: isSolved, current: isCurrent))
+    }
+
+    // MARK: Mandu Tablet / Mastermind Section
+
+    private var manduMastermindSection: some View {
+        let key         = "ManduMastermind"
+        let isExpanded  = !collapsedSections.contains(key)
+        let earned      = gameState.masterMindSymbolsEarned
+        let solution    = TreeOfLifeKeys.masterMindSolution
+        let allKeysHeld = CivilizationID.allCases.allSatisfy { gameState.discoveredKeys[$0] != nil }
+        let blue        = Color(red: 0.45, green: 0.75, blue: 1.0)
+        let gold        = Color(red: 1.0, green: 0.80, blue: 0.35)
+        let red         = Color(red: 1.0, green: 0.40, blue: 0.40)
+
+        return VStack(alignment: .leading, spacing: 0) {
+            // Section header
+            Button { toggleSection(key) } label: {
+                HStack(spacing: 10) {
+                    Text("𓊽").font(.system(size: 22))
+                    Text("MANDU TABLET & MASTERMIND")
+                        .font(EgyptFont.titleBold(15))
+                        .tracking(2)
+                        .foregroundStyle(gold)
+                    Spacer()
+                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(blue.opacity(0.6))
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 12)
+            }
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color(red: 0.10, green: 0.16, blue: 0.24))
+                    .overlay(RoundedRectangle(cornerRadius: 12)
+                        .stroke(gold.opacity(0.30), lineWidth: 0.8))
+            )
+
+            if isExpanded {
+                VStack(spacing: 10) {
+                    // ── Symbol status ────────────────────────────────────
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("SYMBOLS EARNED  (\(earned.count) / 7)")
+                            .font(EgyptFont.body(12))
+                            .tracking(1)
+                            .foregroundStyle(blue.opacity(0.55))
+
+                        // Ramer mark
+                        HStack(spacing: 8) {
+                            Text(TreeOfLifeKeys.ramerMark)
+                                .font(.system(size: 18))
+                                .foregroundStyle(red.opacity(0.85))
+                            Text("ᚱ  Ramer Mark — always present")
+                                .font(EgyptFont.body(13))
+                                .foregroundStyle(.white.opacity(0.55))
+                        }
+
+                        // Six civ symbols
+                        HStack(spacing: 6) {
+                            ForEach(CivilizationID.allCases, id: \.self) { civ in
+                                let sym   = TreeOfLifeKeys.treePartSymbol(for: civ)
+                                let has   = earned.contains(sym)
+                                let accent = Civilization.all.first(where: { $0.id == civ })?.accentColor ?? .white
+                                VStack(spacing: 3) {
+                                    Text(sym)
+                                        .font(.system(size: 20))
+                                        .foregroundStyle(has ? accent : Color.white.opacity(0.18))
+                                    Image(systemName: has ? "checkmark.circle.fill" : "lock.fill")
+                                        .font(.system(size: 10))
+                                        .foregroundStyle(has ? Color(red: 0.30, green: 0.85, blue: 0.50) : Color.white.opacity(0.18))
+                                }
+                                .frame(maxWidth: .infinity)
+                            }
+                        }
+                    }
+                    .padding(12)
+                    .background(RoundedRectangle(cornerRadius: 8).fill(Color.white.opacity(0.05)))
+
+                    // ── Correct solution (dev cheat) ─────────────────────
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("CORRECT ORDER (DEV)")
+                            .font(EgyptFont.body(12))
+                            .tracking(1)
+                            .foregroundStyle(gold.opacity(0.55))
+                        HStack(spacing: 6) {
+                            ForEach(Array(solution.enumerated()), id: \.offset) { i, sym in
+                                VStack(spacing: 3) {
+                                    Text(sym)
+                                        .font(.system(size: 20))
+                                        .foregroundStyle(gold.opacity(0.85))
+                                    Text("\(i + 1)")
+                                        .font(EgyptFont.body(11))
+                                        .foregroundStyle(gold.opacity(0.45))
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 6)
+                                .background(RoundedRectangle(cornerRadius: 6).fill(gold.opacity(0.08)))
+                            }
+                        }
+                    }
+                    .padding(12)
+                    .background(RoundedRectangle(cornerRadius: 8).fill(Color.white.opacity(0.05)))
+
+                    // ── Guess history ────────────────────────────────────
+                    if !gameState.masterMindGuessHistory.isEmpty {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("GUESS HISTORY  (\(gameState.masterMindGuessHistory.count) attempts)")
+                                .font(EgyptFont.body(12))
+                                .tracking(1)
+                                .foregroundStyle(blue.opacity(0.55))
+                            ForEach(gameState.masterMindGuessHistory) { guess in
+                                HStack(spacing: 4) {
+                                    ForEach(0..<6, id: \.self) { i in
+                                        Text(guess.symbols[i].isEmpty ? "·" : guess.symbols[i])
+                                            .font(.system(size: 16))
+                                            .foregroundStyle(.white.opacity(0.80))
+                                            .frame(maxWidth: .infinity)
+                                    }
+                                    Text("\(guess.exactMatches)/6")
+                                        .font(EgyptFont.titleBold(14))
+                                        .foregroundStyle(guess.exactMatches == 6 ? gold : blue.opacity(0.80))
+                                        .frame(minWidth: 36)
+                                }
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(RoundedRectangle(cornerRadius: 5).fill(Color.white.opacity(0.04)))
+                            }
+                        }
+                        .padding(12)
+                        .background(RoundedRectangle(cornerRadius: 8).fill(Color.white.opacity(0.05)))
+                    }
+
+                    // ── Action buttons ───────────────────────────────────
+                    VStack(spacing: 8) {
+                        // Grant all keys
+                        Button {
+                            HapticFeedback.tap()
+                            gameState.debugGrantAllMasterMindKeys()
+                        } label: {
+                            Label(allKeysHeld ? "All Keys Granted ✓" : "Grant All 6 Civ Keys",
+                                  systemImage: "key.fill")
+                                .font(EgyptFont.titleBold(14))
+                                .foregroundStyle(allKeysHeld ? Color.white.opacity(0.40) : Color(red: 0.10, green: 0.08, blue: 0.02))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 11)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .fill(allKeysHeld ? Color.white.opacity(0.08) : gold)
+                                )
+                        }
+                        .disabled(allKeysHeld)
+
+                        // Open Mandu Tablet
+                        Button {
+                            HapticFeedback.tap()
+                            withAnimation(.easeInOut(duration: 0.38)) { gameState.openManduTablet() }
+                        } label: {
+                            Label("Open Mandu Tablet", systemImage: "rectangle.portrait.and.arrow.right")
+                                .font(EgyptFont.body(14))
+                                .foregroundStyle(blue)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 11)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .fill(blue.opacity(0.12))
+                                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(blue.opacity(0.30), lineWidth: 1))
+                                )
+                        }
+
+                        // Reset mastermind
+                        if !gameState.masterMindGuessHistory.isEmpty || gameState.masterMindPlayerSlots.contains(where: { $0 != nil }) {
+                            Button {
+                                HapticFeedback.heavy()
+                                gameState.resetMasterMind()
+                            } label: {
+                                Label("Reset Mastermind State", systemImage: "arrow.counterclockwise")
+                                    .font(EgyptFont.body(14))
+                                    .foregroundStyle(red.opacity(0.85))
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 11)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .fill(red.opacity(0.08))
+                                            .overlay(RoundedRectangle(cornerRadius: 8).stroke(red.opacity(0.28), lineWidth: 1))
+                                    )
+                            }
+                        }
+                    }
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 12)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color(red: 0.07, green: 0.10, blue: 0.16))
+                        .overlay(RoundedRectangle(cornerRadius: 12)
+                            .stroke(gold.opacity(0.18), lineWidth: 0.7))
+                )
+            }
+        }
+        .animation(.easeInOut(duration: 0.25), value: isExpanded)
     }
 
     // MARK: Shared badge / background helpers

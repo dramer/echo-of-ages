@@ -20,9 +20,14 @@ import SwiftUI
 struct SumerianGameView: View {
     @EnvironmentObject var gameState: GameState
 
-    @State private var showComplete    = false
-    @State private var messageRevealed = false
+    @State private var showComplete       = false
+    @State private var messageRevealed   = false
     @State private var inscriptionsExpanded = false
+    @State private var showKeyGateWarning = false
+
+    private var keyGateActive: Bool {
+        gameState.sumerianCurrentLevelIndex == 0 && gameState.needsKeyGate(for: .sumerian)
+    }
 
     private var level: SumerianLevel { gameState.sumerianCurrentLevel }
 
@@ -180,6 +185,23 @@ struct SumerianGameView: View {
                     let decoded = gameState.sumerianKnownMappings[encoded]
                     decipherStone(encoded: encoded, decoded: decoded)
                 }
+                // Level 1: show the cycling foreign-mark stone until the key gate is passed
+                if keyGateActive {
+                    mysteryMarkStone
+                }
+            }
+
+            if keyGateActive {
+                HStack(spacing: 6) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 11))
+                        .foregroundStyle(Color(red: 0.90, green: 0.72, blue: 0.25).opacity(0.90))
+                    Text("Identify the foreign mark before deciphering the tablet")
+                        .font(EgyptFont.bodyItalic(12))
+                        .foregroundStyle(clayDark.opacity(0.70))
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .transition(.opacity)
             }
         }
         .padding(12)
@@ -274,14 +296,30 @@ struct SumerianGameView: View {
                 .frame(height: 1)
                 .padding(.vertical, 10)
 
-            // Mystery mark slot — only on Level 1 before the key gate is passed
-            if gameState.sumerianCurrentLevelIndex == 0 && gameState.needsKeyGate(for: .sumerian) {
-                mysteryMarkSlot
-                    .padding(.bottom, 6)
-            }
-
-            // The decipherment — player fills this in
+            // The decipherment — player fills this in (locked until key gate resolved on Level 1)
             decodedRow
+
+            // Warning when player tries to tap the tablet before identifying the foreign mark
+            if showKeyGateWarning {
+                HStack(spacing: 8) {
+                    Image(systemName: "lock.fill")
+                        .font(.system(size: 13))
+                        .foregroundStyle(Color(red: 0.90, green: 0.72, blue: 0.25))
+                    Text("Tap the '?' stone above to identify the foreign mark first")
+                        .font(EgyptFont.bodyItalic(13))
+                        .foregroundStyle(clayDark.opacity(0.85))
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color(red: 0.42, green: 0.28, blue: 0.10).opacity(0.85))
+                        .overlay(RoundedRectangle(cornerRadius: 8)
+                            .stroke(Color(red: 0.90, green: 0.72, blue: 0.25).opacity(0.70), lineWidth: 1.2))
+                )
+                .transition(.move(edge: .top).combined(with: .opacity))
+                .padding(.top, 6)
+            }
         }
         .padding(14)
         .background(
@@ -322,58 +360,68 @@ struct SumerianGameView: View {
         }
     }
 
-    // MARK: Mystery Mark Slot (Sumerian Level 1 key gate)
+    // MARK: Mystery Mark Stone (Sumerian Level 1 key gate — lives in the cipher key panel)
 
-    private var mysteryMarkSlot: some View {
-        let symbol = gameState.mysteryMarkCurrent(for: .sumerian)
+    private var mysteryMarkStone: some View {
+        let symbol  = gameState.mysteryMarkCurrent(for: .sumerian)
         let isWrong = gameState.mysteryMarkWrongFlash
-        return HStack(spacing: 8) {
-            // Cycling cell — styled to match decoded cells
-            Button {
-                gameState.cycleMysteryMark(for: .sumerian)
-            } label: {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 6)
-                        .fill(isWrong
-                            ? Color(red: 0.55, green: 0.10, blue: 0.08)
-                            : Color(red: 0.28, green: 0.18, blue: 0.06))
-                        .overlay(RoundedRectangle(cornerRadius: 6)
+        let isEmpty = symbol.isEmpty
+
+        return Button {
+            gameState.cycleMysteryMark(for: .sumerian)
+        } label: {
+            VStack(spacing: 3) {
+                HStack(spacing: 3) {
+                    // Cycling symbol — or "?" before first tap
+                    ZStack {
+                        if isEmpty {
+                            Text("?")
+                                .font(EgyptFont.titleBold(24))
+                                .foregroundStyle(Color(red: 0.90, green: 0.72, blue: 0.25).opacity(0.90))
+                        } else {
+                            Text(symbol)
+                                .font(.system(size: 28))
+                                .foregroundStyle(isWrong
+                                    ? Color(red: 1.0, green: 0.55, blue: 0.45)
+                                    : Color(red: 0.95, green: 0.82, blue: 0.40))
+                                .contentTransition(.numericText())
+                        }
+                    }
+                    Image(systemName: "arrow.2.circlepath")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Color(red: 0.90, green: 0.72, blue: 0.25).opacity(0.75))
+                }
+                HStack(spacing: 3) {
+                    Text("Foreign")
+                        .font(EgyptFont.body(10))
+                        .foregroundStyle(Color(red: 0.90, green: 0.72, blue: 0.25).opacity(0.80))
+                    Text("·")
+                        .font(.system(size: 9))
+                        .foregroundStyle(Color(red: 0.90, green: 0.72, blue: 0.25).opacity(0.40))
+                    Text("tap")
+                        .font(EgyptFont.body(10))
+                        .foregroundStyle(Color(red: 0.90, green: 0.72, blue: 0.25).opacity(0.60))
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 8)
+            .background(
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(isWrong
+                        ? Color(red: 0.55, green: 0.10, blue: 0.08).opacity(0.80)
+                        : Color(red: 0.28, green: 0.18, blue: 0.06).opacity(0.80))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
                             .stroke(isWrong
                                 ? Color.red.opacity(0.70)
-                                : Color(red: 0.90, green: 0.72, blue: 0.25).opacity(0.80),
-                                    lineWidth: 1.8))
-                    VStack(spacing: 2) {
-                        Text(symbol)
-                            .font(.system(size: 28))
-                            .foregroundStyle(isWrong
-                                ? Color(red: 1.0, green: 0.55, blue: 0.45)
-                                : Color(red: 0.95, green: 0.82, blue: 0.40))
-                            .contentTransition(.numericText())
-                        Image(systemName: "arrow.2.circlepath")
-                            .font(.system(size: 10, weight: .semibold))
-                            .foregroundStyle(Color(red: 0.90, green: 0.72, blue: 0.25).opacity(0.65))
-                    }
-                }
-                .frame(width: 52, height: 52)
-            }
-            .buttonStyle(.plain)
-            .animation(.easeInOut(duration: 0.25), value: isWrong)
-
-            // Label
-            VStack(alignment: .leading, spacing: 3) {
-                Text(isWrong ? "Not recognized — check your Field Diary" : "Identify the foreign mark")
-                    .font(EgyptFont.bodyItalic(13))
-                    .foregroundStyle(isWrong
-                        ? Color(red: 0.90, green: 0.40, blue: 0.35)
-                        : clayDark.opacity(0.75))
-                    .animation(.easeInOut(duration: 0.2), value: isWrong)
-                Text("Tap the symbol to cycle through candidates")
-                    .font(EgyptFont.body(11))
-                    .foregroundStyle(clayDark.opacity(0.45))
-            }
-            Spacer()
+                                : Color(red: 0.90, green: 0.72, blue: 0.25).opacity(0.75),
+                                    lineWidth: 1.5)
+                    )
+            )
         }
-        .padding(.horizontal, 2)
+        .buttonStyle(.plain)
+        .animation(.easeInOut(duration: 0.25), value: isWrong)
+        .animation(.easeInOut(duration: 0.15), value: symbol)
     }
 
     private var decodedRow: some View {
@@ -427,6 +475,15 @@ struct SumerianGameView: View {
         let isSelected = gameState.sumerianSelectedDecodedIndex == index
 
         return Button {
+            if keyGateActive {
+                HapticFeedback.error()
+                withAnimation(.spring(response: 0.3)) { showKeyGateWarning = true }
+                Task {
+                    try? await Task.sleep(nanoseconds: 2_500_000_000)
+                    withAnimation(.easeOut(duration: 0.4)) { showKeyGateWarning = false }
+                }
+                return
+            }
             if !isRevealed {
                 gameState.tapSumerianDecodedPosition(index)
             } else {
@@ -485,6 +542,15 @@ struct SumerianGameView: View {
             HStack(spacing: 8) {
                 ForEach(level.symbols) { glyph in
                     Button {
+                        if keyGateActive {
+                            HapticFeedback.error()
+                            withAnimation(.spring(response: 0.3)) { showKeyGateWarning = true }
+                            Task {
+                                try? await Task.sleep(nanoseconds: 2_500_000_000)
+                                withAnimation(.easeOut(duration: 0.4)) { showKeyGateWarning = false }
+                            }
+                            return
+                        }
                         gameState.placeSumerianGlyph(glyph)
                     } label: {
                         VStack(spacing: 5) {

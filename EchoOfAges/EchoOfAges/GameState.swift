@@ -1117,10 +1117,179 @@ final class GameState: ObservableObject {
         discoveredKeys[civ] = key
     }
 
-    /// slot index 0-5 → CivilizationID.rawValue of the placed stone
-    @Published var manduPlayerGrid: [Int: String] = [:]
-    /// The civ token the player has picked up and is holding
-    @Published var manduArmedCiv: CivilizationID? = nil
+    // MARK: - Mastermind State
+
+    /// A single submitted guess attempt in the mastermind game.
+    struct MasterMindGuess: Identifiable {
+        let id: UUID = UUID()
+        /// The 6 symbols the player placed (one per slot, empty string = unfilled).
+        let symbols: [String]
+        /// How many symbols are in exactly the right position (right symbol, right slot).
+        let exactMatches: Int
+        /// How many symbols are in the solution but in the wrong slot (right symbol, wrong slot).
+        let nearMatches: Int
+    }
+
+    /// Maximum number of attempts before the mastermind resets.
+    let masterMindMaxAttempts = 6
+
+    /// The 7 symbols available for the mastermind — one tree-part symbol per completed
+    /// civilization plus the Ramer mark (ᚱ), which is always present from the start.
+    var masterMindSymbolsEarned: [String] {
+        var symbols: [String] = [TreeOfLifeKeys.ramerMark]   // always present
+        for civ in CivilizationID.allCases where discoveredKeys[civ] != nil {
+            symbols.append(TreeOfLifeKeys.treePartSymbol(for: civ))
+        }
+        return symbols
+    }
+
+    /// The player's current symbol placements — 6 slots, nil means empty.
+    @Published var masterMindPlayerSlots: [String?] = Array(repeating: nil, count: 6)
+
+    /// The symbol the player has picked up and is currently holding.
+    @Published var masterMindArmedSymbol: String? = nil
+
+    /// History of submitted guesses, oldest first.
+    @Published var masterMindGuessHistory: [MasterMindGuess] = []
+
+    /// True when all 6 slots match the correct solution exactly.
+    var masterMindIsComplete: Bool {
+        let solution = TreeOfLifeKeys.masterMindSolution
+        guard masterMindPlayerSlots.count == solution.count else { return false }
+        return masterMindPlayerSlots.enumerated().allSatisfy { i, placed in placed == solution[i] }
+    }
+
+    /// Number of slots where the placed symbol exactly matches the solution.
+    var masterMindExactMatches: Int {
+        let solution = TreeOfLifeKeys.masterMindSolution
+        return masterMindPlayerSlots.enumerated().filter { i, placed in placed == solution[i] }.count
+    }
+
+    /// Number of symbols that appear in the solution but are in the wrong slot.
+    /// Uses the standard Mastermind algorithm: exact matches are excluded first,
+    /// then each remaining guess symbol is counted against remaining solution symbols once.
+    var masterMindNearMatches: Int {
+        let solution = TreeOfLifeKeys.masterMindSolution
+        let placed   = masterMindPlayerSlots.map { $0 ?? "" }
+        var remSolution = [String]()
+        var remPlaced   = [String]()
+        for i in 0..<solution.count {
+            if placed[i] != solution[i] {
+                remSolution.append(solution[i])
+                remPlaced.append(placed[i])
+            }
+        }
+        var counts = [String: Int]()
+        for sym in remSolution { counts[sym, default: 0] += 1 }
+        var near = 0
+        for sym in remPlaced {
+            if let c = counts[sym], c > 0 { near += 1; counts[sym] = c - 1 }
+        }
+        return near
+    }
+
+    /// True when the player has used all attempts without finding the solution.
+    var masterMindIsDefeated: Bool {
+        masterMindGuessHistory.count >= masterMindMaxAttempts && !masterMindIsComplete
+    }
+
+    // MARK: Mastermind Interaction
+
+    /// Arm a symbol (pick it up from the tray) or disarm it if already armed.
+    func tapMasterMindSymbol(_ symbol: String) {
+        if masterMindArmedSymbol == symbol {
+            masterMindArmedSymbol = nil
+        } else {
+            masterMindArmedSymbol = symbol
+            HapticFeedback.tap()
+        }
+    }
+
+    /// Place the armed symbol into a slot, swap, pick up, or clear.
+    func tapMasterMindSlot(_ index: Int) {
+        guard index >= 0, index < masterMindPlayerSlots.count else { return }
+        if let armed = masterMindArmedSymbol {
+            // If the armed symbol is already in another slot, remove it first
+            for i in masterMindPlayerSlots.indices where masterMindPlayerSlots[i] == armed && i != index {
+                masterMindPlayerSlots[i] = nil
+            }
+            if masterMindPlayerSlots[index] == armed {
+                // Tapping the same slot with the same armed symbol → clear it
+                masterMindPlayerSlots[index] = nil
+            } else {
+                // Place it (the previous occupant is removed)
+                masterMindPlayerSlots[index] = armed
+            }
+            masterMindArmedSymbol = nil
+            HapticFeedback.tap()
+        } else if let existing = masterMindPlayerSlots[index] {
+            // Nothing armed — pick up whatever is in the slot
+            masterMindPlayerSlots[index] = nil
+            masterMindArmedSymbol = existing
+            HapticFeedback.tap()
+        }
+    }
+
+    /// Submit the current arrangement as a guess attempt and record the result.
+    @discardableResult
+    func submitMasterMindGuess() -> MasterMindGuess {
+        let symbols = masterMindPlayerSlots.map { $0 ?? "" }
+        let exact   = masterMindExactMatches
+        let near    = masterMindNearMatches
+        let guess   = MasterMindGuess(symbols: symbols, exactMatches: exact, nearMatches: near)
+        masterMindGuessHistory.append(guess)
+        if masterMindIsComplete {
+            HapticFeedback.success()
+        } else if masterMindIsDefeated {
+            HapticFeedback.heavy()
+        } else {
+            HapticFeedback.tap()
+        }
+        saveMasterMindProgress()
+        return guess
+    }
+
+    /// Clear all slots and disarm, but preserve guess history.
+    func resetMasterMindSlots() {
+        masterMindPlayerSlots = Array(repeating: nil, count: 6)
+        masterMindArmedSymbol = nil
+        HapticFeedback.heavy()
+    }
+
+    /// Full mastermind reset — clears slots, armed symbol, and guess history.
+    func resetMasterMind() {
+        masterMindPlayerSlots = Array(repeating: nil, count: 6)
+        masterMindArmedSymbol = nil
+        masterMindGuessHistory = []
+        HapticFeedback.heavy()
+        UserDefaults.standard.removeObject(forKey: "EOA_masterMindSlots")
+        UserDefaults.standard.removeObject(forKey: "EOA_masterMindHistory")
+    }
+
+    // MARK: Mastermind Persistence
+
+    private func saveMasterMindProgress() {
+        let slots = masterMindPlayerSlots.map { $0 ?? "" }
+        UserDefaults.standard.set(slots, forKey: "EOA_masterMindSlots")
+        let history = masterMindGuessHistory.map { guess -> [String: Any] in
+            ["symbols": guess.symbols, "exact": guess.exactMatches, "near": guess.nearMatches]
+        }
+        UserDefaults.standard.set(history, forKey: "EOA_masterMindHistory")
+    }
+
+    private func loadMasterMindProgress() {
+        if let slots = UserDefaults.standard.array(forKey: "EOA_masterMindSlots") as? [String] {
+            masterMindPlayerSlots = slots.map { $0.isEmpty ? nil : $0 }
+        }
+        if let raw = UserDefaults.standard.array(forKey: "EOA_masterMindHistory") as? [[String: Any]] {
+            masterMindGuessHistory = raw.compactMap { dict in
+                guard let syms = dict["symbols"] as? [String],
+                      let exact = dict["exact"] as? Int else { return nil }
+                let near = dict["near"] as? Int ?? 0
+                return MasterMindGuess(symbols: syms, exactMatches: exact, nearMatches: near)
+            }
+        }
+    }
 
     /// All civilizations where the player has completed every puzzle.
     var civilizationsCompletedForMandu: Set<CivilizationID> {
@@ -1178,75 +1347,15 @@ final class GameState: ObservableObject {
     /// Legacy alias — kept for any call sites that used this name.
     var allUnlockedCivsComplete: Bool { allSixCivsComplete }
 
-    /// True when every slot has the correct civilization stone in the correct tree-part position.
-    var isManduComplete: Bool {
-        TreeOfLifeKeys.tabletOrder.enumerated().allSatisfy { i, civ in
-            manduPlayerGrid[i] == civ.rawValue
-        }
-    }
-
-    /// Number of slots where the placed civ matches the correct tree-part order.
-    var manduCorrectCount: Int {
-        TreeOfLifeKeys.tabletOrder.enumerated().filter { i, civ in
-            manduPlayerGrid[i] == civ.rawValue
-        }.count
-    }
-
     // MARK: Mandu Navigation
 
     func openManduTablet() {
-        // Stones fall off every time the tablet is opened — they only hold when all six are done.
-        if !allSixCivsComplete { manduPlayerGrid = [:] }
-        manduArmedCiv = nil
         previousScreen = currentScreen
         currentScreen = .manduTablet
     }
 
     func closeManduTablet() {
         currentScreen = (previousScreen == .manduTablet) ? .title : previousScreen
-    }
-
-    // MARK: Mandu Interaction
-
-    /// Arm or disarm a civilization token. Tapping an already-armed civ disarms it.
-    func tapManduCiv(_ civ: CivilizationID) {
-        if manduArmedCiv == civ {
-            manduArmedCiv = nil
-        } else {
-            manduArmedCiv = civ
-            HapticFeedback.tap()
-        }
-    }
-
-    /// Place the armed civ into a slot, or pick up the civ already in a slot.
-    func tapManduSlot(_ slotIndex: Int) {
-        if let civ = manduArmedCiv {
-            if manduPlayerGrid[slotIndex] == civ.rawValue {
-                // Tap same civ in same slot → clear it
-                manduPlayerGrid.removeValue(forKey: slotIndex)
-            } else {
-                // Remove this civ from any other slot first (each civ goes in exactly one slot)
-                for key in manduPlayerGrid.keys where manduPlayerGrid[key] == civ.rawValue {
-                    manduPlayerGrid.removeValue(forKey: key)
-                }
-                manduPlayerGrid[slotIndex] = civ.rawValue
-                HapticFeedback.tap()
-            }
-            manduArmedCiv = nil
-            if isManduComplete { HapticFeedback.success() }
-        } else if let civRaw = manduPlayerGrid[slotIndex],
-                  let civ = CivilizationID(rawValue: civRaw) {
-            // No civ armed — pick up whatever is in this slot
-            manduPlayerGrid.removeValue(forKey: slotIndex)
-            manduArmedCiv = civ
-            HapticFeedback.tap()
-        }
-    }
-
-    func resetManduGrid() {
-        manduPlayerGrid = [:]
-        manduArmedCiv = nil
-        HapticFeedback.heavy()
     }
 
     // MARK: Reset Civilization
@@ -1747,6 +1856,21 @@ final class GameState: ObservableObject {
         completeCelticLevel()
     }
 
+    // MARK: Debug — Mastermind
+
+    /// Grants all six civilization tree-part symbols by populating discoveredKeys for every civ.
+    /// Also marks all six key gates as answered so no gate blocks navigation.
+    /// Call this from the debug panel to test the mastermind endgame without solving all 30 puzzles.
+    func debugGrantAllMasterMindKeys() {
+        for civ in CivilizationID.allCases {
+            if let key = TreeOfLifeKeys.produced(by: civ) {
+                discoveredKeys[civ] = key
+            }
+            civKeyGateAnswered.insert(civ)
+        }
+        saveProgress()
+    }
+
     // MARK: Progress Persistence
 
     private func saveProgress() {
@@ -1764,14 +1888,6 @@ final class GameState: ObservableObject {
         let keysDict = discoveredKeys.reduce(into: [String: String]()) { $0[$1.key.rawValue] = $1.value }
         UserDefaults.standard.set(keysDict, forKey: "EOA_discoveredKeys")
         UserDefaults.standard.set(civKeyGateAnswered.map(\.rawValue), forKey: "EOA_keyGateAnswered")
-        // Only persist the Mandu grid when all six civilizations are complete.
-        // Until then symbols fall off — clearing here ensures a fresh slate on next open.
-        if allSixCivsComplete {
-            let manduDict = manduPlayerGrid.reduce(into: [String: String]()) { $0["\($1.key)"] = $1.value }
-            UserDefaults.standard.set(manduDict, forKey: "EOA_manduGrid")
-        } else {
-            UserDefaults.standard.removeObject(forKey: "EOA_manduGrid")
-        }
     }
 
     private func loadProgress() {
@@ -1811,11 +1927,6 @@ final class GameState: ObservableObject {
         let rawGate = UserDefaults.standard.array(forKey: "EOA_keyGateAnswered") as? [String] ?? []
         civKeyGateAnswered = Set(rawGate.compactMap { CivilizationID(rawValue: $0) })
 
-        let rawMandu = UserDefaults.standard.dictionary(forKey: "EOA_manduGrid") as? [String: String] ?? [:]
-        manduPlayerGrid = rawMandu.reduce(into: [Int: String]()) {
-            if let id = Int($1.key) { $0[id] = $1.value }
-        }
-
         // Default showIntroOnLaunch to true only on first ever run
         if UserDefaults.standard.object(forKey: "EOA_showIntro") == nil {
             showIntroOnLaunch = true
@@ -1824,6 +1935,8 @@ final class GameState: ObservableObject {
         }
 
         playerName = UserDefaults.standard.string(forKey: "EOA_playerName") ?? ""
+
+        loadMasterMindProgress()
     }
 
     var hasProgress: Bool {
@@ -1907,8 +2020,7 @@ final class GameState: ObservableObject {
         mysteryMarkIndex = [:]
         chinaMysteryMarkIndex2 = 0
         mysteryMarkWrongFlash = false
-        manduPlayerGrid = [:]
-        manduArmedCiv = nil
+        resetMasterMind()
 
         // ── Navigation / session ──────────────────────────────────
         lastActiveCivilization = nil
@@ -1920,8 +2032,8 @@ final class GameState: ObservableObject {
             "EOA_unlockedEntries", "EOA_codex", "EOA_chronicle",
             "EOA_norseUnlocked", "EOA_sumerianUnlocked", "EOA_mayanUnlocked",
             "EOA_chineseUnlocked", "EOA_celticUnlocked", "EOA_lastCiv",
-            "EOA_discoveredKeys", "EOA_keyGateAnswered", "EOA_manduGrid",
-            "EOA_hasSeenIntro"
+            "EOA_discoveredKeys", "EOA_keyGateAnswered",
+            "EOA_hasSeenIntro", "EOA_masterMindSlots", "EOA_masterMindHistory"
         ]
         keysToErase.forEach { UserDefaults.standard.removeObject(forKey: $0) }
         // Keep showIntroOnLaunch and playerName — the player set those deliberately.

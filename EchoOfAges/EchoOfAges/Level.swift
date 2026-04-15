@@ -240,7 +240,7 @@ extension Level {
             body: "Here lies Kha, Master Scribe of the Great House. He who deciphers this seal shall know: three sacred symbols govern the world of the living — the Owl of wisdom, the Water of life, and the Eye of sight. Where they rest is not random. Each claims one position in every row, one in every column. In their proper order lies harmony; in disorder, chaos reigns eternal.",
             artifact: "𓏠"
         ),
-        decodedMessage: "In the age before memory, three forces shaped the world: the Eye that sees all truth, the Owl that guards all knowledge, the Water that gives all life. From these three, the first root of the great Tree was born beneath the earth, unseen, patient, waiting.",
+        decodedMessage: "In the age before memory, three forces shaped the world: the Eye that sees all truth, the Owl that guards all knowledge, the Water that gives all life. From these three, something began beneath the earth — unseen, patient, waiting. Not yet named. Not yet known.",
         newGlyphs: [.eye, .owl, .water],
         variant: .standard
     )
@@ -300,7 +300,7 @@ extension Level {
             body: "Ra's four sacred symbols do not simply rotate — they interlock like the teeth of a great celestial wheel. No symbol stands beside a mirror of itself. The Eye sees its own kind and turns away. The Lion guards its solitude. Water flows to the spaces between. To read Ra's inscription is to understand separation: every force is most powerful when it stands alone, surrounded by what it is not.",
             artifact: "𓇳"
         ),
-        decodedMessage: "Ra looked upon the first roots and raised a fourth power: the Lion of Strength, to protect what grows. Four forces now balanced the world — sight, wisdom, life, and strength. The trunk of the Tree rose toward the heavens, and Ra called it good.",
+        decodedMessage: "Ra looked upon the first roots and raised a fourth power: the Lion of Strength, to protect what grows. Four forces now balanced the world — sight, wisdom, life, and strength. Something steadied between heaven and earth, and Ra called it good.",
         newGlyphs: [.lion],
         variant: .noAdjacent
     )
@@ -365,7 +365,7 @@ extension Level {
             body: "Anubis places the heart upon the golden scales. Opposite rests the Feather of Ma'at — truth itself. If the heart is light, unclouded by sin, the soul passes onward to Aaru. If heavy with wrongdoing, the Devourer waits. The seal mirrors this judgment: every position must be earned, every symbol placed with intention — not guessed, not assumed. Row, column, and hidden chamber all demand the same answer.",
             artifact: "𓂋"
         ),
-        decodedMessage: "Anubis weighed each soul who sought the Tree. Only those who balanced Eye and Lion, Water and Owl — each in its proper place, none repeated, none omitted — could pass beneath its branches. Order is the first law of the living. It is also the last law of the dead.",
+        decodedMessage: "Anubis weighed each soul who sought the far shore. Only those who balanced Eye and Lion, Water and Owl — each in its proper place, none repeated, none omitted — could pass beneath the great shadow. Order is the first law of the living. It is also the last law of the dead.",
         newGlyphs: [],
         variant: .hiddenRegions([
             // Top-left chamber
@@ -441,7 +441,7 @@ extension Level {
             body: "In the forty-two sacred books of Thoth lies all knowledge: medicine, magic, astronomy, law, and the arts of the living and the dead. The five great glyphs represent five mysteries. Their arrangement here follows no simple pattern — it must be reasoned out, inscription by inscription, column by column, until the seal yields its truth.",
             artifact: "𓆓"
         ),
-        decodedMessage: "Thoth inscribed a fifth force in his sacred books: the Sky, the vault of eternity above all things. Five forces, five directions, five chambers of truth. The branches of the Tree now reached from earth to heaven. And Thoth wrote in the margin: all things in their proper place is the first law of the universe, and also the last.",
+        decodedMessage: "Thoth inscribed a fifth force in his sacred books: the Sky, the vault of eternity above all things. Five forces, five directions, five chambers of truth. Something reached from earth to heaven — and Thoth called it complete. He wrote in the margin: all things in their proper place is the first law of the universe, and also the last.",
         newGlyphs: [.sky],
         variant: .standard
     )
@@ -502,7 +502,7 @@ extension Level {
             body: "Beyond the Final Seal lies the Field of Reeds — Aaru, the Egyptian paradise. Here the worthy live in eternal bliss beneath a sky of endless gold. You solved not by pattern but by reason — each clue a stepping stone, each deduction a gate opened. The five glyphs, now in perfect arrangement, sing the oldest song: all things in their proper place, all souls in their proper rest. You have heard the echo of ages.",
             artifact: "𓇋"
         ),
-        decodedMessage: "You have heard the echo of ages. The Tree of Life stands at the center of all worlds — its roots in the waters of creation, its trunk the strength of lions, its branches the owl's wisdom spread wide, its leaves ten thousand eyes watching eternity, its fruit the sky itself: infinite, undying, and patient. Plant one truth each day. Let no symbol stand twice in the same place. This is how the world was made, and how it shall endure.",
+        decodedMessage: "You have heard the echo of ages. At the center of all worlds, something stands — its roots reach the waters of creation, its strength is the lion's, its wisdom spreads wide as the owl's wings, ten thousand eyes watch from its heights, and above it: the sky itself, infinite, undying, and patient. Plant one truth each day. Let no symbol stand twice in the same place. This is how the world was made, and how it shall endure.",
         newGlyphs: [],
         variant: .pureDeduction
     )
