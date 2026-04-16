@@ -430,7 +430,8 @@ struct MayanGameView: View {
     // MARK: - Action Row
 
     private var actionRow: some View {
-        HStack(spacing: 12) {
+        let canDecipher = level.isFullyFilled(gameState.mayanPlayerGrid)
+        return HStack(spacing: 12) {
             Button(action: {
                 HapticFeedback.tap()
                 gameState.verifyMayanPlacement()
@@ -439,16 +440,17 @@ struct MayanGameView: View {
                     Image(systemName: "magnifyingglass").font(.system(size: 15))
                     Text("Decipher").font(EgyptFont.title(15))
                 }
-                .foregroundStyle(jadeColor)
+                .foregroundStyle(canDecipher ? jadeColor : jadeColor.opacity(0.35))
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 13)
                 .background(
                     RoundedRectangle(cornerRadius: 10)
-                        .fill(jadeColor.opacity(0.12))
+                        .fill(jadeColor.opacity(canDecipher ? 0.12 : 0.05))
                         .overlay(RoundedRectangle(cornerRadius: 10)
-                            .stroke(jadeColor.opacity(0.45), lineWidth: 1))
+                            .stroke(jadeColor.opacity(canDecipher ? 0.45 : 0.18), lineWidth: 1))
                 )
             }
+            .disabled(!canDecipher)
 
             Button(action: {
                 HapticFeedback.tap()

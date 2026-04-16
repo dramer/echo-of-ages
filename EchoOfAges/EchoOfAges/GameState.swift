@@ -851,7 +851,16 @@ final class GameState: ObservableObject {
     @Published var mayanErrorCells: Set<MayanCellCoord> = []
     @Published var mayanPendingComplete: Bool = false
 
-    var mayanCurrentLevel: MayanLevel { MayanLevel.allLevels[mayanCurrentLevelIndex] }
+    @Published var mayanGeneratedLevel3: MayanLevel? = nil
+    @Published var mayanGeneratedLevel4: MayanLevel? = nil
+
+    var mayanCurrentLevel: MayanLevel {
+        switch mayanCurrentLevelIndex {
+        case 2: return mayanGeneratedLevel3 ?? MayanLevel.allLevels[2]
+        case 3: return mayanGeneratedLevel4 ?? MayanLevel.allLevels[3]
+        default: return MayanLevel.allLevels[mayanCurrentLevelIndex]
+        }
+    }
 
     // Chinese Box Puzzle
     @Published var chineseCurrentLevelIndex: Int = 0
@@ -1506,6 +1515,8 @@ final class GameState: ObservableObject {
             mayanArmedGlyph = nil
             mayanErrorCells = []
             mayanPendingComplete = false
+            mayanGeneratedLevel3 = nil
+            mayanGeneratedLevel4 = nil
             resetMayanGrid(for: MayanLevel.allLevels[0])
             UserDefaults.standard.removeObject(forKey: "EOA_mayanUnlocked")
 
@@ -1558,7 +1569,21 @@ final class GameState: ObservableObject {
 
     func loadMayanLevel(_ index: Int) {
         mayanCurrentLevelIndex = index
-        resetMayanGrid(for: MayanLevel.allLevels[index])
+        // Levels 3 and 4 are randomised — generate fresh each load.
+        let level: MayanLevel
+        switch index {
+        case 2:
+            let generated = MayanLevel.generateLevel3()
+            mayanGeneratedLevel3 = generated
+            level = generated
+        case 3:
+            let generated = MayanLevel.generateLevel4()
+            mayanGeneratedLevel4 = generated
+            level = generated
+        default:
+            level = MayanLevel.allLevels[index]
+        }
+        resetMayanGrid(for: level)
         mayanSelectedCell = nil
         mayanArmedGlyph = nil
         mayanErrorCells = []
@@ -1658,7 +1683,7 @@ final class GameState: ObservableObject {
     func debugSolveMayanLevel(_ level: MayanLevel) {
         guard let idx = MayanLevel.allLevels.firstIndex(where: { $0.id == level.id }) else { return }
         loadMayanLevel(idx)
-        let l = MayanLevel.allLevels[idx]
+        let l = mayanCurrentLevel  // use the freshly generated level for ids 3 & 4
         mayanPlayerGrid = l.cycles.enumerated().map { (_, cycle) in
             (0..<l.sequenceLength).map { pos in cycle.symbol(at: pos) }
         }
