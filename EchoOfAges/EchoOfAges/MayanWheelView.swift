@@ -610,11 +610,10 @@ struct MayanWheelView: View {
 
             HStack(spacing: 8) {
                 ForEach(MayanGlyph.allCases) { glyph in
-                    let isActive  = glyph == centerGlyph
+                    let isActive  = level.usesSynchronizedRotation ? true : glyph == centerGlyph
                     let isArmed   = gameState.mayanArmedGlyph == glyph
 
                     Button(action: {
-                        guard isActive else { return }
                         HapticFeedback.tap()
                         gameState.mayanArmedGlyph = isArmed ? nil : glyph
                     }) {
@@ -658,10 +657,17 @@ struct MayanWheelView: View {
                 }
             }
 
-            Text("Only the symbol matching the centre circle is available.")
-                .font(EgyptFont.bodyItalic(11))
-                .foregroundStyle(jadeColor.opacity(0.38))
-                .frame(maxWidth: .infinity, alignment: .center)
+            if level.usesSynchronizedRotation {
+                Text("Select any symbol to place when the rings align at 12 o'clock.")
+                    .font(EgyptFont.bodyItalic(11))
+                    .foregroundStyle(jadeColor.opacity(0.38))
+                    .frame(maxWidth: .infinity, alignment: .center)
+            } else {
+                Text("Only the symbol matching the centre circle is available.")
+                    .font(EgyptFont.bodyItalic(11))
+                    .foregroundStyle(jadeColor.opacity(0.38))
+                    .frame(maxWidth: .infinity, alignment: .center)
+            }
         }
         .padding(14)
         .background(

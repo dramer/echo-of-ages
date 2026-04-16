@@ -167,7 +167,10 @@ struct CelticGameView: View {
                                     lineWidth: 1.8))
                     VStack(spacing: 2) {
                         Text(symbol)
-                            .font(.system(size: 28))
+                            .font(.system(size: 26))
+                            .minimumScaleFactor(0.5)
+                            .lineLimit(1)
+                            .frame(width: 36, height: 30)
                             .foregroundStyle(isWrong
                                 ? Color(red: 1.0, green: 0.55, blue: 0.45)
                                 : Color.celticGold)
@@ -315,7 +318,7 @@ struct CelticGameView: View {
                 Text(glyph.rawValue)
                     .font(.system(size: 26 * uiScale, weight: .medium))
                     .foregroundStyle(isArmed ? Color.celticGold : Color.celticInk)
-                Text(glyph.treeMeaning)
+                Text(glyph.treeName)
                     .font(.system(size: 10 * uiScale))
                     .foregroundStyle(isArmed ? Color.celticGold.opacity(0.8) : Color.celticInk.opacity(0.55))
             }

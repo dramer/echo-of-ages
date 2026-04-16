@@ -1119,6 +1119,10 @@ final class GameState: ObservableObject {
     // Set briefly when the player tries to complete Level 1 with the wrong mark
     @Published var mysteryMarkWrongFlash: Bool = false
 
+    // Tracks consecutive wrong foreign-mark attempts on Celtic Level 1.
+    // Reset resets the puzzle after 2 wrong tries.
+    @Published var celticKeyGateAttempts: Int = 0
+
     /// True if the player must still identify the foreign mark before Level 1 counts as solved.
     /// Egypt never requires this (it's the first civ).
     func needsKeyGate(for civ: CivilizationID) -> Bool {
@@ -1877,10 +1881,20 @@ final class GameState: ObservableObject {
         if puzzle.isSolved(celticPlayerGrid) {
             if celticCurrentLevelIndex == 0 && needsKeyGate(for: .celtic) {
                 if mysteryMarkIsCorrect(for: .celtic) {
+                    celticKeyGateAttempts = 0
                     passKeyGate(for: .celtic)
                     completeCelticLevel()
                 } else {
-                    flashMysteryMarkWrong()
+                    celticKeyGateAttempts += 1
+                    if celticKeyGateAttempts >= 2 {
+                        celticKeyGateAttempts = 0
+                        flashMysteryMarkWrong()
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) {
+                            self.resetCelticGrid()
+                        }
+                    } else {
+                        flashMysteryMarkWrong()
+                    }
                 }
             } else {
                 completeCelticLevel()
@@ -1903,6 +1917,7 @@ final class GameState: ObservableObject {
         celticPlayerGrid = celticCurrentPuzzle?.initialGrid() ?? []
         celticArmedGlyph = nil
         celticErrorCells = []
+        celticKeyGateAttempts = 0
         HapticFeedback.heavy()
     }
 
@@ -1911,7 +1926,16 @@ final class GameState: ObservableObject {
         let errors = puzzle.errorCells(in: celticPlayerGrid)
         if errors.isEmpty && celticCurrentLevelIndex == 0 && needsKeyGate(for: .celtic)
             && !mysteryMarkIsCorrect(for: .celtic) {
-            flashMysteryMarkWrong()
+            celticKeyGateAttempts += 1
+            if celticKeyGateAttempts >= 2 {
+                celticKeyGateAttempts = 0
+                flashMysteryMarkWrong()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) {
+                    self.resetCelticGrid()
+                }
+            } else {
+                flashMysteryMarkWrong()
+            }
             return
         }
         celticErrorCells = errors

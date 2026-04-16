@@ -221,7 +221,7 @@ extension CelticDifficulty {
         ],
         decodedMessage: "Beith rises before all others. Even the birch must learn what comes before it can grow.",
         rows: 2, cols: 3,
-        targetBlanks: 3
+        targetBlanks: 4
     )
 
     static let d2 = CelticDifficulty(
@@ -235,7 +235,7 @@ extension CelticDifficulty {
         ],
         decodedMessage: "The rowan protects the grove. But only the ash, at the last corner, completes the boundary.",
         rows: 3, cols: 3,
-        targetBlanks: 5
+        targetBlanks: 7
     )
 
     static let d3 = CelticDifficulty(
@@ -249,7 +249,7 @@ extension CelticDifficulty {
         ],
         decodedMessage: "The alder grows beside the water. It holds its place in the order, season after season.",
         rows: 3, cols: 4,
-        targetBlanks: 7
+        targetBlanks: 10
     )
 
     static let d4 = CelticDifficulty(
@@ -263,7 +263,7 @@ extension CelticDifficulty {
         ],
         decodedMessage: "The willow bends without breaking. The ash stands without moving. Between them — the whole of what it means to endure.",
         rows: 4, cols: 4,
-        targetBlanks: 10
+        targetBlanks: 13
     )
 
     static let d5 = CelticDifficulty(
@@ -277,7 +277,7 @@ extension CelticDifficulty {
         ],
         decodedMessage: "Every tree named every other tree. Every voice in the grove spoke in the same sacred order. They did not know this was the word for 'remember.' They only knew it was the word for 'tree.'",
         rows: 4, cols: 5,
-        targetBlanks: 14
+        targetBlanks: 17
     )
 }
 
@@ -309,6 +309,7 @@ enum CelticGenerator {
         let rows = difficulty.rows
         let cols = difficulty.cols
         let tableau = randomTableau(rows: rows, cols: cols)
+        guard isInteresting(tableau, rows: rows, cols: cols) else { return nil }
         let rowSums = (0..<rows).map { r in tableau[r].reduce(0, +) }
         let colSums = (0..<cols).map { c in (0..<rows).map { tableau[$0][c] }.reduce(0, +) }
 
@@ -347,10 +348,33 @@ enum CelticGenerator {
             for c in 0..<cols {
                 let lo = max(c > 0 ? grid[r][c-1] : 1,
                              r > 0 ? grid[r-1][c] : 1)
-                grid[r][c] = Int.random(in: lo...5)
+                // Cap each step at lo+2 so values grow gradually rather than
+                // jumping straight to 5. This prevents trivial all-Nion rows
+                // and produces much more varied, harder grids.
+                let hi = min(5, lo + 2)
+                grid[r][c] = Int.random(in: lo...hi)
             }
         }
         return grid
+    }
+
+    // Returns false for tableaux that produce trivially easy puzzles.
+    private static func isInteresting(_ tableau: [[Int]], rows: Int, cols: Int) -> Bool {
+        // Constant rows (e.g. [5,5,5]) are solved instantly from the sum alone
+        for r in 0..<rows {
+            if Set(tableau[r]).count == 1 { return false }
+        }
+        // Constant columns for the same reason
+        for c in 0..<cols {
+            if Set((0..<rows).map { tableau[$0][c] }).count == 1 { return false }
+        }
+        // Need at least 3 distinct values across the whole grid
+        if Set(tableau.flatMap { $0 }).count < 3 { return false }
+        // Reject Nion-heavy grids — if more than 35% of cells are 5,
+        // too many rows are trivially [x,5,5] or [5,5,5]
+        let fiveCount = tableau.flatMap { $0 }.filter { $0 == 5 }.count
+        if fiveCount * 10 > rows * cols * 3 { return false }
+        return true
     }
 
     private static func digHoles(
