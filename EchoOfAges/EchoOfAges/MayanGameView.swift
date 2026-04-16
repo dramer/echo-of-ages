@@ -34,32 +34,22 @@ struct MayanGameView: View {
     }
 
     private var regularBody: some View {
-        ZStack {
-            jungleBackground.ignoresSafeArea()
+        GeometryReader { geo in
+            ZStack {
+                jungleBackground.ignoresSafeArea()
 
-            VStack(spacing: 0) {
-                headerBar
-
-                ScrollView(showsIndicators: false) {
-                    VStack(spacing: 14) {
-                        levelHeader
-                        wheelView
-                        palette
-                        actionRow
-                        inscriptionsSection
-                    }
-                    .padding(.horizontal, 18)
-                    .padding(.top, 8)
-                    .padding(.bottom, 32)
+                VStack(spacing: 0) {
+                    headerBar
+                    staticMainContent(geo: geo)
                 }
-            }
 
-            if showComplete {
-                Color.black.opacity(0.55).ignoresSafeArea()
-                    .transition(.opacity).zIndex(9)
-                levelCompleteCard
-                    .transition(.scale(scale: 0.92).combined(with: .opacity))
-                    .zIndex(10)
+                if showComplete {
+                    Color.black.opacity(0.55).ignoresSafeArea()
+                        .transition(.opacity).zIndex(9)
+                    levelCompleteCard(maxHeight: geo.size.height * 0.88)
+                        .transition(.scale(scale: 0.92).combined(with: .opacity))
+                        .zIndex(10)
+                }
             }
         }
         .onChange(of: gameState.mayanPendingComplete) { _, newVal in
@@ -76,6 +66,51 @@ struct MayanGameView: View {
         .onDisappear {
             showComplete = false
             messageRevealed = false
+        }
+    }
+
+    @ViewBuilder
+    private func staticMainContent(geo: GeometryProxy) -> some View {
+        if geo.size.width > geo.size.height && UIDevice.current.userInterfaceIdiom == .pad {
+            staticLandscapeContent(geo)
+        } else {
+            staticPortraitContent(geo)
+        }
+    }
+
+    private func staticPortraitContent(_ geo: GeometryProxy) -> some View {
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: 14) {
+                levelHeader
+                wheelView(geo: geo, isLandscape: false)
+                palette
+                actionRow
+                inscriptionsSection
+            }
+            .padding(.horizontal, 18)
+            .padding(.top, 8)
+            .padding(.bottom, 32)
+        }
+    }
+
+    private func staticLandscapeContent(_ geo: GeometryProxy) -> some View {
+        HStack(alignment: .top, spacing: 0) {
+            // Left column: static wheel only
+            wheelView(geo: geo, isLandscape: true)
+                .frame(maxHeight: .infinity, alignment: .center)
+
+            // Right column: controls + inscriptions
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 14) {
+                    levelHeader
+                    palette
+                    actionRow
+                    inscriptionsSection
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+            }
+            .frame(maxWidth: .infinity)
         }
     }
 
@@ -149,8 +184,8 @@ struct MayanGameView: View {
 
     // MARK: - Wheel View
 
-    private var wheelView: some View {
-        let diam   = wheelDiameter
+    private func wheelView(geo: GeometryProxy, isLandscape: Bool) -> some View {
+        let diam   = wheelDiameter(geo: geo, isLandscape: isLandscape)
         let radius = diam / 2
         let (innerR, spacing, cellSz) = ringGeometry(radius: radius)
         let outerR = innerR + CGFloat(max(0, level.cycles.count - 1)) * spacing
@@ -270,23 +305,21 @@ struct MayanGameView: View {
     }
 
     // MARK: - Wheel Diameter
-    //
-    // Computed from the screen bounds so the wheel is large on iPad while leaving
-    // enough vertical room for the palette, action buttons, and inscriptions to
-    // fit on-screen without scrolling.
-    //
-    //   reserved ≈ nav bar + level header + palette + actionRow + inscriptions
-    //               + spacings + padding
 
-    private var wheelDiameter: CGFloat {
-        let screen   = UIScreen.main.bounds
-        let availW   = screen.width - 36   // 18 pt horizontal padding each side
-        let isPhone  = UIDevice.current.userInterfaceIdiom == .phone
-        let reserved: CGFloat = isPhone ? 380 : 540
-        let maxFromH = screen.height - reserved
-        let candidate = min(availW, max(maxFromH, 280))
-        // Hard cap on iPad so portrait mode doesn't produce an enormous wheel
-        return isPhone ? candidate : min(candidate, 640)
+    private func wheelDiameter(geo: GeometryProxy, isLandscape: Bool) -> CGFloat {
+        let isPhone = UIDevice.current.userInterfaceIdiom == .phone
+        if isLandscape {
+            // Left column takes ~50 % of width; wheel must also fit in available height
+            let leftColW = geo.size.width * 0.50 - 64
+            let availH   = geo.size.height - 36
+            return min(leftColW, availH, 600)
+        } else {
+            let availW   = geo.size.width - 36
+            let reserved: CGFloat = isPhone ? 380 : 540
+            let maxFromH = geo.size.height - reserved
+            let candidate = min(availW, max(maxFromH, 280))
+            return isPhone ? candidate : min(candidate, 640)
+        }
     }
 
     // MARK: - Ring Geometry
@@ -529,7 +562,7 @@ struct MayanGameView: View {
 
     // MARK: - Level Complete Card
 
-    private var levelCompleteCard: some View {
+    private func levelCompleteCard(maxHeight: CGFloat) -> some View {
         let isLastLevel = gameState.mayanCurrentLevelIndex == MayanLevel.allLevels.count - 1
         let newCivs     = isLastLevel ? gameState.newlyUnlockedCivs(completingLevel5Of: .maya) : []
 
@@ -671,7 +704,7 @@ struct MayanGameView: View {
         )
         .shadow(color: .black.opacity(0.5), radius: 20, x: 0, y: 8)
         .padding(.horizontal, 24)
-        .frame(maxHeight: UIScreen.main.bounds.height * 0.82)
+        .frame(maxHeight: maxHeight)
     }
 
     // MARK: - Background & Colors

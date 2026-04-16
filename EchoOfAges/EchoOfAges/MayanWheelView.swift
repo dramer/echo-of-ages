@@ -60,31 +60,22 @@ struct MayanWheelView: View {
     // MARK: - Body
 
     var body: some View {
-        ZStack {
-            jungleBackground.ignoresSafeArea()
+        GeometryReader { geo in
+            ZStack {
+                jungleBackground.ignoresSafeArea()
 
-            VStack(spacing: 0) {
-                headerBar
-
-                ScrollView(showsIndicators: false) {
-                    VStack(spacing: 14) {
-                        levelHeader
-                        wheelCanvas
-                        paletteRow
-                        actionRow
-                    }
-                    .padding(.horizontal, 18)
-                    .padding(.top, 8)
-                    .padding(.bottom, 32)
+                VStack(spacing: 0) {
+                    headerBar
+                    mainContent(geo: geo)
                 }
-            }
 
-            if showComplete {
-                Color.black.opacity(0.55).ignoresSafeArea()
-                    .transition(.opacity).zIndex(9)
-                levelCompleteCard
-                    .transition(.scale(scale: 0.92).combined(with: .opacity))
-                    .zIndex(10)
+                if showComplete {
+                    Color.black.opacity(0.55).ignoresSafeArea()
+                        .transition(.opacity).zIndex(9)
+                    levelCompleteCard(maxHeight: geo.size.height * 0.88)
+                        .transition(.scale(scale: 0.92).combined(with: .opacity))
+                        .zIndex(10)
+                }
             }
         }
         .onAppear {
@@ -105,6 +96,64 @@ struct MayanWheelView: View {
         .onDisappear {
             showComplete = false
             messageRevealed = false
+        }
+    }
+
+    // MARK: - Layout Branches
+
+    @ViewBuilder
+    private func mainContent(geo: GeometryProxy) -> some View {
+        if geo.size.width > geo.size.height && UIDevice.current.userInterfaceIdiom == .pad {
+            landscapeContent(geo)
+        } else {
+            portraitContent(geo)
+        }
+    }
+
+    private func portraitContent(_ geo: GeometryProxy) -> some View {
+        let cSize = wheelCanvasSize(geo: geo, isLandscape: false)
+        return ScrollView(showsIndicators: false) {
+            VStack(spacing: 14) {
+                levelHeader
+                wheelCanvas(cSize)
+                paletteRow
+                actionRow
+            }
+            .padding(.horizontal, 18)
+            .padding(.top, 8)
+            .padding(.bottom, 32)
+        }
+    }
+
+    private func landscapeContent(_ geo: GeometryProxy) -> some View {
+        let cSize = wheelCanvasSize(geo: geo, isLandscape: true)
+        return HStack(alignment: .top, spacing: 0) {
+            // Left column: wheel only, vertically centred in available height
+            wheelCanvas(cSize)
+                .frame(maxHeight: .infinity, alignment: .center)
+
+            // Right column: compact scrollable controls
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 14) {
+                    levelHeader
+                    paletteRow
+                    actionRow
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+            }
+            .frame(maxWidth: .infinity)
+        }
+    }
+
+    private func wheelCanvasSize(geo: GeometryProxy, isLandscape: Bool) -> CGFloat {
+        if isLandscape {
+            // Wheel shares the left half; must also fit within the available height
+            let leftColW = geo.size.width * 0.50 - 64   // padding on left col
+            let availH   = geo.size.height - 36          // top/bottom breathing room
+            return min(leftColW, availH, 600)
+        } else {
+            return min(geo.size.width - 64, 640)
         }
     }
 
@@ -178,19 +227,11 @@ struct MayanWheelView: View {
 
     // MARK: - Wheel Canvas
 
-    /// Canvas size adapts to the screen so the wheel fills the available width on every device.
-    private var adaptiveCanvasSize: CGFloat {
-        let screenWidth = UIScreen.main.bounds.width
-        let available   = screenWidth - 36 - 28  // outer padding (18×2) + inner padding (14×2)
-        return min(available, 640)
-    }
-
-    private var wheelCanvas: some View {
-        let canvasSize    = adaptiveCanvasSize
-        let outerRadius   = canvasSize * 0.4375   // matches original 140/320
-        let innerRadius   = canvasSize * 0.256    // matches original 82/320
-        let cellSize      = canvasSize * 0.106    // matches original 34/320
-        let centerRadius  = canvasSize * 0.1125   // matches original 36/320
+    private func wheelCanvas(_ canvasSize: CGFloat) -> some View {
+        let outerRadius   = canvasSize * 0.4375
+        let innerRadius   = canvasSize * 0.256
+        let cellSize      = canvasSize * 0.106
+        let centerRadius  = canvasSize * 0.1125
 
         return VStack(spacing: 12) {
             ZStack {
@@ -209,18 +250,12 @@ struct MayanWheelView: View {
                     .offset(y: -(outerRadius * 0.5 + cellSize * 0.25 + 3))
                     .allowsHitTesting(false)
 
-                // Outer ring (clockwise) — ZStack rotates counter-clockwise so cells advance CW past 12 o'clock
                 outerRingView(radius: outerRadius, cellSize: cellSize)
-
-                // Inner ring (counter-clockwise) — ZStack rotates clockwise so cells advance CCW past 12 o'clock
                 innerRingView(radius: innerRadius, cellSize: cellSize)
-
-                // Center cycling symbol
                 centerCircle(radius: centerRadius)
             }
             .frame(width: canvasSize, height: canvasSize)
 
-            // Ring labels
             HStack(spacing: 28) {
                 ringLabel(outerCycle.label, color: jadeColor)
                 ringLabel(innerCycle.label, color: jadeColor.opacity(0.7))
@@ -608,7 +643,7 @@ struct MayanWheelView: View {
 
     // MARK: - Level Complete Card
 
-    private var levelCompleteCard: some View {
+    private func levelCompleteCard(maxHeight: CGFloat) -> some View {
         let isLastLevel = gameState.mayanCurrentLevelIndex == MayanLevel.allLevels.count - 1
         let newCivs     = isLastLevel ? gameState.newlyUnlockedCivs(completingLevel5Of: .maya) : []
 
@@ -748,7 +783,7 @@ struct MayanWheelView: View {
         )
         .shadow(color: .black.opacity(0.5), radius: 20, x: 0, y: 8)
         .padding(.horizontal, 24)
-        .frame(maxHeight: UIScreen.main.bounds.height * 0.82)
+        .frame(maxHeight: maxHeight)
     }
 
     // MARK: - Background & Helpers
