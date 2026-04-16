@@ -811,10 +811,10 @@ struct MayanWheelView: View {
 
     // MARK: - Center Glyph Cycling
 
-    /// Self-scheduling center advance at a fixed 1.5 s interval.
+    /// Self-scheduling center advance at a fixed 3.5 s interval.
     /// Rings auto-resume after 15 s, so the player always has time regardless of center speed.
     private func scheduleCenterAdvance() {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.5) {
             advanceCenterGlyph()
             scheduleCenterAdvance()
         }
@@ -872,7 +872,7 @@ struct MayanWheelView: View {
                 ring.isPaused = true
                 ring.pauseID += 1
                 let capturedPauseID = ring.pauseID
-                // Auto-resume after 2 full center cycles (5 symbols × 1.5 s × 2 = 15 s).
+                // Auto-resume after ~1 full center cycle (5 symbols × 3.5 s ≈ 18 s, capped at 15 s).
                 // The pauseID check ensures a stale timer from a previous pause won't fire.
                 DispatchQueue.main.asyncAfter(deadline: .now() + 15.0) {
                     guard ring.isPaused, ring.pauseID == capturedPauseID else { return }
