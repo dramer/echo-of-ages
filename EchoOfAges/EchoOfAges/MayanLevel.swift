@@ -253,43 +253,41 @@ extension MayanLevel {
     // ─────────────────────────────────────────────────────────────────────
     // LEVEL 3 · 2 cycles · period 4 + period 4 · 8 blanks  (static grid)
     //
-    // PAIRING RULE (Option C — valid pairs at every position):
-    //   KIN  ↔ HAAB   (sun and year — two solar cycles)
-    //   IMIX ↔ TZʼ    (earth and sacred round — creation pair)
-    //   IK   ↔ KIN    (wind and sun — the breath of the sun god)
-    //   HAAB ↔ IMIX   (year and earth — the year feeds the earth)
-    //   TZʼ  ↔ IK     (sacred round and wind — not used at this level)
+    // SYMMETRIC PAIRING RULE — the same symbol always finds the same partner,
+    // no matter which ring it appears on:
+    //   KIN  ↔ HAAB   (sun and year — both solar, always together)
+    //   IMIX ↔ IK     (earth and wind — always together)
     //
     // Day Wheel (outer): [KIN, IMIX, IK, HAAB]  offset=0
     //   0:KIN  1:IMIX  2:IK  3:HAAB  4:KIN  5:IMIX  6:IK  7:HAAB
     //   Revealed: {0,1,2,3}  Blanks: {4→KIN, 5→IMIX, 6→IK, 7→HAAB}
     //
-    // Sacred Wheel (inner): [HAAB, TZʼ, KIN, IMIX]  offset=0
-    //   (derived: inner[n] = pair(outer[n]))
-    //   0:HAAB  1:TZʼ  2:KIN  3:IMIX  4:HAAB  5:TZʼ  6:KIN  7:IMIX
-    //   Revealed: {0,1,2,6}   Blanks: {3→IMIX, 4→HAAB, 5→TZʼ, 7→IMIX}
+    // Sacred Wheel (inner): [HAAB, IK, IMIX, KIN]  offset=0
+    //   (derived: inner[n] = symmetric_pair(outer[n]))
+    //   0:HAAB  1:IK  2:IMIX  3:KIN  4:HAAB  5:IK  6:IMIX  7:KIN
+    //   Revealed: {0,1,2,4}  Blanks: {3→KIN, 5→IK, 6→IMIX, 7→KIN}
     //
-    // Solving order:
-    //   Pos 0 (KIN/HAAB): learn pair KIN↔HAAB
-    //   Pos 1 (IMIX/TZʼ): learn pair IMIX↔TZʼ
-    //   Pos 2 (IK/KIN):   learn pair IK↔KIN
-    //   Pos 3 (HAAB/blank): deduce HAAB↔IMIX (last pair by elimination)
+    // Solving order — the symmetry "aha" happens at positions 1 and 2:
+    //   Pos 0 (KIN/HAAB):   learn KIN↔HAAB
+    //   Pos 1 (IMIX/IK):    learn IMIX↔IK (forward)
+    //   Pos 2 (IK/IMIX):    same pair, reversed → symmetry revealed!
+    //   Pos 3 (HAAB/blank): reverse KIN↔HAAB → inner=KIN
     //   Pos 4 (blank/HAAB): outer from cycle; HAAB confirms outer=KIN
-    //   Pos 5 (blank/blank): outer from cycle (IMIX); inner from pair (TZʼ)
-    //   Pos 6 (blank/KIN):  outer=IK from reverse pair + cycle
-    //   Pos 7 (blank/blank): outer from cycle (HAAB); inner from pair (IMIX)
+    //   Pos 5 (blank/blank): outer=IMIX from cycle; inner=IK from pair
+    //   Pos 6 (blank/blank): outer=IK from cycle; inner=IMIX from pair
+    //   Pos 7 (blank/blank): outer=HAAB from cycle; inner=KIN from pair
     // ─────────────────────────────────────────────────────────────────────
     static let level3 = MayanLevel(
         id: 3,
         usesWheelMechanic: false,
         title: "Wheels That Answer Each Other",
         subtitle: "The Binding Rule",
-        lore: "Two wheels, both still. But they are not independent. At every position, the outer mark and the inner mark are bound together by a fixed pairing. Study the positions where both wheels are already marked. The outer symbol and its inner partner always appear together — that is the rule. Once you know it, every blank follows.",
+        lore: "Two wheels, both still. But they are not independent. At every position, the outer mark and the inner mark are bound by a fixed pairing — and the pairing works both ways. If you see KIN on the outer, HAAB will be on the inner. If you see HAAB on the outer, KIN will be on the inner. The same symbol always finds the same partner, no matter which wheel it is on.",
         inscriptions: [
-            "These two wheels do not turn separately. At each of the eight positions, the outer mark and the inner mark belong together — a fixed pairing, always the same. The first four positions on the outer wheel are already marked. Three of their inner partners are also revealed. Start there.",
-            "Find the positions where both wheels carry a mark. The outer symbol and inner symbol at those positions are paired — permanently. If you see KIN on the outer and HAAB on the inner, that combination is not a coincidence. It is the rule.",
-            "Once you have identified the pairings from the marked positions, fill any blank where its partner is visible. For positions where both wheels are blank, deduce the outer value first from the outer wheel's repeating four-symbol cycle, then apply the pairing to find the inner.",
-            "The Maya called this 'the binding of the wheels.' Each day carried a name in the Haab' solar year and a separate name in the Tzolk'in sacred round — two systems, always read together. The combination was sacred. No wheel turns alone."
+            "These two wheels do not turn separately. At each of the eight positions, the outer mark and the inner mark belong together — a fixed pairing, always the same. The key: the rule is symmetric. If A pairs with B, then B pairs with A. The same symbol always finds the same partner.",
+            "Find the positions where both wheels carry a mark. Look at positions 0, 1, and 2 — three pairings are shown directly. Now look at positions 1 and 2 again. The outer symbol at position 1 is the same as the inner symbol at position 2, and vice versa. That is not a coincidence. That is symmetry.",
+            "Once you have the two pairings, fill any blank where its partner is visible. For positions where both wheels are blank, deduce the outer value from the outer wheel's own four-symbol repeating cycle, then apply the pairing to find the inner.",
+            "The Maya called this 'the binding of the wheels.' Each day carried a name in the Haab' solar year and a name in the Tzolk'in sacred round — two systems, always read in combination. The sun and the year. The earth and the wind. No wheel turns alone."
         ],
         cycles: [
             MayanCycle(
@@ -300,53 +298,58 @@ extension MayanLevel {
             ),
             MayanCycle(
                 label: "Sacred Wheel",
-                symbols: [.haab, .tzolk, .kin, .imix],
+                symbols: [.haab, .ik, .imix, .kin],
                 startOffset: 0,
-                revealedPositions: [0,1,2,6]
+                revealedPositions: [0,1,2,4]
             )
         ],
         sequenceLength: 8,
-        decodedMessage: "The third root reaches in two directions at once. Every symbol on the Day Wheel calls out to its partner on the Sacred Wheel — and the Sacred Wheel answers. KIN calls HAAB. IMIX calls TZʼOLKIN. IK calls KIN. HAAB calls IMIX. The Tree does not breathe with one root. It breathes with pairs — always pairs, always bound, always together.",
+        decodedMessage: "The third root reaches in two directions at once. KIN calls HAAB — and HAAB calls KIN. IMIX calls IK — and IK calls IMIX. The pairing is not one-way. It is not a hierarchy. It is a bond: equal, permanent, symmetric. The Tree does not breathe with one root pulling and another following. Both roots pull. Both roots answer. That is what holds the trunk upright.",
         newGlyphs: [],
         artifact: "asterisk.circle.fill",
         journalTitle: "The Binding Rule",
-        journalBody: "I spent the first hour trying to solve each wheel separately, the way I had solved the previous tablets. It didn't work. The patterns were there but incomplete — four symbols repeating on the outer, four on the inner, and neither made full sense alone. Then I noticed it: every position where both wheels were marked showed the same kind of combination. KIN with HAAB. IMIX with TZʼ. IK with KIN. Not random. A rule. Once I saw the rule, the blank positions filled themselves in less than ten minutes. The Maya were not teaching two rhythms. They were teaching a relationship."
+        journalBody: "I spent the first hour trying to solve each wheel separately. It didn't work. Then I looked at positions 1 and 2 together — IMIX with IK at position 1, IK with IMIX at position 2. The same pair, twice, from both sides. That was the moment I understood: the rule is symmetric. KIN always pairs with HAAB. IMIX always pairs with IK. It doesn't matter which wheel the symbol appears on. Find its partner, fill the blank. The tablet solved itself in minutes after that."
     )
 
     // ─────────────────────────────────────────────────────────────────────
     // LEVEL 4 · 2 cycles · period 4 + period 4 · 8 blanks  (rotating wheel)
     //
-    // Same pairing rule as Level 3 — applied under rotation.
+    // Same symmetric pairing rule as Level 3.
     // Outer cycle starts mid-sequence (offset=2): player sees IK first,
-    // must deduce the cycle started 2 steps in.
+    // must deduce the cycle entered 2 steps in.
     //
     // Day Wheel (outer): [KIN, IMIX, IK, HAAB]  offset=2
     //   symbol(pos) = [KIN,IMIX,IK,HAAB][(pos+2)%4]
     //   0:IK  1:HAAB  2:KIN  3:IMIX  4:IK  5:HAAB  6:KIN  7:IMIX
     //   Revealed: {0,1,4,5}  Blanks: {2→KIN, 3→IMIX, 6→KIN, 7→IMIX}
     //
-    // Sacred Wheel (inner): [KIN, IMIX, HAAB, TZʼ]  offset=0
-    //   (derived: inner[n] = pair(outer[n]))
-    //   0:KIN  1:IMIX  2:HAAB  3:TZʼ  4:KIN  5:IMIX  6:HAAB  7:TZʼ
-    //   Revealed: {0,2,4,6}  Blanks: {1→IMIX, 3→TZʼ, 5→IMIX, 7→TZʼ}
+    // Sacred Wheel (inner): [IMIX, KIN, HAAB, IK]  offset=0
+    //   (derived: inner[n] = symmetric_pair(outer[n]))
+    //   IK↔IMIX, HAAB↔KIN, KIN↔HAAB, IMIX↔IK (all symmetric ✓)
+    //   0:IMIX  1:KIN  2:HAAB  3:IK  4:IMIX  5:KIN  6:HAAB  7:IK
+    //   Revealed: {1,3,5,7}  Blanks: {0→IMIX, 2→HAAB, 4→IMIX, 6→HAAB}
     //
-    // Pairing confirmations visible to player:
-    //   Pos 0: IK(r)/KIN(r) → confirms IK↔KIN from Level 3
-    //   Pos 1: HAAB(r)/IMIX(blank) → apply HAAB↔IMIX
-    //   Pos 2: KIN(blank)/HAAB(r) → reverse pair KIN↔HAAB; cycle confirms
-    //   Pos 4: IK(r)/KIN(r) → cycle repeat confirms period
+    // Pairing at each position (all symmetric):
+    //   Pos 0: IK(r)/IMIX(blank)  → IK↔IMIX → fill inner=IMIX
+    //   Pos 1: HAAB(r)/KIN(r)     → HAAB↔KIN confirmed ✓
+    //   Pos 2: KIN(blank)/HAAB(blank) → cycle→KIN; pair→HAAB
+    //   Pos 3: IMIX(blank)/IK(r)  → IK↔IMIX → fill outer=IMIX (+ cycle)
+    //   Pos 4: IK(r)/IMIX(blank)  → repeat pos 0
+    //   Pos 5: HAAB(r)/KIN(r)     → repeat pos 1
+    //   Pos 6: KIN(blank)/HAAB(blank) → repeat pos 2
+    //   Pos 7: IMIX(blank)/IK(r)  → repeat pos 3
     // ─────────────────────────────────────────────────────────────────────
     static let level4 = MayanLevel(
         id: 4,
         usesWheelMechanic: true,
         title: "The Pairing in Motion",
         subtitle: "Bound Wheels, Turning",
-        lore: "The pairing rule holds even as the wheels rotate. You know the pairs from the previous tablet. Now the outer ring arrived mid-cycle — its first mark is not the beginning of the four-symbol sequence. Watch what passes through, identify where in the cycle you entered, then apply the binding rule to fill each blank.",
+        lore: "The symmetric pairing rule holds even as the wheels rotate. You know the pairs from the previous tablet — KIN with HAAB, IMIX with IK, always both ways. Now the outer ring arrived mid-cycle. Watch what passes through 12 o'clock, identify where in the four-symbol cycle you entered, then apply the binding rule to fill each blank.",
         inscriptions: [
-            "The binding rule from the previous tablet still applies: at every position, the outer symbol and the inner symbol are paired. You already know the pairs. The new challenge is that the outer ring did not start at its first symbol — it arrived mid-cycle.",
-            "Watch the outer ring's first two revealed marks. They tell you which two consecutive symbols in the four-symbol cycle you entered at. From that, you can deduce the full outer sequence. The inner wheel confirms your answers via the pairing.",
-            "When the ring pauses at a blank on the inner wheel, look at the outer ring's anchor at that same position. Apply the pairing forward. When the ring pauses at a blank on the outer wheel, look at the inner ring's anchor — apply the pairing in reverse.",
-            "The Maya priest reading a running calendar did not start at the beginning. The wheels were already turning when he sat down. He read whatever position they were at and worked forward and backward from there. That is the skill this tablet demands."
+            "The binding rule from the previous tablet still applies — and it is still symmetric. KIN pairs with HAAB no matter which ring it appears on. IMIX pairs with IK no matter which ring. The new challenge is that the outer ring did not start at its first symbol.",
+            "Watch the outer ring's first two marks as they pass. They tell you which two consecutive positions in the four-symbol cycle you entered at. Once you know the entry point, every outer position is determined. The inner ring confirms each answer.",
+            "When the ring pauses at a blank on the inner wheel and the outer shows an anchor, apply the pairing forward. When the outer is blank and the inner shows an anchor, apply the pairing in reverse — same rule, same symmetry.",
+            "The Maya priest reading a running calendar did not start at the beginning. The wheels were already turning when he sat down. He identified which position he had entered, then read forward. That is the skill this tablet requires."
         ],
         cycles: [
             MayanCycle(
@@ -357,17 +360,17 @@ extension MayanLevel {
             ),
             MayanCycle(
                 label: "Sacred Wheel",
-                symbols: [.kin, .imix, .haab, .tzolk],
+                symbols: [.imix, .kin, .haab, .ik],
                 startOffset: 0,
-                revealedPositions: [0,2,4,6]
+                revealedPositions: [1,3,5,7]
             )
         ],
         sequenceLength: 8,
-        decodedMessage: "The fourth root is the root in motion. The binding does not pause when the wheel turns — it holds through every revolution, through every position, through every pairing. KIN calls HAAB whether the wheel is still or spinning. The Tree breathes the same way whether you are watching or not. This is what permanence means: the rule that does not change when you look away.",
+        decodedMessage: "The fourth root is the root in motion. The binding does not pause when the wheel turns — KIN calls HAAB whether still or spinning, IMIX calls IK whether the stone moves or not. Symmetry does not require stillness. The rule that holds at rest holds in motion. The Tree breathes the same whether you are watching or not.",
         newGlyphs: [],
         artifact: "wind",
         journalTitle: "The Pairing in Motion",
-        journalBody: "The wheel version of the binding tablet was disorienting at first — watching the marks rotate past while trying to apply the pairing rule in real time. But the rule itself had not changed. I already knew it from the still tablet. The only new problem was figuring out where in the four-symbol cycle the outer ring had started. Once I found the offset — IK first, then HAAB, which placed me two steps in — everything else fell into the same logic as before. Pairing confirmed the cycle. Cycle confirmed the pairing. Both wheels, bound, turning, telling the same story."
+        journalBody: "Applying the pairing rule while the rings rotated was harder than I expected — not because the rule had changed, but because I had to find my entry point in the cycle before I could use it. IK first, then HAAB: two steps into the four-symbol cycle. Once I knew the offset, the outer sequence was determined. And every time I placed a symbol, the inner ring confirmed it through the pairing. The binding held. The rule was the same rule. I just had to find my footing before I could use it."
     )
 
     // ─────────────────────────────────────────────────────────────────────
