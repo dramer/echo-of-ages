@@ -1085,8 +1085,11 @@ struct MayanWheelView: View {
                 advanceInnerRingSynced()
             }
         } else {
-            // Both already filled — show sync glow briefly, then continue.
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            // Both already filled — hold the sync glow long enough for the centre
+            // palette to cycle through all 5 symbols twice (5 × 3.5 s × 2 = 35 s),
+            // giving the player time to study the aligned pair before the inner ring
+            // resumes spinning.  The ring is not paused; it just waits.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 35.0) {
                 guard !innerRing.isPaused else { return }
                 isSynced = false
                 advanceInnerRingSynced()
