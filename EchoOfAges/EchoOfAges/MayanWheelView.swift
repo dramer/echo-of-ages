@@ -402,12 +402,18 @@ struct MayanWheelView: View {
             isSyncTop: isSyncTop,
             size: size
         ) {
+            // Level 4: tapping a red cell that is NOT yet at 12 o'clock rotates it there.
+            if level.usesSynchronizedRotation && isError && !isAtTop {
+                guard !innerRing.isAnimating, !outerRing.isAnimating else { return }
+                HapticFeedback.tap()
+                rotateToSyncPosition(seqPos)
+                return
+            }
             guard isPausedAtTop, let armed = gameState.mayanArmedGlyph else { return }
             HapticFeedback.tap()
             gameState.placeMayanGlyph(armed, at: coord)
             gameState.mayanArmedGlyph = nil
             if level.usesSynchronizedRotation {
-                // Check if both cells at current sync position are now satisfied
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                     resumeInnerSyncedIfReady()
                 }
@@ -461,6 +467,13 @@ struct MayanWheelView: View {
             isSyncTop: isSyncTop,
             size: size
         ) {
+            // Level 4: tapping a red cell that is NOT yet at 12 o'clock rotates it there.
+            if level.usesSynchronizedRotation && isError && !isAtTop {
+                guard !innerRing.isAnimating, !outerRing.isAnimating else { return }
+                HapticFeedback.tap()
+                rotateToSyncPosition(seqPos)
+                return
+            }
             guard isPausedAtTop, let armed = gameState.mayanArmedGlyph else { return }
             HapticFeedback.tap()
             gameState.placeMayanGlyph(armed, at: coord)
@@ -984,10 +997,14 @@ struct MayanWheelView: View {
 
     // MARK: - Synchronized Mode Engine (Level 4)
 
-    /// True when a position is either an anchor OR the player has already filled it.
+    /// True when a position is either an anchor OR the player has filled it correctly.
+    /// An error cell (flagged by Decipher) is treated as unsatisfied so the sync
+    /// pause fires there and the player can correct the wrong glyph.
     private func isPositionSatisfied(cycleIdx: Int, seqPos: Int) -> Bool {
         let cycle = level.cycles[cycleIdx]
         if cycle.isRevealed(seqPos) { return true }
+        let coord = MayanCellCoord(cycle: cycleIdx, position: seqPos)
+        if gameState.mayanErrorCells.contains(coord) { return false }
         guard gameState.mayanPlayerGrid.indices.contains(cycleIdx),
               gameState.mayanPlayerGrid[cycleIdx].indices.contains(seqPos)
         else { return false }
@@ -1064,6 +1081,71 @@ struct MayanWheelView: View {
                 guard !innerRing.isPaused else { return }
                 advanceInnerRingSynced()
             }
+        }
+    }
+
+    /// Rotate both rings step-by-step (0.85 s per step) so that `seqPos` arrives at
+    /// 12 o'clock on both rings simultaneously, then hand off to handleSyncPosition.
+    /// Used when the player taps a red (error) cell that is not yet at the top.
+    private func rotateToSyncPosition(_ targetSeqPos: Int) {
+        let n = level.sequenceLength
+        let outerSteps = (targetSeqPos - outerRing.currentStep + n) % n
+        let innerSteps = (targetSeqPos - innerRing.currentStep + n) % n
+
+        // Stop any in-progress rotation
+        innerRing.isPaused = true
+        innerRing.pauseID += 1
+        innerRing.isAnimating = false
+        outerRing.isAnimating = false
+        isSynced = false
+
+        if outerSteps == 0 && innerSteps == 0 {
+            // Already at the target sync position
+            isSynced = true
+            handleSyncPosition(at: targetSeqPos)
+            return
+        }
+
+        let capturedID = innerRing.pauseID
+        rotateStepByStep(outerRemaining: outerSteps, innerRemaining: innerSteps,
+                         targetSeqPos: targetSeqPos, pauseID: capturedID)
+    }
+
+    /// Recursive helper that moves both rings one step per call at the normal 0.85 s
+    /// animation cadence until both reach targetSeqPos at 12 o'clock.
+    private func rotateStepByStep(outerRemaining: Int, innerRemaining: Int,
+                                   targetSeqPos: Int, pauseID: Int) {
+        guard innerRing.pauseID == pauseID else { return }   // cancelled by newer action
+
+        guard outerRemaining > 0 || innerRemaining > 0 else {
+            isSynced = true
+            handleSyncPosition(at: targetSeqPos)
+            return
+        }
+
+        if outerRemaining > 0 {
+            outerRing.isAnimating = true
+            outerRing.rotationDeg -= stepDeg
+        }
+        if innerRemaining > 0 {
+            innerRing.isAnimating = true
+            innerRing.rotationDeg -= stepDeg
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.85) {
+            guard innerRing.pauseID == pauseID else { return }
+            if outerRemaining > 0 {
+                outerRing.isAnimating = false
+                outerRing.currentStep = (outerRing.currentStep + 1) % level.sequenceLength
+            }
+            if innerRemaining > 0 {
+                innerRing.isAnimating = false
+                innerRing.currentStep = (innerRing.currentStep + 1) % level.sequenceLength
+            }
+            rotateStepByStep(outerRemaining: max(0, outerRemaining - 1),
+                             innerRemaining: max(0, innerRemaining - 1),
+                             targetSeqPos: targetSeqPos,
+                             pauseID: pauseID)
         }
     }
 

@@ -1644,8 +1644,13 @@ final class GameState: ObservableObject {
         mayanErrorCells = wrong
         if !wrong.isEmpty {
             HapticFeedback.heavy()
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
-                self.mayanErrorCells = []
+            // Sync-rotation levels (Level 4): keep errors visible until the player corrects
+            // them — placeMayanGlyph already calls mayanErrorCells.remove(coord) on each fix.
+            // All other levels: flash red for 1.2 s then clear automatically.
+            if !mayanCurrentLevel.usesSynchronizedRotation {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+                    self.mayanErrorCells = []
+                }
             }
         }
     }
