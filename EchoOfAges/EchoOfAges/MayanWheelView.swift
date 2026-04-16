@@ -291,7 +291,7 @@ struct MayanWheelView: View {
             }
         }
         .rotationEffect(.degrees(outerRing.rotationDeg))
-        .animation(.easeInOut(duration: 0.65), value: outerRing.rotationDeg)
+        .animation(.easeInOut(duration: 0.85), value: outerRing.rotationDeg)
     }
 
     // MARK: - Inner Ring View
@@ -312,7 +312,7 @@ struct MayanWheelView: View {
             }
         }
         .rotationEffect(.degrees(innerRing.rotationDeg))
-        .animation(.easeInOut(duration: 0.65), value: innerRing.rotationDeg)
+        .animation(.easeInOut(duration: 0.85), value: innerRing.rotationDeg)
     }
 
     // MARK: - Outer Cell
@@ -858,7 +858,7 @@ struct MayanWheelView: View {
         ring.rotationDeg += direction * stepDeg
 
         // After animation completes, update step counter and check for blank
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.65) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.85) {
             ring.isAnimating = false
             // Advance step cursor
             ring.currentStep = (ring.currentStep + 1) % level.sequenceLength
@@ -880,8 +880,8 @@ struct MayanWheelView: View {
                     advanceRing(ring, direction: direction)
                 }
             } else {
-                // Dwell briefly on the anchor symbol, then advance again
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.1) {
+                // Dwell on the anchor symbol so the player can read it
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
                     guard !ring.isPaused else { return }
                     advanceRing(ring, direction: direction)
                 }
