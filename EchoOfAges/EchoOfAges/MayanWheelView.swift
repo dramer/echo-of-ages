@@ -914,28 +914,10 @@ struct MayanWheelView: View {
     /// Kick off both rings from their current state.
     private func startBothRings() {
         if level.usesSynchronizedRotation {
-            // Sync mode: check initial sync (both start at 0) and begin inner spinning.
-            let innerStep = innerRing.currentStep
-            let outerStep = outerRing.currentStep
-            isSynced = (innerStep == outerStep)
-            let innerBlank = checkIfBlankAtTop(cycleIdx: 1, seqPos: innerStep)
-            if innerBlank {
-                innerRing.isPaused = true
-                innerRing.pauseID += 1
-                let capturedID = innerRing.pauseID
-                DispatchQueue.main.asyncAfter(deadline: .now() + 15.0) {
-                    guard innerRing.isPaused, innerRing.pauseID == capturedID else { return }
-                    innerRing.isPaused = false
-                    isSynced = false
-                    advanceInnerRingSynced()
-                }
-            } else {
-                let dwell: TimeInterval = isSynced ? 2.0 : 1.0
-                DispatchQueue.main.asyncAfter(deadline: .now() + dwell) {
-                    isSynced = false
-                    advanceInnerRingSynced()
-                }
-            }
+            // Sync mode: both rings always start at step 0 — that is always a sync position.
+            let step = innerRing.currentStep   // == outerRing.currentStep == 0
+            isSynced = true
+            handleSyncPosition(at: step)
         } else {
             scheduleNextStep(for: outerRing, direction: -1, delay: 0.0)
             scheduleNextStep(for: innerRing, direction: +1, delay: 0.3)
@@ -1014,12 +996,11 @@ struct MayanWheelView: View {
 
     /// After the player fills a cell in sync mode, resume the inner ring only if
     /// both the inner and outer cells at the current sync position are satisfied.
+    /// Inner only pauses at sync positions, so both checks are always applicable.
     private func resumeInnerSyncedIfReady() {
-        let innerStep = innerRing.currentStep
-        let outerStep = outerRing.currentStep
-        let innerSat = isPositionSatisfied(cycleIdx: 1, seqPos: innerStep)
-        // Outer must be satisfied only when the rings were in sync (isSynced)
-        let outerSat = isSynced ? isPositionSatisfied(cycleIdx: 0, seqPos: outerStep) : true
+        let step = innerRing.currentStep   // == outerRing.currentStep at a sync pause
+        let innerSat = isPositionSatisfied(cycleIdx: 1, seqPos: step)
+        let outerSat = isPositionSatisfied(cycleIdx: 0, seqPos: step)
         guard innerSat && outerSat else { return }
         innerRing.isPaused = false
         isSynced = false
@@ -1068,13 +1049,32 @@ struct MayanWheelView: View {
     }
 
     /// After an inner ring step completes, determine sync state and whether to pause.
+    /// In sync mode the inner ring only ever stops at the alignment position (inner == outer).
+    /// Between alignment positions it spins continuously with a minimal dwell (~0.1 s).
     private func checkSyncAndHandleInner(innerStep: Int) {
         let outerStep = outerRing.currentStep
         let synced = (innerStep == outerStep)
         isSynced = synced
 
-        let innerBlank = checkIfBlankAtTop(cycleIdx: 1, seqPos: innerStep)
-        if innerBlank {
+        if synced {
+            handleSyncPosition(at: innerStep)
+        } else {
+            // Not aligned — spin through quickly.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.10) {
+                guard !innerRing.isPaused else { return }
+                advanceInnerRingSynced()
+            }
+        }
+    }
+
+    /// Called whenever inner and outer are aligned at a sync position.
+    /// Pauses if either cell needs filling; dwells briefly if both are already satisfied.
+    private func handleSyncPosition(at step: Int) {
+        let outerNeedsFill = !isPositionSatisfied(cycleIdx: 0, seqPos: step)
+        let innerNeedsFill = !isPositionSatisfied(cycleIdx: 1, seqPos: step)
+
+        if outerNeedsFill || innerNeedsFill {
+            // Pause so the player can fill one or both cells.
             innerRing.isPaused = true
             innerRing.pauseID += 1
             let capturedID = innerRing.pauseID
@@ -1085,9 +1085,8 @@ struct MayanWheelView: View {
                 advanceInnerRingSynced()
             }
         } else {
-            // Dwell longer on sync moments so the player can observe the aligned pair.
-            let dwell: TimeInterval = synced ? 2.5 : 1.0
-            DispatchQueue.main.asyncAfter(deadline: .now() + dwell) {
+            // Both already filled — show sync glow briefly, then continue.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
                 guard !innerRing.isPaused else { return }
                 isSynced = false
                 advanceInnerRingSynced()
