@@ -178,12 +178,19 @@ struct MayanWheelView: View {
 
     // MARK: - Wheel Canvas
 
+    /// Canvas size adapts to the screen so the wheel fills the available width on every device.
+    private var adaptiveCanvasSize: CGFloat {
+        let screenWidth = UIScreen.main.bounds.width
+        let available   = screenWidth - 36 - 28  // outer padding (18×2) + inner padding (14×2)
+        return min(available, 640)
+    }
+
     private var wheelCanvas: some View {
-        let canvasSize: CGFloat = 320
-        let outerRadius: CGFloat = 140
-        let innerRadius: CGFloat = 82
-        let cellSize: CGFloat    = 34
-        let centerRadius: CGFloat = 36
+        let canvasSize    = adaptiveCanvasSize
+        let outerRadius   = canvasSize * 0.4375   // matches original 140/320
+        let innerRadius   = canvasSize * 0.256    // matches original 82/320
+        let cellSize      = canvasSize * 0.106    // matches original 34/320
+        let centerRadius  = canvasSize * 0.1125   // matches original 36/320
 
         return VStack(spacing: 12) {
             ZStack {
@@ -754,7 +761,13 @@ struct MayanWheelView: View {
 
     // MARK: - Center Glyph Cycling
 
+    /// True while either ring is paused waiting for the player to fill a blank.
+    private var isAnyRingPaused: Bool { outerRing.isPaused || innerRing.isPaused }
+
     private func advanceCenterGlyph() {
+        // Freeze the center symbol while a ring is waiting for input — gives
+        // the player time to identify the glyph, arm it, and tap the blank.
+        guard !isAnyRingPaused else { return }
         withAnimation(.easeInOut(duration: 0.18)) {
             centerGlyphVisible = false
         }
