@@ -19,8 +19,9 @@ import Combine
 private class RingState: ObservableObject {
     @Published var rotationDeg: Double = 0.0
     @Published var currentStep: Int = 0      // which position is at 12 o'clock
-    @Published var isPaused: Bool = false    // waiting for player to fill blank
+    @Published var isPaused: Bool = false    // waiting for player to fill/replace
     var isAnimating: Bool = false            // mid-step animation guard
+    var pauseID: Int = 0                     // incremented each pause; used to cancel stale auto-resume timers
 }
 
 // MARK: - MayanWheelView
@@ -773,14 +774,10 @@ struct MayanWheelView: View {
 
     // MARK: - Center Glyph Cycling
 
-    /// True while either ring is paused waiting for the player to fill a blank.
-    private var isAnyRingPaused: Bool { outerRing.isPaused || innerRing.isPaused }
-
-    /// Self-scheduling center advance: 1.5 s while rings are moving, 3.5 s while
-    /// a ring is paused so the player has time to spot, arm, and place the glyph.
+    /// Self-scheduling center advance at a fixed 1.5 s interval.
+    /// Rings auto-resume after 15 s, so the player always has time regardless of center speed.
     private func scheduleCenterAdvance() {
-        let delay: TimeInterval = isAnyRingPaused ? 3.5 : 1.5
-        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
             advanceCenterGlyph()
             scheduleCenterAdvance()
         }
@@ -836,7 +833,15 @@ struct MayanWheelView: View {
 
             if shouldPause {
                 ring.isPaused = true
-                // Ring stays paused; resumed by tap handler after fill
+                ring.pauseID += 1
+                let capturedPauseID = ring.pauseID
+                // Auto-resume after 2 full center cycles (5 symbols × 1.5 s × 2 = 15 s).
+                // The pauseID check ensures a stale timer from a previous pause won't fire.
+                DispatchQueue.main.asyncAfter(deadline: .now() + 15.0) {
+                    guard ring.isPaused, ring.pauseID == capturedPauseID else { return }
+                    ring.isPaused = false
+                    advanceRing(ring, direction: direction)
+                }
             } else {
                 // Dwell briefly on the anchor symbol, then advance again
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.1) {
