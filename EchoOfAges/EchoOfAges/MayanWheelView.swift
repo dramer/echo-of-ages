@@ -303,18 +303,21 @@ struct MayanWheelView: View {
         let isError = gameState.mayanErrorCells.contains(coord)
         let displayGlyph: MayanGlyph? = isRevealed ? correct : playerVal
 
-        let isBlankAtTop = isAtTop && !isRevealed && playerVal == nil && outerRing.isPaused
-        let isFilled     = !isRevealed && playerVal != nil
+        let isPausedAtTop    = isAtTop && !isRevealed && outerRing.isPaused
+        let isBlankAtTop     = isPausedAtTop && playerVal == nil
+        let isReplaceableAtTop = isPausedAtTop && playerVal != nil
+        let isFilled         = !isRevealed && playerVal != nil
 
         wheelCell(
             displayGlyph: displayGlyph,
             isRevealed: isRevealed,
             isError: isError,
             isBlankAtTop: isBlankAtTop,
+            isReplaceableAtTop: isReplaceableAtTop,
             isFilled: isFilled,
             size: size
         ) {
-            guard isBlankAtTop, let armed = gameState.mayanArmedGlyph else { return }
+            guard isPausedAtTop, let armed = gameState.mayanArmedGlyph else { return }
             HapticFeedback.tap()
             gameState.placeMayanGlyph(armed, at: coord)
             gameState.mayanArmedGlyph = nil
@@ -350,18 +353,21 @@ struct MayanWheelView: View {
         let isError = gameState.mayanErrorCells.contains(coord)
         let displayGlyph: MayanGlyph? = isRevealed ? correct : playerVal
 
-        let isBlankAtTop = isAtTop && !isRevealed && playerVal == nil && innerRing.isPaused
-        let isFilled     = !isRevealed && playerVal != nil
+        let isPausedAtTop      = isAtTop && !isRevealed && innerRing.isPaused
+        let isBlankAtTop       = isPausedAtTop && playerVal == nil
+        let isReplaceableAtTop = isPausedAtTop && playerVal != nil
+        let isFilled           = !isRevealed && playerVal != nil
 
         wheelCell(
             displayGlyph: displayGlyph,
             isRevealed: isRevealed,
             isError: isError,
             isBlankAtTop: isBlankAtTop,
+            isReplaceableAtTop: isReplaceableAtTop,
             isFilled: isFilled,
             size: size
         ) {
-            guard isBlankAtTop, let armed = gameState.mayanArmedGlyph else { return }
+            guard isPausedAtTop, let armed = gameState.mayanArmedGlyph else { return }
             HapticFeedback.tap()
             gameState.placeMayanGlyph(armed, at: coord)
             gameState.mayanArmedGlyph = nil
@@ -380,24 +386,26 @@ struct MayanWheelView: View {
         isRevealed: Bool,
         isError: Bool,
         isBlankAtTop: Bool,
+        isReplaceableAtTop: Bool,
         isFilled: Bool,
         size: CGFloat,
         onTap: @escaping () -> Void
     ) -> some View {
+        let isInteractiveTop = isBlankAtTop || isReplaceableAtTop
         let fillColor: Color = {
-            if isError      { return Color(red: 0.55, green: 0.06, blue: 0.06).opacity(0.85) }
-            if isRevealed   { return jadeColor.opacity(0.25) }
-            if isFilled     { return Color.white.opacity(0.10) }
-            if isBlankAtTop { return Color.clear }
+            if isError             { return Color(red: 0.55, green: 0.06, blue: 0.06).opacity(0.85) }
+            if isRevealed          { return jadeColor.opacity(0.25) }
+            if isFilled            { return Color.white.opacity(0.10) }
+            if isBlankAtTop        { return Color.clear }
             return Color.white.opacity(0.05)
         }()
         let strokeColor: Color = {
-            if isError      { return Color.red.opacity(0.75) }
-            if isRevealed   { return jadeColor.opacity(0.50) }
-            if isBlankAtTop { return Color.goldBright.opacity(0.85) }
+            if isError             { return Color.red.opacity(0.75) }
+            if isRevealed          { return jadeColor.opacity(0.50) }
+            if isInteractiveTop    { return Color.goldBright.opacity(0.85) }
             return jadeColor.opacity(0.20)
         }()
-        let strokeWidth: CGFloat = isBlankAtTop ? 1.8 : 0.8
+        let strokeWidth: CGFloat = isInteractiveTop ? 1.8 : 0.8
         return ZStack {
             // Background circle
             Circle()
@@ -407,11 +415,11 @@ struct MayanWheelView: View {
                         .stroke(strokeColor, lineWidth: strokeWidth)
                 )
 
-            // Pulsing glow for tappable blank at 12 o'clock
+            // Pulsing glow for blank at 12 o'clock — show + icon
             if isBlankAtTop {
                 Circle()
                     .fill(Color.goldBright.opacity(0.18))
-                    .scaleEffect(isBlankAtTop ? 1.2 : 1.0)
+                    .scaleEffect(1.2)
                     .animation(
                         .easeInOut(duration: 0.85).repeatForever(autoreverses: true),
                         value: isBlankAtTop
@@ -419,6 +427,11 @@ struct MayanWheelView: View {
                 Image(systemName: "plus.circle")
                     .font(.system(size: size * 0.42))
                     .foregroundStyle(Color.goldBright.opacity(0.80))
+            } else if isReplaceableAtTop, let glyph = displayGlyph {
+                // Filled cell at top — show glyph with gold tint to signal replaceability
+                Image(systemName: glyph.sfSymbol)
+                    .font(.system(size: size * 0.44))
+                    .foregroundStyle(Color.goldBright.opacity(0.90))
             } else if let glyph = displayGlyph {
                 Image(systemName: glyph.sfSymbol)
                     .font(.system(size: size * 0.44))
@@ -834,14 +847,12 @@ struct MayanWheelView: View {
         }
     }
 
-    /// Returns true if the position `seqPos` for `cycleIdx` is an unfilled blank.
+    /// Returns true if the ring should pause at this position.
+    /// Pauses at every non-anchor position — whether empty (needs filling)
+    /// or filled by the player (can be replaced). Skips anchor positions.
     private func checkIfBlankAtTop(cycleIdx: Int, seqPos: Int) -> Bool {
         guard level.cycles.indices.contains(cycleIdx) else { return false }
         let cycle = level.cycles[cycleIdx]
-        if cycle.isRevealed(seqPos) { return false }
-        guard gameState.mayanPlayerGrid.indices.contains(cycleIdx),
-              gameState.mayanPlayerGrid[cycleIdx].indices.contains(seqPos)
-        else { return false }
-        return gameState.mayanPlayerGrid[cycleIdx][seqPos] == nil
+        return !cycle.isRevealed(seqPos)
     }
 }
