@@ -109,6 +109,8 @@ struct MayanCellCoord: Hashable {
 
 struct MayanLevel: Identifiable {
     let id: Int
+    /// True → rotating wheel mechanic (MayanWheelView). False → static grid.
+    let usesWheelMechanic: Bool
     let title: String
     let subtitle: String
     let lore: String
@@ -175,6 +177,7 @@ extension MayanLevel {
     // ─────────────────────────────────────────────────────────────────────
     static let level1 = MayanLevel(
         id: 1,
+        usesWheelMechanic: false,
         title: "Tablet of the First Sunrise",
         subtitle: "The Wheel Begins",
         lore: "The first Maya calendar tablet. A single cycle of five sacred glyphs — KIN the sun, IMIX the earth, IK the wind, TZʼ the sacred round, HAAB the year — repeating without end. The first full cycle is shown to you. Continue it.",
@@ -215,6 +218,7 @@ extension MayanLevel {
     // ─────────────────────────────────────────────────────────────────────
     static let level2 = MayanLevel(
         id: 2,
+        usesWheelMechanic: true,
         title: "The Two Wheels Turn",
         subtitle: "Independent Rhythms",
         lore: "Two cycles now run simultaneously — the Solar Wheel above and the Earth Wheel below. Each turns independently. What happens in one row has no effect on the other. Solve each wheel on its own.",
@@ -247,93 +251,123 @@ extension MayanLevel {
     )
 
     // ─────────────────────────────────────────────────────────────────────
-    // LEVEL 3 · 2 cycles · periods 4+3 · 8 blanks
+    // LEVEL 3 · 2 cycles · period 4 + period 4 · 8 blanks  (static grid)
     //
-    // Cycle A: [KIN, IMIX, IK, HAAB]  offset=0  length=8
+    // PAIRING RULE (Option C — valid pairs at every position):
+    //   KIN  ↔ HAAB   (sun and year — two solar cycles)
+    //   IMIX ↔ TZʼ    (earth and sacred round — creation pair)
+    //   IK   ↔ KIN    (wind and sun — the breath of the sun god)
+    //   HAAB ↔ IMIX   (year and earth — the year feeds the earth)
+    //   TZʼ  ↔ IK     (sacred round and wind — not used at this level)
+    //
+    // Day Wheel (outer): [KIN, IMIX, IK, HAAB]  offset=0
     //   0:KIN  1:IMIX  2:IK  3:HAAB  4:KIN  5:IMIX  6:IK  7:HAAB
-    //   Revealed: {0,2,5,7}  Blanks: {1→IMIX, 3→HAAB, 4→KIN, 6→IK}
+    //   Revealed: {0,1,2,3}  Blanks: {4→KIN, 5→IMIX, 6→IK, 7→HAAB}
     //
-    // Cycle B: [TZʼ, KIN, IMIX]  offset=0  length=8
-    //   0:TZʼ  1:KIN  2:IMIX  3:TZʼ  4:KIN  5:IMIX  6:TZʼ  7:KIN
-    //   Revealed: {0,1,4,6}  Blanks: {2→IMIX, 3→TZʼ, 5→IMIX, 7→KIN}
+    // Sacred Wheel (inner): [HAAB, TZʼ, KIN, IMIX]  offset=0
+    //   (derived: inner[n] = pair(outer[n]))
+    //   0:HAAB  1:TZʼ  2:KIN  3:IMIX  4:HAAB  5:TZʼ  6:KIN  7:IMIX
+    //   Revealed: {0,1,2,6}   Blanks: {3→IMIX, 4→HAAB, 5→TZʼ, 7→IMIX}
+    //
+    // Solving order:
+    //   Pos 0 (KIN/HAAB): learn pair KIN↔HAAB
+    //   Pos 1 (IMIX/TZʼ): learn pair IMIX↔TZʼ
+    //   Pos 2 (IK/KIN):   learn pair IK↔KIN
+    //   Pos 3 (HAAB/blank): deduce HAAB↔IMIX (last pair by elimination)
+    //   Pos 4 (blank/HAAB): outer from cycle; HAAB confirms outer=KIN
+    //   Pos 5 (blank/blank): outer from cycle (IMIX); inner from pair (TZʼ)
+    //   Pos 6 (blank/KIN):  outer=IK from reverse pair + cycle
+    //   Pos 7 (blank/blank): outer from cycle (HAAB); inner from pair (IMIX)
     // ─────────────────────────────────────────────────────────────────────
     static let level3 = MayanLevel(
         id: 3,
-        title: "The Interlocking Wheels",
-        subtitle: "LCM of Four and Three",
-        lore: "The wheels are longer now. The Day Wheel turns every four steps; the Sacred Wheel turns every three. Their combined pattern does not repeat for twelve steps. But you only need to see eight — enough to feel both rhythms and fill the gaps.",
+        usesWheelMechanic: false,
+        title: "Wheels That Answer Each Other",
+        subtitle: "The Binding Rule",
+        lore: "Two wheels, both still. But they are not independent. At every position, the outer mark and the inner mark are bound together by a fixed pairing. Study the positions where both wheels are already marked. The outer symbol and its inner partner always appear together — that is the rule. Once you know it, every blank follows.",
         inscriptions: [
-            "Two wheels of different lengths now turn together — four symbols in one row, three in another. Their combined pattern takes twelve positions to repeat, but eight are shown. Identify the period of each cycle from the anchors; once the period is clear, every blank follows directly.",
-            "The Day Wheel has four symbols. You see KIN at position 0, IK at position 2. That tells you positions 0 and 2 in a four-step cycle. Position 1 and 3 are forced — only one symbol fits each gap without repeating within the period.",
-            "The Sacred Wheel has three symbols. TZʼ appears at positions 0 and 6. KIN at 1 and 4. That is a period-3 cycle confirming itself. The blanks in the Sacred Wheel row write themselves.",
-            "I drew the two cycles as wheels on paper beside the tablet — a small wheel of three and a larger wheel of four, both turning. The blank positions were where I needed to look up at the wheels and read off the next position. The pattern was precise and inevitable."
+            "These two wheels do not turn separately. At each of the eight positions, the outer mark and the inner mark belong together — a fixed pairing, always the same. The first four positions on the outer wheel are already marked. Three of their inner partners are also revealed. Start there.",
+            "Find the positions where both wheels carry a mark. The outer symbol and inner symbol at those positions are paired — permanently. If you see KIN on the outer and HAAB on the inner, that combination is not a coincidence. It is the rule.",
+            "Once you have identified the pairings from the marked positions, fill any blank where its partner is visible. For positions where both wheels are blank, deduce the outer value first from the outer wheel's repeating four-symbol cycle, then apply the pairing to find the inner.",
+            "The Maya called this 'the binding of the wheels.' Each day carried a name in the Haab' solar year and a separate name in the Tzolk'in sacred round — two systems, always read together. The combination was sacred. No wheel turns alone."
         ],
         cycles: [
             MayanCycle(
                 label: "Day Wheel",
                 symbols: [.kin, .imix, .ik, .haab],
                 startOffset: 0,
-                revealedPositions: [0,2,5,7]
+                revealedPositions: [0,1,2,3]
             ),
             MayanCycle(
                 label: "Sacred Wheel",
-                symbols: [.tzolk, .kin, .imix],
+                symbols: [.haab, .tzolk, .kin, .imix],
                 startOffset: 0,
-                revealedPositions: [0,1,4,6]
+                revealedPositions: [0,1,2,6]
             )
         ],
         sequenceLength: 8,
-        decodedMessage: "The third root is the root of the sacred round. TZʼOLKIN: 260 days, two wheels inside each other — 13 numbers and 20 day-names cycling simultaneously. It takes 260 days before the same combination appears again. The Maya tracked this without paper, without instruments, in their heads. The Tree remembers every turn.",
+        decodedMessage: "The third root reaches in two directions at once. Every symbol on the Day Wheel calls out to its partner on the Sacred Wheel — and the Sacred Wheel answers. KIN calls HAAB. IMIX calls TZʼOLKIN. IK calls KIN. HAAB calls IMIX. The Tree does not breathe with one root. It breathes with pairs — always pairs, always bound, always together.",
         newGlyphs: [],
         artifact: "asterisk.circle.fill",
-        journalTitle: "The Interlocking Wheels",
-        journalBody: "Two wheels, different sizes. I kept making errors until I stopped trying to solve both at once and started treating each row as its own private problem. Once I found the period of each cycle from the anchors, the blanks took less than a minute. The Maya students must have learned this the same way — first confusion, then the moment the period becomes visible, and then the whole inscription snaps into focus at once."
+        journalTitle: "The Binding Rule",
+        journalBody: "I spent the first hour trying to solve each wheel separately, the way I had solved the previous tablets. It didn't work. The patterns were there but incomplete — four symbols repeating on the outer, four on the inner, and neither made full sense alone. Then I noticed it: every position where both wheels were marked showed the same kind of combination. KIN with HAAB. IMIX with TZʼ. IK with KIN. Not random. A rule. Once I saw the rule, the blank positions filled themselves in less than ten minutes. The Maya were not teaching two rhythms. They were teaching a relationship."
     )
 
     // ─────────────────────────────────────────────────────────────────────
-    // LEVEL 4 · 2 cycles · offset starts · 7 blanks
+    // LEVEL 4 · 2 cycles · period 4 + period 4 · 8 blanks  (rotating wheel)
     //
-    // Cycle A: [KIN, IMIX, TZʼ, HAAB]  offset=1  length=8
-    //   symbol(pos) = symbols[(pos+1)%4]
-    //   0:IMIX  1:TZʼ  2:HAAB  3:KIN  4:IMIX  5:TZʼ  6:HAAB  7:KIN
-    //   Revealed: {0,1,3,5,7}  Blanks: {2→HAAB, 4→IMIX, 6→HAAB}
+    // Same pairing rule as Level 3 — applied under rotation.
+    // Outer cycle starts mid-sequence (offset=2): player sees IK first,
+    // must deduce the cycle started 2 steps in.
     //
-    // Cycle B: [IK, KIN, HAAB]  offset=2  length=8
-    //   symbol(pos) = symbols[(pos+2)%3]
-    //   0:HAAB  1:IK  2:KIN  3:HAAB  4:IK  5:KIN  6:HAAB  7:IK
-    //   Revealed: {0,2,4,6}  Blanks: {1→IK, 3→HAAB, 5→KIN, 7→IK}
+    // Day Wheel (outer): [KIN, IMIX, IK, HAAB]  offset=2
+    //   symbol(pos) = [KIN,IMIX,IK,HAAB][(pos+2)%4]
+    //   0:IK  1:HAAB  2:KIN  3:IMIX  4:IK  5:HAAB  6:KIN  7:IMIX
+    //   Revealed: {0,1,4,5}  Blanks: {2→KIN, 3→IMIX, 6→KIN, 7→IMIX}
+    //
+    // Sacred Wheel (inner): [KIN, IMIX, HAAB, TZʼ]  offset=0
+    //   (derived: inner[n] = pair(outer[n]))
+    //   0:KIN  1:IMIX  2:HAAB  3:TZʼ  4:KIN  5:IMIX  6:HAAB  7:TZʼ
+    //   Revealed: {0,2,4,6}  Blanks: {1→IMIX, 3→TZʼ, 5→IMIX, 7→TZʼ}
+    //
+    // Pairing confirmations visible to player:
+    //   Pos 0: IK(r)/KIN(r) → confirms IK↔KIN from Level 3
+    //   Pos 1: HAAB(r)/IMIX(blank) → apply HAAB↔IMIX
+    //   Pos 2: KIN(blank)/HAAB(r) → reverse pair KIN↔HAAB; cycle confirms
+    //   Pos 4: IK(r)/KIN(r) → cycle repeat confirms period
     // ─────────────────────────────────────────────────────────────────────
     static let level4 = MayanLevel(
         id: 4,
-        title: "The Haab' Speaks",
-        subtitle: "Arriving Mid-Cycle",
-        lore: "The inscription does not begin at the start of either cycle. Both wheels were already turning when this tablet was carved. You must deduce where in each cycle the sequence begins — then extend it forward and backward to fill the blanks.",
+        usesWheelMechanic: true,
+        title: "The Pairing in Motion",
+        subtitle: "Bound Wheels, Turning",
+        lore: "The pairing rule holds even as the wheels rotate. You know the pairs from the previous tablet. Now the outer ring arrived mid-cycle — its first mark is not the beginning of the four-symbol sequence. Watch what passes through, identify where in the cycle you entered, then apply the binding rule to fill each blank.",
         inscriptions: [
-            "Each wheel on this tablet was already mid-cycle when the inscription was carved. The Day Wheel does not open at its first symbol. Read the anchors and ask: which step in the four-symbol cycle does the first revealed position occupy? That offset determines every other position in the row.",
-            "For the Day Wheel: you see IMIX at position 0. In the cycle [KIN, IMIX, TZʼ, HAAB], IMIX is index 1. So the offset is 1 — the sequence entered at the second symbol of the wheel. From there, all other positions are determined.",
-            "The Wind Wheel has period 3 and opened at HAAB, which is index 2 in [IK, KIN, HAAB]. So offset is 2. The blanks are the positions not yet shown — use the formula: symbol = cycle[(position + offset) % period].",
-            "Maya scribes sometimes began an inscription in the middle of a sacred cycle — a deliberate choice, to show the student that the calendar had no beginning and no end. The wheel was already turning before the first human was born. It will be turning after the last one closes their eyes."
+            "The binding rule from the previous tablet still applies: at every position, the outer symbol and the inner symbol are paired. You already know the pairs. The new challenge is that the outer ring did not start at its first symbol — it arrived mid-cycle.",
+            "Watch the outer ring's first two revealed marks. They tell you which two consecutive symbols in the four-symbol cycle you entered at. From that, you can deduce the full outer sequence. The inner wheel confirms your answers via the pairing.",
+            "When the ring pauses at a blank on the inner wheel, look at the outer ring's anchor at that same position. Apply the pairing forward. When the ring pauses at a blank on the outer wheel, look at the inner ring's anchor — apply the pairing in reverse.",
+            "The Maya priest reading a running calendar did not start at the beginning. The wheels were already turning when he sat down. He read whatever position they were at and worked forward and backward from there. That is the skill this tablet demands."
         ],
         cycles: [
             MayanCycle(
                 label: "Day Wheel",
-                symbols: [.kin, .imix, .tzolk, .haab],
-                startOffset: 1,
-                revealedPositions: [0,1,3,5,7]
+                symbols: [.kin, .imix, .ik, .haab],
+                startOffset: 2,
+                revealedPositions: [0,1,4,5]
             ),
             MayanCycle(
-                label: "Wind Wheel",
-                symbols: [.ik, .kin, .haab],
-                startOffset: 2,
+                label: "Sacred Wheel",
+                symbols: [.kin, .imix, .haab, .tzolk],
+                startOffset: 0,
                 revealedPositions: [0,2,4,6]
             )
         ],
         sequenceLength: 8,
-        decodedMessage: "The fourth root is the root of IK — wind, breath, the invisible force that moves all visible things. Wakah-Chan does not grow into the sky. The sky grows around it. Every breath a human takes is the sky acknowledging what stands at the centre of the world. IK is the proof.",
+        decodedMessage: "The fourth root is the root in motion. The binding does not pause when the wheel turns — it holds through every revolution, through every position, through every pairing. KIN calls HAAB whether the wheel is still or spinning. The Tree breathes the same way whether you are watching or not. This is what permanence means: the rule that does not change when you look away.",
         newGlyphs: [],
         artifact: "wind",
-        journalTitle: "Arriving Mid-Cycle",
-        journalBody: "This tablet confused me for nearly an hour. The symbols were familiar but the sequence felt wrong — as if the inscription was out of order, or damaged. It wasn't damaged. It simply began in the middle. The Maya carved time wherever time happened to be. There was no ceremony about starting at the beginning, because the wheel has no beginning. I finally drew a small chart: four symbols in a loop for the top row, three for the bottom. Then I slid a finger around each loop until the revealed anchors lined up. The offset snapped into place. The rest was arithmetic."
+        journalTitle: "The Pairing in Motion",
+        journalBody: "The wheel version of the binding tablet was disorienting at first — watching the marks rotate past while trying to apply the pairing rule in real time. But the rule itself had not changed. I already knew it from the still tablet. The only new problem was figuring out where in the four-symbol cycle the outer ring had started. Once I found the offset — IK first, then HAAB, which placed me two steps in — everything else fell into the same logic as before. Pairing confirmed the cycle. Cycle confirmed the pairing. Both wheels, bound, turning, telling the same story."
     )
 
     // ─────────────────────────────────────────────────────────────────────
@@ -353,6 +387,7 @@ extension MayanLevel {
     // ─────────────────────────────────────────────────────────────────────
     static let level5 = MayanLevel(
         id: 5,
+        usesWheelMechanic: false,
         title: "The Calendar Round",
         subtitle: "Three Wheels, One Machine",
         lore: "Three cycles turning simultaneously — period 3, period 4, period 5. Together they will not repeat for sixty steps. This inscription shows nine. Each row is independent. Solve each on its own terms. When all three wheels are filled, the inscription of the Calendar Round is complete.",
