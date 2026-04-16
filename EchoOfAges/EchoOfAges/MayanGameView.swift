@@ -26,7 +26,9 @@ struct MayanGameView: View {
     // MARK: - Body
 
     var body: some View {
-        if level.id == 2 {
+        // Levels with 2 cycles use the rotating wheel mechanic.
+        // Level 1 (1 cycle) and Level 5 (3 cycles) use the grid view.
+        if level.cycles.count == 2 {
             MayanWheelView()
         } else {
             regularBody
