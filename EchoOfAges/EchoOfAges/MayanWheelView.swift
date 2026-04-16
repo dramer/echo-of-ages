@@ -35,7 +35,8 @@ struct MayanWheelView: View {
     // Center cycling glyph
     @State private var centerGlyphIndex: Int = 0
     @State private var centerGlyphVisible: Bool = true
-    let centerTimer = Timer.publish(every: 1.5, on: .main, in: .common).autoconnect()
+    // No fixed timer — center uses a self-scheduling function so the delay
+    // can vary: 1.5 s while rings are moving, 3.5 s while a ring is paused.
 
     // Completion overlay
     @State private var showComplete: Bool = false
@@ -87,9 +88,7 @@ struct MayanWheelView: View {
         }
         .onAppear {
             startBothRings()
-        }
-        .onReceive(centerTimer) { _ in
-            advanceCenterGlyph()
+            scheduleCenterAdvance()
         }
         .onChange(of: gameState.mayanPendingComplete) { _, newVal in
             if newVal {
@@ -764,10 +763,17 @@ struct MayanWheelView: View {
     /// True while either ring is paused waiting for the player to fill a blank.
     private var isAnyRingPaused: Bool { outerRing.isPaused || innerRing.isPaused }
 
+    /// Self-scheduling center advance: 1.5 s while rings are moving, 3.5 s while
+    /// a ring is paused so the player has time to spot, arm, and place the glyph.
+    private func scheduleCenterAdvance() {
+        let delay: TimeInterval = isAnyRingPaused ? 3.5 : 1.5
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+            advanceCenterGlyph()
+            scheduleCenterAdvance()
+        }
+    }
+
     private func advanceCenterGlyph() {
-        // Freeze the center symbol while a ring is waiting for input — gives
-        // the player time to identify the glyph, arm it, and tap the blank.
-        guard !isAnyRingPaused else { return }
         withAnimation(.easeInOut(duration: 0.18)) {
             centerGlyphVisible = false
         }
