@@ -123,6 +123,8 @@ struct MayanLevel: Identifiable {
     let id: Int
     /// True → rotating wheel mechanic (MayanWheelView). False → static grid.
     let usesWheelMechanic: Bool
+    /// True → both rings rotate in the same direction and stay in lock-step (Level 4 pairing puzzle).
+    let usesSynchronizedRotation: Bool
     let title: String
     let subtitle: String
     let lore: String
@@ -202,6 +204,7 @@ extension MayanLevel {
     static let level1 = MayanLevel(
         id: 1,
         usesWheelMechanic: false,
+        usesSynchronizedRotation: false,
         title: "Tablet of the First Sunrise",
         subtitle: "The Wheel Begins",
         lore: "The first Maya calendar tablet. A single cycle of five sacred glyphs — KIN the sun, IMIX the earth, IK the wind, TZʼ the sacred round, HAAB the year — repeating without end. The first full cycle is shown to you. Continue it.",
@@ -243,6 +246,7 @@ extension MayanLevel {
     static let level2 = MayanLevel(
         id: 2,
         usesWheelMechanic: true,
+        usesSynchronizedRotation: false,
         title: "The Two Wheels Turn",
         subtitle: "Independent Rhythms",
         lore: "Two cycles now run simultaneously — the Solar Wheel above and the Earth Wheel below. Each turns independently. What happens in one row has no effect on the other. Solve each wheel on its own.",
@@ -297,6 +301,7 @@ extension MayanLevel {
     static let level5 = MayanLevel(
         id: 5,
         usesWheelMechanic: false,
+        usesSynchronizedRotation: false,
         title: "The Calendar Round",
         subtitle: "Three Wheels, One Machine",
         lore: "Three cycles turning simultaneously — period 3, period 4, period 5. Together they will not repeat for sixty steps. This inscription shows nine. Each row is independent. Solve each on its own terms. When all three wheels are filled, the inscription of the Calendar Round is complete.",
@@ -386,6 +391,7 @@ extension MayanLevel {
         return MayanLevel(
             id: 3,
             usesWheelMechanic: false,
+            usesSynchronizedRotation: false,
             title: "Wheels That Answer Each Other",
             subtitle: "The Binding Rule",
             lore: "Two wheels, both still. But they are not independent. At every position, the outer mark and the inner mark are bound by a fixed pairing — and the pairing works both ways. The same symbol always finds the same partner, no matter which wheel it is on.",
@@ -438,6 +444,7 @@ extension MayanLevel {
         return MayanLevel(
             id: 4,
             usesWheelMechanic: true,
+            usesSynchronizedRotation: true,
             title: "The Pairing in Motion",
             subtitle: "Bound Wheels, Turning",
             lore: "The symmetric pairing rule holds even as the wheels rotate. You know the pairs from the previous tablet. Now the outer ring arrived mid-cycle. Watch what passes through 12 o'clock, identify where in the cycle you entered, then apply the binding rule to fill each blank.",

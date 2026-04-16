@@ -2,12 +2,22 @@
 // EchoOfAges
 //
 // Rotating wheel puzzle view for Maya levels 2–5.
-// Two concentric rings rotate in opposite directions.
-// Outer ring clockwise, inner counter-clockwise.
-// Each ring independently pauses when a blank reaches 12 o'clock.
-// Center symbol cycles through all 5 glyphs; palette items are only
-// tappable when the center matches them. Fill the blank by arming a
-// palette symbol then tapping the glowing circle at 12 o'clock.
+//
+// Level 2 (independent mode): outer ring and inner ring rotate in opposite
+// directions independently. Each ring pauses when a non-anchor reaches 12 o'clock.
+//
+// Level 4 (synchronized mode, usesSynchronizedRotation = true):
+//   • Inner ring spins continuously, one step every ~1 second.
+//   • Outer ring advances one step each time the inner ring completes a full loop.
+//   • When inner.currentStep == outer.currentStep ("sync"), both 12 o'clock cells
+//     glow gold. Inner ring always shows the yellow fill-indicator for blank cells.
+//     Outer ring additionally shows the fill-indicator only during sync.
+//   • At sync, if any cell is blank the inner ring pauses so the player can fill.
+//     After both cells are satisfied the inner ring resumes.
+//
+// Center symbol cycles through all 5 glyphs; palette items are only tappable
+// when the center matches them. Fill blanks by arming a palette symbol then
+// tapping the glowing circle at 12 o'clock.
 // Decipher checks all fills at once — no immediate error feedback.
 
 import SwiftUI
@@ -32,6 +42,9 @@ struct MayanWheelView: View {
     // Ring states — outer = index 0, inner = index 1
     @StateObject private var outerRing = RingState()
     @StateObject private var innerRing = RingState()
+
+    // Synchronized-mode highlight (Level 4): true when inner.currentStep == outer.currentStep
+    @State private var isSynced: Bool = false
 
     // Center cycling glyph
     @State private var centerGlyphIndex: Int = 0
@@ -243,12 +256,36 @@ struct MayanWheelView: View {
                     .stroke(jadeColor.opacity(0.12), lineWidth: 1)
                     .frame(width: innerRadius * 2, height: innerRadius * 2)
 
-                // 12 o'clock indicator — thin vertical gold line
-                Rectangle()
+                // 12 o'clock indicator line.
+                // Level 4 (sync mode): always extends from center to inner ring;
+                // extends further to the outer ring only when the rings are aligned (isSynced).
+                // Other levels: always extends from center all the way to the outer ring.
+                let seg1H   = innerRadius + cellSize * 0.5 + 6          // center → inner ring
+                let seg2H   = outerRadius - innerRadius                  // inner ring → outer ring
+                let seg2Off = -((innerRadius + outerRadius) * 0.5 + cellSize * 0.5 + 6)
+
+                Rectangle()                                              // always: center → inner ring
                     .fill(Color.goldBright.opacity(0.60))
-                    .frame(width: 1.5, height: outerRadius + cellSize * 0.5 + 6)
-                    .offset(y: -(outerRadius * 0.5 + cellSize * 0.25 + 3))
+                    .frame(width: 1.5, height: seg1H)
+                    .offset(y: -(seg1H * 0.5))
                     .allowsHitTesting(false)
+
+                if level.usesSynchronizedRotation {
+                    // Extension: inner ring → outer ring, visible only during sync
+                    Rectangle()
+                        .fill(Color.goldBright.opacity(isSynced ? 0.60 : 0.0))
+                        .frame(width: 1.5, height: seg2H)
+                        .offset(y: seg2Off)
+                        .animation(.easeInOut(duration: 0.35), value: isSynced)
+                        .allowsHitTesting(false)
+                } else {
+                    // Non-sync levels: always show full line to outer ring
+                    Rectangle()
+                        .fill(Color.goldBright.opacity(0.60))
+                        .frame(width: 1.5, height: seg2H)
+                        .offset(y: seg2Off)
+                        .allowsHitTesting(false)
+                }
 
                 outerRingView(radius: outerRadius, cellSize: cellSize)
                 innerRingView(radius: innerRadius, cellSize: cellSize)
@@ -339,10 +376,21 @@ struct MayanWheelView: View {
         let isError = gameState.mayanErrorCells.contains(coord)
         let displayGlyph: MayanGlyph? = isRevealed ? correct : playerVal
 
-        let isPausedAtTop    = isAtTop && !isRevealed && outerRing.isPaused
-        let isBlankAtTop     = isPausedAtTop && playerVal == nil
+        // In sync mode: outer is tappable only when inner is paused at the same position (sync).
+        // In normal mode: outer is tappable when the outer ring itself is paused at a non-anchor.
+        let isPausedAtTop: Bool = {
+            guard isAtTop && !isRevealed else { return false }
+            if level.usesSynchronizedRotation {
+                return isSynced && innerRing.isPaused
+            } else {
+                return outerRing.isPaused
+            }
+        }()
+        let isBlankAtTop       = isPausedAtTop && playerVal == nil
         let isReplaceableAtTop = isPausedAtTop && playerVal != nil
-        let isFilled         = !isRevealed && playerVal != nil
+        let isFilled           = !isRevealed && playerVal != nil
+        // Sync glow: golden highlight on the 12 o'clock cell whenever rings are aligned
+        let isSyncTop          = level.usesSynchronizedRotation && isAtTop && isSynced
 
         wheelCell(
             displayGlyph: displayGlyph,
@@ -351,16 +399,23 @@ struct MayanWheelView: View {
             isBlankAtTop: isBlankAtTop,
             isReplaceableAtTop: isReplaceableAtTop,
             isFilled: isFilled,
+            isSyncTop: isSyncTop,
             size: size
         ) {
             guard isPausedAtTop, let armed = gameState.mayanArmedGlyph else { return }
             HapticFeedback.tap()
             gameState.placeMayanGlyph(armed, at: coord)
             gameState.mayanArmedGlyph = nil
-            // Resume the outer ring after a short delay
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                outerRing.isPaused = false
-                advanceRing(outerRing, direction: -1)
+            if level.usesSynchronizedRotation {
+                // Check if both cells at current sync position are now satisfied
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    resumeInnerSyncedIfReady()
+                }
+            } else {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    outerRing.isPaused = false
+                    advanceRing(outerRing, direction: -1)
+                }
             }
         }
     }
@@ -393,6 +448,8 @@ struct MayanWheelView: View {
         let isBlankAtTop       = isPausedAtTop && playerVal == nil
         let isReplaceableAtTop = isPausedAtTop && playerVal != nil
         let isFilled           = !isRevealed && playerVal != nil
+        // Sync glow: golden highlight on the 12 o'clock cell whenever rings are aligned
+        let isSyncTop          = level.usesSynchronizedRotation && isAtTop && isSynced
 
         wheelCell(
             displayGlyph: displayGlyph,
@@ -401,6 +458,7 @@ struct MayanWheelView: View {
             isBlankAtTop: isBlankAtTop,
             isReplaceableAtTop: isReplaceableAtTop,
             isFilled: isFilled,
+            isSyncTop: isSyncTop,
             size: size
         ) {
             guard isPausedAtTop, let armed = gameState.mayanArmedGlyph else { return }
@@ -408,8 +466,12 @@ struct MayanWheelView: View {
             gameState.placeMayanGlyph(armed, at: coord)
             gameState.mayanArmedGlyph = nil
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                innerRing.isPaused = false
-                advanceRing(innerRing, direction: +1)
+                if level.usesSynchronizedRotation {
+                    resumeInnerSyncedIfReady()
+                } else {
+                    innerRing.isPaused = false
+                    advanceRing(innerRing, direction: +1)
+                }
             }
         }
     }
@@ -424,12 +486,14 @@ struct MayanWheelView: View {
         isBlankAtTop: Bool,
         isReplaceableAtTop: Bool,
         isFilled: Bool,
+        isSyncTop: Bool,
         size: CGFloat,
         onTap: @escaping () -> Void
     ) -> some View {
         let isInteractiveTop = isBlankAtTop || isReplaceableAtTop
         let fillColor: Color = {
             if isError             { return Color(red: 0.55, green: 0.06, blue: 0.06).opacity(0.85) }
+            if isSyncTop           { return Color(red: 0.80, green: 0.60, blue: 0.10).opacity(0.15) }
             if isRevealed          { return jadeColor.opacity(0.25) }
             if isFilled            { return Color.white.opacity(0.10) }
             if isBlankAtTop        { return Color.clear }
@@ -437,11 +501,12 @@ struct MayanWheelView: View {
         }()
         let strokeColor: Color = {
             if isError             { return Color.red.opacity(0.75) }
-            if isRevealed          { return jadeColor.opacity(0.50) }
             if isInteractiveTop    { return Color.goldBright.opacity(0.85) }
+            if isSyncTop           { return Color.goldBright.opacity(0.70) }
+            if isRevealed          { return jadeColor.opacity(0.50) }
             return jadeColor.opacity(0.20)
         }()
-        let strokeWidth: CGFloat = isInteractiveTop ? 1.8 : 0.8
+        let strokeWidth: CGFloat = (isInteractiveTop || isSyncTop) ? 1.8 : 0.8
         return ZStack {
             // Background circle
             Circle()
@@ -450,6 +515,17 @@ struct MayanWheelView: View {
                     Circle()
                         .stroke(strokeColor, lineWidth: strokeWidth)
                 )
+
+            // Sync glow ring — golden pulse when outer and inner are aligned at 12 o'clock
+            if isSyncTop && !isInteractiveTop {
+                Circle()
+                    .fill(Color.goldBright.opacity(0.12))
+                    .scaleEffect(1.25)
+                    .animation(
+                        .easeInOut(duration: 1.0).repeatForever(autoreverses: true),
+                        value: isSyncTop
+                    )
+            }
 
             // Pulsing glow for blank at 12 o'clock — show + icon
             if isBlankAtTop {
@@ -620,6 +696,7 @@ struct MayanWheelView: View {
                 innerRing.currentStep = 0
                 innerRing.isPaused    = false
                 innerRing.isAnimating = false
+                isSynced = false
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                     startBothRings()
                 }
@@ -836,8 +913,33 @@ struct MayanWheelView: View {
 
     /// Kick off both rings from their current state.
     private func startBothRings() {
-        scheduleNextStep(for: outerRing, direction: -1, delay: 0.0)
-        scheduleNextStep(for: innerRing, direction: +1, delay: 0.3)
+        if level.usesSynchronizedRotation {
+            // Sync mode: check initial sync (both start at 0) and begin inner spinning.
+            let innerStep = innerRing.currentStep
+            let outerStep = outerRing.currentStep
+            isSynced = (innerStep == outerStep)
+            let innerBlank = checkIfBlankAtTop(cycleIdx: 1, seqPos: innerStep)
+            if innerBlank {
+                innerRing.isPaused = true
+                innerRing.pauseID += 1
+                let capturedID = innerRing.pauseID
+                DispatchQueue.main.asyncAfter(deadline: .now() + 15.0) {
+                    guard innerRing.isPaused, innerRing.pauseID == capturedID else { return }
+                    innerRing.isPaused = false
+                    isSynced = false
+                    advanceInnerRingSynced()
+                }
+            } else {
+                let dwell: TimeInterval = isSynced ? 2.0 : 1.0
+                DispatchQueue.main.asyncAfter(deadline: .now() + dwell) {
+                    isSynced = false
+                    advanceInnerRingSynced()
+                }
+            }
+        } else {
+            scheduleNextStep(for: outerRing, direction: -1, delay: 0.0)
+            scheduleNextStep(for: innerRing, direction: +1, delay: 0.3)
+        }
     }
 
     /// Schedule one step for a ring after `delay` seconds.
@@ -896,5 +998,100 @@ struct MayanWheelView: View {
         guard level.cycles.indices.contains(cycleIdx) else { return false }
         let cycle = level.cycles[cycleIdx]
         return !cycle.isRevealed(seqPos)
+    }
+
+    // MARK: - Synchronized Mode Engine (Level 4)
+
+    /// True when a position is either an anchor OR the player has already filled it.
+    private func isPositionSatisfied(cycleIdx: Int, seqPos: Int) -> Bool {
+        let cycle = level.cycles[cycleIdx]
+        if cycle.isRevealed(seqPos) { return true }
+        guard gameState.mayanPlayerGrid.indices.contains(cycleIdx),
+              gameState.mayanPlayerGrid[cycleIdx].indices.contains(seqPos)
+        else { return false }
+        return gameState.mayanPlayerGrid[cycleIdx][seqPos] != nil
+    }
+
+    /// After the player fills a cell in sync mode, resume the inner ring only if
+    /// both the inner and outer cells at the current sync position are satisfied.
+    private func resumeInnerSyncedIfReady() {
+        let innerStep = innerRing.currentStep
+        let outerStep = outerRing.currentStep
+        let innerSat = isPositionSatisfied(cycleIdx: 1, seqPos: innerStep)
+        // Outer must be satisfied only when the rings were in sync (isSynced)
+        let outerSat = isSynced ? isPositionSatisfied(cycleIdx: 0, seqPos: outerStep) : true
+        guard innerSat && outerSat else { return }
+        innerRing.isPaused = false
+        isSynced = false
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            advanceInnerRingSynced()
+        }
+    }
+
+    /// Advance the inner ring by one step in synchronized mode.
+    /// Inner always moves direction -1 (same as outer). After each step:
+    ///   • If inner completed a full loop, advance the outer ring one step.
+    ///   • Check sync (inner.currentStep == outer.currentStep) and update isSynced.
+    ///   • Pause inner at non-anchor positions so the player can fill.
+    private func advanceInnerRingSynced() {
+        guard !innerRing.isAnimating, !innerRing.isPaused else { return }
+        innerRing.isAnimating = true
+        innerRing.rotationDeg += -1 * stepDeg   // same direction as outer
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.85) {
+            innerRing.isAnimating = false
+            innerRing.currentStep = (innerRing.currentStep + 1) % level.sequenceLength
+            let innerStep = innerRing.currentStep
+
+            if innerStep == 0 {
+                // Inner just completed a full loop → advance the outer ring one step.
+                advanceOuterRingSynced {
+                    checkSyncAndHandleInner(innerStep: 0)
+                }
+            } else {
+                checkSyncAndHandleInner(innerStep: innerStep)
+            }
+        }
+    }
+
+    /// Animate the outer ring forward one step, then call `completion`.
+    private func advanceOuterRingSynced(completion: @escaping () -> Void) {
+        guard !outerRing.isAnimating else { return }
+        outerRing.isAnimating = true
+        outerRing.rotationDeg += -1 * stepDeg
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.85) {
+            outerRing.isAnimating = false
+            outerRing.currentStep = (outerRing.currentStep + 1) % level.sequenceLength
+            completion()
+        }
+    }
+
+    /// After an inner ring step completes, determine sync state and whether to pause.
+    private func checkSyncAndHandleInner(innerStep: Int) {
+        let outerStep = outerRing.currentStep
+        let synced = (innerStep == outerStep)
+        isSynced = synced
+
+        let innerBlank = checkIfBlankAtTop(cycleIdx: 1, seqPos: innerStep)
+        if innerBlank {
+            innerRing.isPaused = true
+            innerRing.pauseID += 1
+            let capturedID = innerRing.pauseID
+            DispatchQueue.main.asyncAfter(deadline: .now() + 15.0) {
+                guard innerRing.isPaused, innerRing.pauseID == capturedID else { return }
+                innerRing.isPaused = false
+                isSynced = false
+                advanceInnerRingSynced()
+            }
+        } else {
+            // Dwell longer on sync moments so the player can observe the aligned pair.
+            let dwell: TimeInterval = synced ? 2.5 : 1.0
+            DispatchQueue.main.asyncAfter(deadline: .now() + dwell) {
+                guard !innerRing.isPaused else { return }
+                isSynced = false
+                advanceInnerRingSynced()
+            }
+        }
     }
 }
