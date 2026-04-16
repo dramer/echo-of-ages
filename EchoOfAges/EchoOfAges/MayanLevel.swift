@@ -201,15 +201,17 @@ extension MayanLevel {
     )
 
     // ─────────────────────────────────────────────────────────────────────
-    // LEVEL 2 · 2 cycles · periods 3+2 · 6 blanks
+    // LEVEL 2 · 2 cycles · periods 3+2 · 7 blanks  (rotating wheel mechanic)
     //
     // Cycle A: [KIN, HAAB, TZʼ]  offset=0  length=6
     //   0:KIN  1:HAAB  2:TZʼ  3:KIN  4:HAAB  5:TZʼ
-    //   Revealed: {0,1,4}  Blanks: {2→TZʼ, 3→KIN, 5→TZʼ}
+    //   Revealed: {0,1,2}  — first full cycle is all anchors (teaching pass)
+    //   Blanks: {3→KIN, 4→HAAB, 5→TZʼ}
     //
     // Cycle B: [IMIX, IK]  offset=0  length=6
     //   0:IMIX  1:IK  2:IMIX  3:IK  4:IMIX  5:IK
-    //   Revealed: {1,2,5}  Blanks: {0→IMIX, 3→IK, 4→IMIX}
+    //   Revealed: {0,1}  — first full cycle is all anchors (teaching pass)
+    //   Blanks: {2→IMIX, 3→IK, 4→IMIX, 5→IK}
     // ─────────────────────────────────────────────────────────────────────
     static let level2 = MayanLevel(
         id: 2,
@@ -227,13 +229,13 @@ extension MayanLevel {
                 label: "Solar Wheel",
                 symbols: [.kin, .haab, .tzolk],
                 startOffset: 0,
-                revealedPositions: [0,1,4]
+                revealedPositions: [0,1,2]
             ),
             MayanCycle(
                 label: "Earth Wheel",
                 symbols: [.imix, .ik],
                 startOffset: 0,
-                revealedPositions: [1,2,5]
+                revealedPositions: [0,1]
             )
         ],
         sequenceLength: 6,

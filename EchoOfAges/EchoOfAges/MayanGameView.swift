@@ -26,6 +26,14 @@ struct MayanGameView: View {
     // MARK: - Body
 
     var body: some View {
+        if level.id == 2 {
+            MayanWheelView()
+        } else {
+            regularBody
+        }
+    }
+
+    private var regularBody: some View {
         ZStack {
             jungleBackground.ignoresSafeArea()
 
