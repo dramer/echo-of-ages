@@ -21,6 +21,9 @@ struct ContentView: View {
             .onChange(of: gameState.currentScreen) { _, screen in
                 soundManager.updateForScreen(screen)
             }
+            .onAppear {
+                gameState.soundManager = soundManager
+            }
     }
 
     @ViewBuilder

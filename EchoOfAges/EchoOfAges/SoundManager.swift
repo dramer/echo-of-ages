@@ -1,11 +1,12 @@
 // SoundManager.swift
 // EchoOfAges
 //
-// Central audio manager for all background music in the game.
+// Central audio manager for all background music and move sound effects.
 // Handles crossfading between civilization tracks, master on/off,
-// and per-context enable/disable. Settings are persisted in UserDefaults.
+// per-context enable/disable, and one-shot effect playback.
+// Settings are persisted in UserDefaults.
 //
-// Track file names expected in the app bundle:
+// Background track files expected in the app bundle:
 //   egypt_sound.mp3    — Egyptian puzzles
 //   norse_sound.mp3    — Norse puzzles
 //   sumerian_sound.mp3 — Sumerian puzzles
@@ -13,6 +14,12 @@
 //   celtic_sound.mp3   — Celtic puzzles
 //   chinese_sound.mp3  — Chinese puzzles
 //   journal_sound.mp3  — Field Diary
+//
+// Sound effect files expected in the app bundle:
+//   sfx_place.mp3  — glyph / path cell placed
+//   sfx_clear.mp3  — glyph cleared / backtrack
+//   sfx_error.mp3  — wrong answer / verify fail
+//   sfx_solve.mp3  — puzzle level complete
 //
 // IntroView manages its own AVAudioPlayer and is excluded from
 // SoundManager's control — the manager goes silent during .intro.
@@ -34,6 +41,40 @@ final class SoundManager {
     var celticEnabled: Bool   = true { didSet { persist(); applySettingsChange() } }
     var chineseEnabled: Bool  = true { didSet { persist(); applySettingsChange() } }
     var journalEnabled: Bool  = true { didSet { persist(); applySettingsChange() } }
+    var effectsEnabled: Bool  = true { didSet { persist() } }
+
+    // MARK: - Sound Effects
+
+    enum SoundEffect: String {
+        case place  = "sfx_place"
+        case clear  = "sfx_clear"
+        case error  = "sfx_error"
+        case solve  = "sfx_solve"
+    }
+
+    /// Pool of pre-loaded effect players (max 4 per effect) to allow overlapping playback.
+    private var effectPlayers: [SoundEffect: [AVAudioPlayer]] = [:]
+
+    func playEffect(_ effect: SoundEffect) {
+        guard masterEnabled, effectsEnabled else { return }
+        // Lazy-load the pool for this effect on first use
+        if effectPlayers[effect] == nil {
+            guard let url = Bundle.main.url(forResource: effect.rawValue, withExtension: "mp3") else { return }
+            var pool: [AVAudioPlayer] = []
+            for _ in 0..<4 {
+                if let p = try? AVAudioPlayer(contentsOf: url) {
+                    p.prepareToPlay()
+                    pool.append(p)
+                }
+            }
+            effectPlayers[effect] = pool
+        }
+        // Play the first idle player in the pool (or the first one if all busy)
+        let pool = effectPlayers[effect] ?? []
+        let target = pool.first(where: { !$0.isPlaying }) ?? pool.first
+        target?.volume = 0.55
+        target?.play()
+    }
 
     // MARK: - Private state
 
@@ -198,6 +239,7 @@ final class SoundManager {
         static let celtic   = "EOA_soundCeltic"
         static let chinese  = "EOA_soundChinese"
         static let journal  = "EOA_soundJournal"
+        static let effects  = "EOA_soundEffects"
     }
 
     private func loadSettings() {
@@ -213,6 +255,7 @@ final class SoundManager {
         celticEnabled   = bool(UDKey.celtic)
         chineseEnabled  = bool(UDKey.chinese)
         journalEnabled  = bool(UDKey.journal)
+        effectsEnabled  = bool(UDKey.effects)
     }
 
     func persist() {
@@ -225,5 +268,6 @@ final class SoundManager {
         d.set(celticEnabled,   forKey: UDKey.celtic)
         d.set(chineseEnabled,  forKey: UDKey.chinese)
         d.set(journalEnabled,  forKey: UDKey.journal)
+        d.set(effectsEnabled,  forKey: UDKey.effects)
     }
 }

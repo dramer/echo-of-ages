@@ -100,6 +100,9 @@ final class GameState: ObservableObject {
     // nil only before the first level is loaded.
     @Published var egyptCurrentLevel: Level? = nil
 
+    // Injected by ContentView after both objects are created.
+    var soundManager: SoundManager? = nil
+
     var currentLevel: Level {
         egyptCurrentLevel ?? Level.allLevels[currentLevelIndex]
     }
@@ -436,8 +439,10 @@ final class GameState: ObservableObject {
         if let picked = selectedGlyph {
             if playerGrid[position.row][position.col] == picked {
                 playerGrid[position.row][position.col] = nil
+                soundManager?.playEffect(.clear)
             } else {
                 playerGrid[position.row][position.col] = picked
+                soundManager?.playEffect(.place)
             }
         } else {
             let glyphs = level.availableGlyphs
@@ -445,8 +450,10 @@ final class GameState: ObservableObject {
             if let current, let idx = glyphs.firstIndex(of: current) {
                 let next = idx + 1
                 playerGrid[position.row][position.col] = next < glyphs.count ? glyphs[next] : nil
+                soundManager?.playEffect(next < glyphs.count ? .place : .clear)
             } else {
                 playerGrid[position.row][position.col] = glyphs.first
+                soundManager?.playEffect(.place)
             }
         }
 
@@ -458,6 +465,7 @@ final class GameState: ObservableObject {
         guard !isEgyptianFixed(position) else { return }
         playerGrid[position.row][position.col] = nil
         HapticFeedback.tap()
+        soundManager?.playEffect(.clear)
     }
 
     // MARK: Verify (highlights mistakes temporarily)
@@ -474,8 +482,10 @@ final class GameState: ObservableObject {
         }
         if mistakes.isEmpty {
             HapticFeedback.success()
+            soundManager?.playEffect(.solve)
         } else {
             HapticFeedback.error()
+            soundManager?.playEffect(.error)
             egyptDecipherFailCount += 1
             errorCells = mistakes
             Task {
@@ -544,6 +554,7 @@ final class GameState: ObservableObject {
     private func handleLevelComplete() {
         isAnimatingCompletion = true
         HapticFeedback.success()
+        soundManager?.playEffect(.solve)
 
         let level = currentLevel
 
@@ -712,6 +723,7 @@ final class GameState: ObservableObject {
             }
             norsePath.append(position)
             HapticFeedback.tap()
+            soundManager?.playEffect(.place)
             return
         }
 
@@ -721,23 +733,27 @@ final class GameState: ObservableObject {
         if position == pathEnd {
             norsePath.removeLast()
             HapticFeedback.tap()
+            soundManager?.playEffect(.clear)
             return
         }
 
         // Must be adjacent to the current path end
         guard norseIsAdjacent(position, pathEnd) else {
             HapticFeedback.error()
+            soundManager?.playEffect(.error)
             return
         }
 
         // Can't revisit a cell already in the path
         guard !norsePath.contains(position) else {
             HapticFeedback.error()
+            soundManager?.playEffect(.error)
             return
         }
 
         norsePath.append(position)
         HapticFeedback.tap()
+        soundManager?.playEffect(.place)
 
         // Auto-verify once the path covers every cell
         if norsePath.count == level.totalCells {
@@ -798,6 +814,7 @@ final class GameState: ObservableObject {
     private func handleNorseLevelComplete() {
         norseIsAnimatingCompletion = true
         HapticFeedback.success()
+        soundManager?.playEffect(.solve)
         norseUnlockedLevels.insert(norseCurrentLevel.id)
         if norseCurrentLevelIndex == PathLevel.allLevels.count - 1 {
             recordKey(for: .norse)
@@ -1030,8 +1047,10 @@ final class GameState: ObservableObject {
         guard idx < playerSumerianDecoded.count else { return }
         if playerSumerianDecoded[idx] == glyph {
             playerSumerianDecoded[idx] = nil
+            soundManager?.playEffect(.clear)
         } else {
             playerSumerianDecoded[idx] = glyph
+            soundManager?.playEffect(.place)
         }
         sumerianSelectedDecodedIndex = nil
         HapticFeedback.tap()
@@ -1058,6 +1077,7 @@ final class GameState: ObservableObject {
             // Tablet is solved — levels without scribes complete immediately;
             // levels with scribes prompt the player to name the truth-teller.
             HapticFeedback.success()
+            soundManager?.playEffect(.solve)
             if level.scribes.isEmpty {
                 handleSumerianLevelComplete()
             } else {
@@ -1065,6 +1085,7 @@ final class GameState: ObservableObject {
             }
         } else {
             HapticFeedback.error()
+            soundManager?.playEffect(.error)
             sumerianErrorPositions = mistakes
             Task {
                 try? await Task.sleep(nanoseconds: 1_200_000_000)
@@ -1633,6 +1654,7 @@ final class GameState: ObservableObject {
               !mayanCurrentLevel.cycles[coord.cycle].isRevealed(coord.position) else { return }
         mayanPlayerGrid[coord.cycle][coord.position] = glyph
         mayanErrorCells.remove(coord)
+        soundManager?.playEffect(.place)
         // Check for solution after every placement
         if mayanCurrentLevel.isSolved(mayanPlayerGrid) {
             if mayanCurrentLevelIndex == 0 && needsKeyGate(for: .maya) {
@@ -1654,6 +1676,7 @@ final class GameState: ObservableObject {
               !mayanCurrentLevel.cycles[coord.cycle].isRevealed(coord.position) else { return }
         mayanPlayerGrid[coord.cycle][coord.position] = nil
         mayanErrorCells.remove(coord)
+        soundManager?.playEffect(.clear)
     }
 
     func verifyMayanPlacement() {
@@ -1666,6 +1689,7 @@ final class GameState: ObservableObject {
         mayanErrorCells = wrong
         if !wrong.isEmpty {
             HapticFeedback.heavy()
+            soundManager?.playEffect(.error)
             // Sync-rotation levels (Level 4): keep errors visible until the player corrects
             // them — placeMayanGlyph already calls mayanErrorCells.remove(coord) on each fix.
             // All other levels: flash red for 1.2 s then clear automatically.
@@ -1685,6 +1709,7 @@ final class GameState: ObservableObject {
         }
         saveProgress()
         HapticFeedback.heavy()
+        soundManager?.playEffect(.solve)
         mayanPendingComplete = true
         // Navigation handled by the completion card buttons — no auto-advance.
     }
@@ -1776,12 +1801,14 @@ final class GameState: ObservableObject {
         let proposed = ChinesePiecePlacement(row: row, col: col, rotation: chineseArmedRotation)
         guard level.isValidPlacement(piece: piece, proposed: proposed, existing: chinesePlacedPieces) else {
             HapticFeedback.error()
+            soundManager?.playEffect(.error)
             return
         }
         chinesePlacedPieces[id] = proposed
         chineseSelectedPieceId = nil
         chineseArmedRotation = 0
         HapticFeedback.tap()
+        soundManager?.playEffect(.place)
         if level.isSolved(chinesePlacedPieces) {
             if chineseCurrentLevelIndex == 0 && needsKeyGate(for: .chinese) {
                 if mysteryMarkIsCorrect(for: .chinese) {
@@ -1799,6 +1826,7 @@ final class GameState: ObservableObject {
     func removeChinesePiece(id: String) {
         chinesePlacedPieces.removeValue(forKey: id)
         HapticFeedback.tap()
+        soundManager?.playEffect(.clear)
     }
 
     func completeChineseLevel() {
@@ -1809,6 +1837,7 @@ final class GameState: ObservableObject {
         }
         saveProgress()
         HapticFeedback.heavy()
+        soundManager?.playEffect(.solve)
         chinesePendingComplete = true
         // Navigation handled by the completion card buttons — no auto-advance.
     }
@@ -1879,17 +1908,22 @@ final class GameState: ObservableObject {
         if let armed = celticArmedGlyph {
             if celticPlayerGrid[row][col] == armed {
                 celticPlayerGrid[row][col] = nil
+                soundManager?.playEffect(.clear)
             } else {
                 celticPlayerGrid[row][col] = armed
+                soundManager?.playEffect(.place)
             }
         } else {
             // No palette selection — cycle through glyphs
             let current = celticPlayerGrid[row][col]
             let all = OghamGlyph.allCases
             if let c = current, let idx = all.firstIndex(of: c) {
-                celticPlayerGrid[row][col] = (idx + 1 < all.count) ? all[idx + 1] : nil
+                let next = (idx + 1 < all.count) ? all[idx + 1] : nil
+                celticPlayerGrid[row][col] = next
+                soundManager?.playEffect(next != nil ? .place : .clear)
             } else {
                 celticPlayerGrid[row][col] = all.first
+                soundManager?.playEffect(.place)
             }
         }
 
@@ -1929,6 +1963,7 @@ final class GameState: ObservableObject {
         celticPlayerGrid[row][col] = nil
         celticErrorCells.remove(coord)
         HapticFeedback.tap()
+        soundManager?.playEffect(.clear)
     }
 
     func resetCelticGrid() {
@@ -1959,6 +1994,7 @@ final class GameState: ObservableObject {
         celticErrorCells = errors
         if !errors.isEmpty {
             HapticFeedback.heavy()
+            soundManager?.playEffect(.error)
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
                 self.celticErrorCells = []
             }
@@ -1973,6 +2009,7 @@ final class GameState: ObservableObject {
         }
         saveProgress()
         HapticFeedback.heavy()
+        soundManager?.playEffect(.solve)
         celticPendingComplete = true
         // Navigation handled by the completion card buttons — no auto-advance.
     }

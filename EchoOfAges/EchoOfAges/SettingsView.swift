@@ -102,6 +102,19 @@ struct SettingsView: View {
                     .opacity(sm.masterEnabled ? 1.0 : 0.38)
                     .animation(.easeInOut(duration: 0.2), value: sm.masterEnabled)
 
+                    divider
+
+                    // MARK: Sound Effects
+                    sectionLabel("SOUND EFFECTS")
+                    row(icon: "waveform.circle.fill", label: "Move Sounds",
+                        sublabel: "Taps, placements, errors, and solve chimes",
+                        isOn: $sm.effectsEnabled,
+                        accent: Color(red: 0.60, green: 0.78, blue: 0.90),
+                        sfSymbol: true)
+                    .disabled(!sm.masterEnabled)
+                    .opacity(sm.masterEnabled ? 1.0 : 0.38)
+                    .animation(.easeInOut(duration: 0.2), value: sm.masterEnabled)
+
                     Spacer(minLength: 40)
                 }
             }
