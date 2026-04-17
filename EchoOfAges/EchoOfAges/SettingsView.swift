@@ -115,6 +115,16 @@ struct SettingsView: View {
                     .opacity(sm.masterEnabled ? 1.0 : 0.38)
                     .animation(.easeInOut(duration: 0.2), value: sm.masterEnabled)
 
+                    divider
+
+                    // MARK: Haptics
+                    sectionLabel("HAPTICS")
+                    row(icon: "hand.tap.fill", label: "Gameplay Haptics",
+                        sublabel: "Vibration feedback on taps, errors, and solves",
+                        isOn: $sm.hapticsEnabled,
+                        accent: Color(red: 0.75, green: 0.55, blue: 0.85),
+                        sfSymbol: true)
+
                     Spacer(minLength: 40)
                 }
             }

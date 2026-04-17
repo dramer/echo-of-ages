@@ -42,6 +42,7 @@ final class SoundManager {
     var chineseEnabled: Bool  = true { didSet { persist(); applySettingsChange() } }
     var journalEnabled: Bool  = true { didSet { persist(); applySettingsChange() } }
     var effectsEnabled: Bool  = true { didSet { persist() } }
+    var hapticsEnabled: Bool  = true { didSet { persist(); HapticFeedback.isEnabled = hapticsEnabled } }
 
     // MARK: - Sound Effects
 
@@ -240,6 +241,7 @@ final class SoundManager {
         static let chinese  = "EOA_soundChinese"
         static let journal  = "EOA_soundJournal"
         static let effects  = "EOA_soundEffects"
+        static let haptics  = "EOA_hapticsEnabled"
     }
 
     private func loadSettings() {
@@ -256,6 +258,8 @@ final class SoundManager {
         chineseEnabled  = bool(UDKey.chinese)
         journalEnabled  = bool(UDKey.journal)
         effectsEnabled  = bool(UDKey.effects)
+        hapticsEnabled  = bool(UDKey.haptics)
+        HapticFeedback.isEnabled = hapticsEnabled
     }
 
     func persist() {
@@ -269,5 +273,6 @@ final class SoundManager {
         d.set(chineseEnabled,  forKey: UDKey.chinese)
         d.set(journalEnabled,  forKey: UDKey.journal)
         d.set(effectsEnabled,  forKey: UDKey.effects)
+        d.set(hapticsEnabled,  forKey: UDKey.haptics)
     }
 }

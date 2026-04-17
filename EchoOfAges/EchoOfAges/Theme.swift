@@ -65,19 +65,26 @@ enum EgyptFont {
 }
 
 enum HapticFeedback {
+    /// Set to false to silence all haptic feedback app-wide. Controlled by SoundManager.
+    static var isEnabled: Bool = true
+
     static func tap() {
+        guard isEnabled else { return }
         let g = UIImpactFeedbackGenerator(style: .light)
         g.impactOccurred()
     }
     static func heavy() {
+        guard isEnabled else { return }
         let g = UIImpactFeedbackGenerator(style: .heavy)
         g.impactOccurred()
     }
     static func success() {
+        guard isEnabled else { return }
         let g = UINotificationFeedbackGenerator()
         g.notificationOccurred(.success)
     }
     static func error() {
+        guard isEnabled else { return }
         let g = UINotificationFeedbackGenerator()
         g.notificationOccurred(.error)
     }

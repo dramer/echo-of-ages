@@ -1269,6 +1269,7 @@ private struct InspirationPageContent: View {
 
 private struct SettingsJournalContent: View {
     @EnvironmentObject var gameState: GameState
+    @Environment(SoundManager.self) var soundManager
     @State private var confirmingReset: CivilizationID? = nil
     @State private var confirmingResetAll = false
     @State private var editingName = false
@@ -1390,6 +1391,16 @@ private struct SettingsJournalContent: View {
                             .stroke(Color.inkSepia.opacity(0.25), lineWidth: 1))
                 )
             }
+
+            SectionRule()
+
+            // Sound
+            soundSection
+
+            SectionRule()
+
+            // Haptics
+            hapticsSection
 
             SectionRule()
 
@@ -1516,6 +1527,81 @@ private struct SettingsJournalContent: View {
         HapticFeedback.tap()
         gameState.savePlayerName(trimmed)
         withAnimation { editingName = false }
+    }
+
+    // MARK: - Sound section
+
+    @ViewBuilder
+    private var soundSection: some View {
+        @Bindable var sm = soundManager
+
+        HandTitle(text: "Sound", size: 17, color: .inkBlue)
+        HandNote(text: "Background music plays softly while you solve each inscription.", size: 12, color: Color.inkSepia.opacity(0.55))
+        Spacer(minLength: 6)
+
+        // Master toggle
+        soundRow(icon: sm.masterEnabled ? "speaker.wave.3.fill" : "speaker.slash.fill",
+                 label: sm.masterEnabled ? "All Sound — On" : "All Sound — Off",
+                 isOn: $sm.masterEnabled)
+
+        Spacer(minLength: 4)
+
+        // Per-civilization + diary (dimmed when master is off)
+        VStack(spacing: 6) {
+            soundRow(icon: "𓂀",  label: "Egyptian",    isOn: $sm.egyptEnabled,    sfSymbol: false)
+            soundRow(icon: "ᚱ",   label: "Norse",       isOn: $sm.norseEnabled,    sfSymbol: false)
+            soundRow(icon: "𒀭",  label: "Sumerian",    isOn: $sm.sumerianEnabled, sfSymbol: false)
+            soundRow(icon: "🌿",  label: "Maya",        isOn: $sm.mayaEnabled,     sfSymbol: false)
+            soundRow(icon: "ᚁ",   label: "Celtic",      isOn: $sm.celticEnabled,   sfSymbol: false)
+            soundRow(icon: "☰",   label: "Chinese",     isOn: $sm.chineseEnabled,  sfSymbol: false)
+            soundRow(icon: "book.fill", label: "Field Diary", isOn: $sm.journalEnabled)
+            soundRow(icon: "waveform.circle.fill", label: "Move Sounds", isOn: $sm.effectsEnabled)
+        }
+        .disabled(!sm.masterEnabled)
+        .opacity(sm.masterEnabled ? 1.0 : 0.38)
+        .animation(.easeInOut(duration: 0.2), value: sm.masterEnabled)
+    }
+
+    // MARK: - Haptics section
+
+    @ViewBuilder
+    private var hapticsSection: some View {
+        @Bindable var sm = soundManager
+
+        HandTitle(text: "Haptics", size: 17, color: .inkBlue)
+        HandNote(text: "Vibration feedback on taps, errors, and puzzle solves.", size: 12, color: Color.inkSepia.opacity(0.55))
+        Spacer(minLength: 6)
+        soundRow(icon: "hand.tap.fill", label: "Gameplay Haptics", isOn: $sm.hapticsEnabled)
+    }
+
+    // MARK: - Shared toggle row (diary style)
+
+    private func soundRow(
+        icon: String,
+        label: String,
+        isOn: Binding<Bool>,
+        sfSymbol: Bool = true
+    ) -> some View {
+        HStack(spacing: 10) {
+            Group {
+                if sfSymbol {
+                    Image(systemName: icon)
+                        .font(.system(size: 15))
+                        .frame(width: 22)
+                } else {
+                    Text(icon)
+                        .font(.system(size: 16))
+                        .frame(width: 22)
+                }
+            }
+            .foregroundStyle(Color.inkSepia.opacity(0.70))
+
+            HandBody(text: label, size: 14)
+            Spacer()
+            Toggle("", isOn: isOn)
+                .labelsHidden()
+                .toggleStyle(GreenRedToggleStyle())
+        }
     }
 }
 
