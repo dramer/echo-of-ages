@@ -11,11 +11,16 @@ import SwiftUI
 
 struct ContentView: View {
     @StateObject private var gameState = GameState()
+    @State private var soundManager   = SoundManager()
 
     var body: some View {
         mainContent
             .environmentObject(gameState)
+            .environment(soundManager)
             .preferredColorScheme(.dark)
+            .onChange(of: gameState.currentScreen) { _, screen in
+                soundManager.updateForScreen(screen)
+            }
     }
 
     @ViewBuilder

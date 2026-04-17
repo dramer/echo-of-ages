@@ -11,12 +11,32 @@ import SwiftUI
 
 struct TitleView: View {
     @EnvironmentObject var gameState: GameState
+    @Environment(SoundManager.self) var soundManager
     @State private var glowPulse = false
     @State private var showNameEntry = false
+    @State private var showSettings = false
 
     var body: some View {
         ZStack {
             background
+
+            // Settings gear — top-right corner
+            VStack {
+                HStack {
+                    Spacer()
+                    Button {
+                        showSettings = true
+                    } label: {
+                        Image(systemName: soundManager.masterEnabled
+                              ? "speaker.wave.2.fill"
+                              : "speaker.slash.fill")
+                            .font(.system(size: 18))
+                            .foregroundStyle(Color(red: 0.30, green: 0.20, blue: 0.06).opacity(0.55))
+                            .padding(16)
+                    }
+                }
+                Spacer()
+            }
 
             VStack(spacing: 0) {
                 Spacer(minLength: 12)
@@ -129,6 +149,10 @@ struct TitleView: View {
         .sheet(isPresented: $showNameEntry) {
             NameEntryView()
                 .interactiveDismissDisabled(true)
+        }
+        .sheet(isPresented: $showSettings) {
+            SettingsView()
+                .environment(soundManager)
         }
     }
 
