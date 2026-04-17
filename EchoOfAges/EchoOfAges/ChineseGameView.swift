@@ -27,6 +27,7 @@ struct ChineseGameView: View {
     @State private var inscriptionsExpanded = false
     @State private var errorCell: (Int, Int)? = nil
     @State private var showVerifyError: Bool  = false
+    @State private var showHelp:          Bool = false
 
     private var level: ChineseBoxLevel { gameState.chineseCurrentLevel }
 
@@ -73,12 +74,21 @@ struct ChineseGameView: View {
                 }
             }
 
+            if showHelp {
+                Color.black.opacity(0.55).ignoresSafeArea()
+                    .onTapGesture { withAnimation { showHelp = false } }
+                    .transition(.opacity).zIndex(9)
+                chineseHelpDialog
+                    .transition(.scale(scale: 0.93).combined(with: .opacity))
+                    .zIndex(10)
+            }
+
             if showComplete {
                 Color.black.opacity(0.60).ignoresSafeArea()
-                    .transition(.opacity).zIndex(9)
+                    .transition(.opacity).zIndex(11)
                 levelCompleteCard
                     .transition(.scale(scale: 0.92).combined(with: .opacity))
-                    .zIndex(10)
+                    .zIndex(12)
             }
         }
         .onChange(of: gameState.chinesePendingComplete) { _, newVal in
@@ -111,7 +121,7 @@ struct ChineseGameView: View {
                 HStack(spacing: 6) {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 14, weight: .semibold))
-                    Text("Journal")
+                    Text("Return")
                         .font(EgyptFont.body(17))
                 }
                 .foregroundStyle(vermillion)
@@ -126,10 +136,18 @@ struct ChineseGameView: View {
                     .foregroundStyle(vermillion.opacity(0.60))
             }
             Spacer()
-            Text(level.romanNumeral)
-                .font(EgyptFont.titleBold(22))
-                .foregroundStyle(warmGold)
-                .frame(width: 60, alignment: .trailing)
+            HStack(spacing: 12) {
+                Text(level.romanNumeral)
+                    .font(EgyptFont.titleBold(22))
+                    .foregroundStyle(warmGold)
+                Button { withAnimation { showHelp = true } } label: {
+                    Image(systemName: "questionmark.circle.fill")
+                        .font(.system(size: 22))
+                        .foregroundStyle(warmGold.opacity(0.80))
+                }
+                .buttonStyle(.plain)
+            }
+            .frame(width: 70, alignment: .trailing)
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 14)
@@ -670,6 +688,76 @@ struct ChineseGameView: View {
                         .stroke(Color.stoneMid.opacity(0.35), lineWidth: 0.8)
                 )
         )
+    }
+
+    // MARK: - Help Dialog
+
+    private var chineseHelpDialog: some View {
+        let accent = warmGold
+        let bg     = Color(red: 0.08, green: 0.05, blue: 0.02)
+        return VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Text("木  How to Play")
+                    .font(EgyptFont.titleBold(20))
+                    .foregroundStyle(accent)
+                Spacer()
+                Button { withAnimation { showHelp = false } } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 22))
+                        .foregroundStyle(accent.opacity(0.70))
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.bottom, 14)
+
+            chineseHelpRow(number: "1", title: "Select a piece from the tray",
+                           body: "Tap any wooden piece at the bottom to select it. The selected piece is highlighted. Tap it again to deselect.")
+            chineseHelpRow(number: "2", title: "Rotate before placing",
+                           body: "Tap the Rotate button to turn the selected piece 90° clockwise. Pieces can be rotated up to three times.")
+            chineseHelpRow(number: "3", title: "Place the piece on the board",
+                           body: "Tap any empty board cell. The piece is anchored at its top-left corner at that position. If it doesn't fit, the placement is rejected.")
+            chineseHelpRow(number: "4", title: "Fill the board completely",
+                           body: "All pieces must fit on the board without overlapping. The puzzle solves automatically once every cell is covered.")
+
+            Button { withAnimation { showHelp = false } } label: {
+                Text("Got it")
+                    .font(EgyptFont.titleBold(17))
+                    .foregroundStyle(bg)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 13)
+                    .background(RoundedRectangle(cornerRadius: 10).fill(accent))
+            }
+            .buttonStyle(.plain)
+            .padding(.top, 16)
+        }
+        .padding(22)
+        .background(
+            RoundedRectangle(cornerRadius: 18)
+                .fill(bg)
+                .overlay(RoundedRectangle(cornerRadius: 18)
+                    .stroke(accent.opacity(0.55), lineWidth: 1.5))
+        )
+        .padding(.horizontal, 20)
+    }
+
+    private func chineseHelpRow(number: String, title: String, body: String) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Text(number)
+                .font(EgyptFont.titleBold(16))
+                .foregroundStyle(warmGold)
+                .frame(width: 22, alignment: .center)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(EgyptFont.titleBold(15))
+                    .foregroundStyle(Color.papyrus)
+                Text(body)
+                    .font(EgyptFont.body(13))
+                    .foregroundStyle(Color.papyrus.opacity(0.75))
+                    .lineSpacing(3)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(.bottom, 12)
     }
 
     // MARK: - Level Complete Card

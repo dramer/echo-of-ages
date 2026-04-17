@@ -25,7 +25,6 @@ struct SumerianGameView: View {
     @State private var inscriptionsExpanded = false
     @State private var showTabletGateNote   = false
     @State private var showHelpDialog       = false
-    @State private var helpTask: Task<Void, Never>? = nil
 
     /// Tablet is always open — testimonies are read-only reference material.
     private var scribeGateActive: Bool { false }
@@ -110,7 +109,6 @@ struct SumerianGameView: View {
         }
         .onChange(of: gameState.sumerianPendingComplete) { _, newVal in
             if newVal {
-                helpTask?.cancel()
                 withAnimation(.spring(response: 0.5, dampingFraction: 0.72)) {
                     showComplete = true
                 }
@@ -120,9 +118,7 @@ struct SumerianGameView: View {
                 }
             }
         }
-        .onAppear { scheduleHelpDialog() }
         .onDisappear {
-            helpTask?.cancel()
             showComplete = false
             messageRevealed = false
         }
@@ -133,11 +129,15 @@ struct SumerianGameView: View {
     private var headerBar: some View {
         HStack {
             Button { HapticFeedback.tap(); gameState.closeSumerianGame() } label: {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(clayDark)
-                    .frame(width: 44, height: 44)
+                HStack(spacing: 5) {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 14, weight: .semibold))
+                    Text("Return")
+                        .font(EgyptFont.body(15))
+                }
+                .foregroundStyle(clayDark)
             }
+            .frame(minWidth: 80, alignment: .leading)
             Spacer()
             VStack(spacing: 1) {
                 Text("𒀭 𒆳 𒀀 𒌓 𒃲")
@@ -150,10 +150,18 @@ struct SumerianGameView: View {
                     .tracking(2)
             }
             Spacer()
-            Text(level.romanNumeral)
-                .font(EgyptFont.titleBold(20))
-                .foregroundStyle(clayDark)
-                .frame(width: 44, height: 44)
+            HStack(spacing: 14) {
+                Text(level.romanNumeral)
+                    .font(EgyptFont.titleBold(20))
+                    .foregroundStyle(clayDark)
+                Button { withAnimation { showHelpDialog = true } } label: {
+                    Image(systemName: "questionmark.circle.fill")
+                        .font(.system(size: 22))
+                        .foregroundStyle(clayDark.opacity(0.75))
+                }
+                .buttonStyle(.plain)
+            }
+            .frame(minWidth: 80, alignment: .trailing)
         }
         .padding(.horizontal, 8)
         .frame(height: 56)
@@ -298,15 +306,6 @@ struct SumerianGameView: View {
                 Text("Cross-check against anchors")
                     .font(EgyptFont.bodyItalic(12))
                     .foregroundStyle(clayDark.opacity(0.45))
-                Button {
-                    withAnimation { showHelpDialog = true }
-                    helpTask?.cancel()
-                } label: {
-                    Image(systemName: "questionmark.circle")
-                        .font(.system(size: 20, weight: .medium))
-                        .foregroundStyle(clayDark.opacity(0.70))
-                }
-                .buttonStyle(.plain)
             }
 
             // Scribe cards side by side — read-only reference for reasoning
@@ -433,7 +432,6 @@ struct SumerianGameView: View {
 
             Button {
                 withAnimation { showHelpDialog = false }
-                scheduleHelpDialog()
             } label: {
                 Text("Got it")
                     .font(EgyptFont.titleBold(17))
@@ -478,19 +476,6 @@ struct SumerianGameView: View {
         .padding(.bottom, 12)
     }
 
-    private func scheduleHelpDialog() {
-        helpTask?.cancel()
-        helpTask = Task {
-            try? await Task.sleep(nanoseconds: 14_000_000_000)   // 14 seconds idle
-            guard !Task.isCancelled else { return }
-            await MainActor.run {
-                guard !showComplete, !showHelpDialog else { return }
-                withAnimation(.spring(response: 0.4, dampingFraction: 0.80)) {
-                    showHelpDialog = true
-                }
-            }
-        }
-    }
 
     // MARK: Truth-Teller Picker
 

@@ -20,6 +20,7 @@ struct MayanGameView: View {
     @State private var showComplete    = false
     @State private var messageRevealed = false
     @State private var inscriptionsExpanded = false
+    @State private var showHelp        = false
 
     private var level: MayanLevel { gameState.mayanCurrentLevel }
 
@@ -43,12 +44,21 @@ struct MayanGameView: View {
                     staticMainContent(geo: geo)
                 }
 
+                if showHelp {
+                    Color.black.opacity(0.55).ignoresSafeArea()
+                        .onTapGesture { withAnimation { showHelp = false } }
+                        .transition(.opacity).zIndex(9)
+                    mayanHelpDialog
+                        .transition(.scale(scale: 0.93).combined(with: .opacity))
+                        .zIndex(10)
+                }
+
                 if showComplete {
                     Color.black.opacity(0.55).ignoresSafeArea()
-                        .transition(.opacity).zIndex(9)
+                        .transition(.opacity).zIndex(11)
                     levelCompleteCard(maxHeight: geo.size.height * 0.88)
                         .transition(.scale(scale: 0.92).combined(with: .opacity))
-                        .zIndex(10)
+                        .zIndex(12)
                 }
             }
         }
@@ -122,7 +132,7 @@ struct MayanGameView: View {
                 HStack(spacing: 6) {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 14, weight: .semibold))
-                    Text("Journal")
+                    Text("Return")
                         .font(EgyptFont.body(17))
                 }
                 .foregroundStyle(jadeColor)
@@ -138,10 +148,18 @@ struct MayanGameView: View {
                     .foregroundStyle(jadeColor.opacity(0.6))
             }
             Spacer()
-            Text(level.romanNumeral)
-                .font(EgyptFont.titleBold(22))
-                .foregroundStyle(jadeColor)
-                .frame(width: 60, alignment: .trailing)
+            HStack(spacing: 12) {
+                Text(level.romanNumeral)
+                    .font(EgyptFont.titleBold(22))
+                    .foregroundStyle(jadeColor)
+                Button { withAnimation { showHelp = true } } label: {
+                    Image(systemName: "questionmark.circle.fill")
+                        .font(.system(size: 22))
+                        .foregroundStyle(jadeColor.opacity(0.80))
+                }
+                .buttonStyle(.plain)
+            }
+            .frame(width: 70, alignment: .trailing)
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 14)
@@ -558,6 +576,76 @@ struct MayanGameView: View {
                 .overlay(RoundedRectangle(cornerRadius: 12)
                     .stroke(jadeColor.opacity(0.20), lineWidth: 0.8))
         )
+    }
+
+    // MARK: - Help Dialog
+
+    private var mayanHelpDialog: some View {
+        let accent = jadeColor
+        let bg     = Color(red: 0.06, green: 0.12, blue: 0.08)
+        return VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Text("🌿  How to Play")
+                    .font(EgyptFont.titleBold(20))
+                    .foregroundStyle(accent)
+                Spacer()
+                Button { withAnimation { showHelp = false } } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 22))
+                        .foregroundStyle(accent.opacity(0.70))
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.bottom, 14)
+
+            mayanHelpRow(number: "1", title: "Fill each calendar ring",
+                         body: "The wheel is divided into concentric rings. Each ring must be filled with the complete set of calendar glyphs — one symbol per position.")
+            mayanHelpRow(number: "2", title: "No symbol repeats within a ring",
+                         body: "Each glyph appears exactly once per ring. If a symbol is already placed in the same ring, it cannot appear again in that ring.")
+            mayanHelpRow(number: "3", title: "Select and place",
+                         body: "Tap a ring cell to select it, then tap a symbol in the palette below to place it. Tap Verify to check your work — wrong cells flash red.")
+            mayanHelpRow(number: "4", title: "Level 4 — the synchronised wheel",
+                         body: "On the rotating wheel puzzle, watch for the moment the rings align at 12 o'clock. All ring cells at that position accept any symbol from the full palette.")
+
+            Button { withAnimation { showHelp = false } } label: {
+                Text("Got it")
+                    .font(EgyptFont.titleBold(17))
+                    .foregroundStyle(bg)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 13)
+                    .background(RoundedRectangle(cornerRadius: 10).fill(accent))
+            }
+            .buttonStyle(.plain)
+            .padding(.top, 16)
+        }
+        .padding(22)
+        .background(
+            RoundedRectangle(cornerRadius: 18)
+                .fill(bg)
+                .overlay(RoundedRectangle(cornerRadius: 18)
+                    .stroke(accent.opacity(0.55), lineWidth: 1.5))
+        )
+        .padding(.horizontal, 20)
+    }
+
+    private func mayanHelpRow(number: String, title: String, body: String) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Text(number)
+                .font(EgyptFont.titleBold(16))
+                .foregroundStyle(jadeColor)
+                .frame(width: 22, alignment: .center)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(EgyptFont.titleBold(15))
+                    .foregroundStyle(Color.papyrus)
+                Text(body)
+                    .font(EgyptFont.body(13))
+                    .foregroundStyle(Color.papyrus.opacity(0.75))
+                    .lineSpacing(3)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(.bottom, 12)
     }
 
     // MARK: - Level Complete Card

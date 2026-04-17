@@ -18,9 +18,8 @@ struct PathGameView: View {
     @State private var toastVisible:     Bool   = false
     @State private var toastDismissTask: Task<Void, Never>? = nil
 
-    // Idle hint
-    @State private var idleHintTask:  Task<Void, Never>? = nil
-    @State private var hasInteracted: Bool = false
+    // Help
+    @State private var showHelp: Bool = false
 
     // Inscription panel
     @State private var showRuneInscriptions: Bool = false
@@ -52,6 +51,16 @@ struct PathGameView: View {
                         .zIndex(7)
                 }
 
+                // Help overlay
+                if showHelp {
+                    Color.black.opacity(0.55).ignoresSafeArea()
+                        .onTapGesture { withAnimation { showHelp = false } }
+                        .transition(.opacity).zIndex(9)
+                    norseHelpDialog
+                        .transition(.scale(scale: 0.93).combined(with: .opacity))
+                        .zIndex(10)
+                }
+
                 // Toast overlay
                 if toastVisible {
                     Color.black.opacity(0.45)
@@ -67,16 +76,6 @@ struct PathGameView: View {
             }
         }
         .background(norseBackground)
-        .onAppear {
-            hasInteracted = false
-            scheduleIdleHint()
-        }
-        .onChange(of: gameState.norsePath) { _, newPath in
-            if !newPath.isEmpty && !hasInteracted {
-                hasInteracted = true
-                cancelIdleHint()
-            }
-        }
         .onChange(of: gameState.norsePenaltyMessage) { _, message in
             guard let message else { return }
             showToast(message, duration: 6.0)
@@ -160,7 +159,7 @@ struct PathGameView: View {
 
     private var imageButtonBar: some View {
         HStack(spacing: 0) {
-            norseToolbarButton(icon: "chevron.left", label: "Back") {
+            norseToolbarButton(icon: "chevron.left", label: "Return") {
                 gameState.closeNorseGame()
             }
             norseToolbarButton(icon: "book.fill", label: "Diary") {
@@ -174,6 +173,9 @@ struct PathGameView: View {
                 withAnimation(.spring(response: 0.38, dampingFraction: 0.78)) {
                     showRuneInscriptions.toggle()
                 }
+            }
+            norseToolbarButton(icon: "questionmark.circle.fill", label: "Help") {
+                withAnimation { showHelp = true }
             }
             norseToolbarButton(icon: "gearshape.fill", label: "Settings") {
                 gameState.openSettings()
@@ -582,24 +584,75 @@ struct PathGameView: View {
         }
     }
 
-    private func scheduleIdleHint() {
-        idleHintTask?.cancel()
-        idleHintTask = Task {
-            try? await Task.sleep(nanoseconds: 8_000_000_000)
-            guard !hasInteracted else { return }
-            let level = gameState.norseCurrentLevel
-            let hasBlocked = !level.blockedCells.isEmpty
-            let blockedNote = hasBlocked ? " Dark crossed stones are impassable — route around them." : ""
-            showToast(
-                "Tap the \(level.waypoints.first?.rune ?? "ᚠ") rune to begin. Then tap each adjacent stone — visit every valid stone exactly once.\(blockedNote)",
-                duration: 7.0
-            )
+    // MARK: Help Dialog
+
+    private var norseHelpDialog: some View {
+        let accent = Color(red: 0.55, green: 0.85, blue: 1.0)
+        let bg     = Color(red: 0.08, green: 0.12, blue: 0.20)
+        return VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Text("ᚠ  How to Play")
+                    .font(EgyptFont.titleBold(20))
+                    .foregroundStyle(accent)
+                Spacer()
+                Button { withAnimation { showHelp = false } } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 22))
+                        .foregroundStyle(accent.opacity(0.70))
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.bottom, 14)
+
+            norseHelpRow(number: "1", title: "Start at the marked rune",
+                         body: "Tap the highlighted starting stone to begin your path. You cannot start from any other cell.")
+            norseHelpRow(number: "2", title: "Visit every stone exactly once",
+                         body: "Tap any stone adjacent (up, down, left, right) to the current end of your path to extend it. Every valid stone must be visited — no stone can be skipped or revisited.")
+            norseHelpRow(number: "3", title: "Backtrack by tapping the last stone",
+                         body: "Tapping the stone at the tip of your path removes it, letting you try a different route. Tap Clear to start over.")
+            norseHelpRow(number: "4", title: "Blocked stones",
+                         body: "Dark stones marked with an X are impassable — route around them. They don't need to be visited.")
+
+            Button { withAnimation { showHelp = false } } label: {
+                Text("Got it")
+                    .font(EgyptFont.titleBold(17))
+                    .foregroundStyle(bg)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 13)
+                    .background(RoundedRectangle(cornerRadius: 10).fill(accent))
+            }
+            .buttonStyle(.plain)
+            .padding(.top, 16)
         }
+        .padding(22)
+        .background(
+            RoundedRectangle(cornerRadius: 18)
+                .fill(bg)
+                .overlay(RoundedRectangle(cornerRadius: 18)
+                    .stroke(accent.opacity(0.55), lineWidth: 1.5))
+        )
+        .padding(.horizontal, 20)
     }
 
-    private func cancelIdleHint() {
-        idleHintTask?.cancel()
-        idleHintTask = nil
+    private func norseHelpRow(number: String, title: String, body: String) -> some View {
+        let accent = Color(red: 0.55, green: 0.85, blue: 1.0)
+        return HStack(alignment: .top, spacing: 12) {
+            Text(number)
+                .font(EgyptFont.titleBold(16))
+                .foregroundStyle(accent)
+                .frame(width: 22, alignment: .center)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(EgyptFont.titleBold(15))
+                    .foregroundStyle(Color.papyrus)
+                Text(body)
+                    .font(EgyptFont.body(13))
+                    .foregroundStyle(Color.papyrus.opacity(0.75))
+                    .lineSpacing(3)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(.bottom, 12)
     }
 
     // MARK: Rune Inscription Panel

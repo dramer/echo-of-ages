@@ -15,6 +15,7 @@ struct CelticGameView: View {
     @State private var showComplete    = false
     @State private var messageRevealed = false
     @State private var showInscriptions = false
+    @State private var showHelp        = false
 
     private var difficulty: CelticDifficulty { gameState.celticCurrentDifficulty }
     private var puzzle: CelticPuzzle?         { gameState.celticCurrentPuzzle }
@@ -59,6 +60,15 @@ struct CelticGameView: View {
                 }
             }
 
+            if showHelp {
+                Color.black.opacity(0.55).ignoresSafeArea()
+                    .onTapGesture { withAnimation { showHelp = false } }
+                    .transition(.opacity).zIndex(9)
+                celticHelpDialog
+                    .transition(.scale(scale: 0.93).combined(with: .opacity))
+                    .zIndex(10)
+            }
+
             if showComplete {
                 Color.black.opacity(0.60).ignoresSafeArea()
                     .transition(.opacity).zIndex(9)
@@ -98,10 +108,14 @@ struct CelticGameView: View {
                 Button {
                     gameState.closeCelticGame()
                 } label: {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundStyle(Color.celticGold)
-                        .padding(.leading, 16)
+                    HStack(spacing: 5) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 14, weight: .semibold))
+                        Text("Return")
+                            .font(EgyptFont.body(15))
+                    }
+                    .foregroundStyle(Color.celticGold)
+                    .padding(.leading, 16)
                 }
                 Spacer()
                 VStack(spacing: 2) {
@@ -113,7 +127,7 @@ struct CelticGameView: View {
                         .foregroundStyle(Color.celticParchment.opacity(0.6))
                 }
                 Spacer()
-                HStack(spacing: 5) {
+                HStack(spacing: 10) {
                     ForEach(1...5, id: \.self) { i in
                         Circle()
                             .fill(gameState.celticUnlockedLevels.contains(i)
@@ -123,6 +137,12 @@ struct CelticGameView: View {
                                      : Color.celticParchment.opacity(0.2)))
                             .frame(width: 6, height: 6)
                     }
+                    Button { withAnimation { showHelp = true } } label: {
+                        Image(systemName: "questionmark.circle.fill")
+                            .font(.system(size: 20))
+                            .foregroundStyle(Color.celticGold.opacity(0.80))
+                    }
+                    .buttonStyle(.plain)
                 }
                 .padding(.trailing, 16)
             }
@@ -388,6 +408,76 @@ struct CelticGameView: View {
             }
         }
         .padding(.horizontal, 20)
+    }
+
+    // MARK: - Help Dialog
+
+    private var celticHelpDialog: some View {
+        let accent = Color.celticGold
+        let bg     = Color(red: 0.07, green: 0.12, blue: 0.05)
+        return VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Text("ᚁ  How to Play")
+                    .font(EgyptFont.titleBold(20))
+                    .foregroundStyle(accent)
+                Spacer()
+                Button { withAnimation { showHelp = false } } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 22))
+                        .foregroundStyle(accent.opacity(0.70))
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.bottom, 14)
+
+            celticHelpRow(number: "1", title: "Fill every cell with an Ogham value",
+                          body: "Each cell holds a value from 1 (ᚁ Beith) to 5 (ᚅ Nion). Every cell must be filled — no cell can be left blank.")
+            celticHelpRow(number: "2", title: "No value repeats in any row or column",
+                          body: "Each number 1–5 appears exactly once per row and exactly once per column, like a Latin square.")
+            celticHelpRow(number: "3", title: "Match the carved totals",
+                          body: "The sum shown at the end of each row and column is the target total. Your filled values must add up to those numbers.")
+            celticHelpRow(number: "4", title: "Arm and place",
+                          body: "Tap a symbol in the palette to arm it, then tap any empty cell to place it. Tap Decipher to check your work.")
+
+            Button { withAnimation { showHelp = false } } label: {
+                Text("Got it")
+                    .font(EgyptFont.titleBold(17))
+                    .foregroundStyle(bg)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 13)
+                    .background(RoundedRectangle(cornerRadius: 10).fill(accent))
+            }
+            .buttonStyle(.plain)
+            .padding(.top, 16)
+        }
+        .padding(22)
+        .background(
+            RoundedRectangle(cornerRadius: 18)
+                .fill(bg)
+                .overlay(RoundedRectangle(cornerRadius: 18)
+                    .stroke(accent.opacity(0.55), lineWidth: 1.5))
+        )
+        .padding(.horizontal, 20)
+    }
+
+    private func celticHelpRow(number: String, title: String, body: String) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Text(number)
+                .font(EgyptFont.titleBold(16))
+                .foregroundStyle(Color.celticGold)
+                .frame(width: 22, alignment: .center)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(EgyptFont.titleBold(15))
+                    .foregroundStyle(Color.celticParchment)
+                Text(body)
+                    .font(EgyptFont.body(13))
+                    .foregroundStyle(Color.celticParchment.opacity(0.75))
+                    .lineSpacing(3)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(.bottom, 12)
     }
 
     // MARK: - Level Complete Card

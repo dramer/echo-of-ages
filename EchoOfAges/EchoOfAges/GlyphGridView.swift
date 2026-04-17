@@ -20,9 +20,7 @@ struct GameView: View {
     @State private var toastMessage:     String = ""
     @State private var toastVisible:     Bool   = false
     @State private var toastDismissTask: Task<Void, Never>? = nil
-    @State private var idleHintTask:     Task<Void, Never>? = nil
-    @State private var hasInteracted:    Bool   = false
-    @State private var levelInitialGrid: [[Glyph?]] = []
+    @State private var showHelp:         Bool   = false
 
     // MARK: Body
 
@@ -35,6 +33,16 @@ struct GameView: View {
                     landscapeLayout(geo: geo)
                 } else {
                     portraitLayout(geo: geo)
+                }
+
+                // Help overlay
+                if showHelp {
+                    Color.black.opacity(0.55).ignoresSafeArea()
+                        .onTapGesture { withAnimation { showHelp = false } }
+                        .transition(.opacity).zIndex(9)
+                    egyptHelpDialog
+                        .transition(.scale(scale: 0.93).combined(with: .opacity))
+                        .zIndex(10)
                 }
 
                 // Centred toast overlay
@@ -58,35 +66,10 @@ struct GameView: View {
         .sheet(isPresented: $showKnownGlyphs) {
             KnownGlyphsModal().environmentObject(gameState)
         }
-        .onAppear {
-            levelInitialGrid = gameState.playerGrid
-            hasInteracted    = false
-            scheduleIdleHint()
-        }
-        .onChange(of: gameState.currentLevelIndex) { _, _ in
-            levelInitialGrid = gameState.playerGrid
-            hasInteracted    = false
-            cancelIdleHint()
-            scheduleIdleHint()
-        }
-        .onChange(of: gameState.playerGrid) { _, newGrid in
-            guard !hasInteracted else { return }
-            if newGrid != levelInitialGrid {
-                hasInteracted = true
-                cancelIdleHint()
-            } else {
-                hasInteracted = false
-                cancelIdleHint()
-                scheduleIdleHint()
-            }
-        }
         .onChange(of: gameState.egyptPenaltyMessage) { _, message in
             guard let msg = message else { return }
             showToast(msg, duration: 6.0)
             gameState.egyptPenaltyMessage = nil
-            levelInitialGrid = gameState.playerGrid
-            hasInteracted = false
-            scheduleIdleHint()
         }
     }
 
@@ -181,6 +164,8 @@ struct GameView: View {
                           label: "Decipher")    { handleDecipher() }
             toolbarButton(asset: "reset",         fallback: "arrow.counterclockwise",
                           label: "Reset")       { gameState.resetCurrentLevel() }
+            toolbarButton(asset: "help",          fallback: "questionmark.circle.fill",
+                          label: "Help")        { withAnimation { showHelp = true } }
             toolbarButton(asset: "settings",      fallback: "gearshape.fill",
                           label: "Settings")    { gameState.openSettings() }
         }
@@ -311,22 +296,72 @@ struct GameView: View {
         }
     }
 
-    private func scheduleIdleHint() {
-        idleHintTask?.cancel()
-        idleHintTask = Task {
-            try? await Task.sleep(nanoseconds: 8_000_000_000)
-            guard !hasInteracted else { return }
-            showToast(idleHintText, duration: 6.5)
+    // MARK: Help Dialog
+
+    private var egyptHelpDialog: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Text("𓂀  How to Play")
+                    .font(EgyptFont.titleBold(20))
+                    .foregroundStyle(Color.goldBright)
+                Spacer()
+                Button { withAnimation { showHelp = false } } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 22))
+                        .foregroundStyle(Color.goldBright.opacity(0.70))
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.bottom, 14)
+
+            helpRow(number: "1", title: "Read the fixed glyphs",
+                    body: "Pre-placed symbols are carved in stone — they cannot be moved. Use them as anchor points to reason about the rest.")
+            helpRow(number: "2", title: "No repeats in any row or column",
+                    body: "Each glyph appears exactly once per row and once per column. If a symbol already appears in the same row or column, it cannot go in that cell.")
+            helpRow(number: "3", title: "Arm and place",
+                    body: "Tap a glyph in the palette to arm it, then tap any empty cell to place it. Tap the same glyph again to disarm. Long-press a cell to clear it.")
+            helpRow(number: "4", title: "Decipher",
+                    body: "Tap Decipher to check your work. Wrong cells flash red — the correct answer is never shown, so use the logic to find it yourself.")
+
+            Button { withAnimation { showHelp = false } } label: {
+                Text("Got it")
+                    .font(EgyptFont.titleBold(17))
+                    .foregroundStyle(Color.stoneDark)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 13)
+                    .background(RoundedRectangle(cornerRadius: 10).fill(Color.goldBright))
+            }
+            .buttonStyle(.plain)
+            .padding(.top, 16)
         }
+        .padding(22)
+        .background(
+            RoundedRectangle(cornerRadius: 18)
+                .fill(Color.stoneDark)
+                .overlay(RoundedRectangle(cornerRadius: 18)
+                    .stroke(Color.goldDark.opacity(0.55), lineWidth: 1.5))
+        )
+        .padding(.horizontal, 20)
     }
 
-    private func cancelIdleHint() {
-        idleHintTask?.cancel()
-        idleHintTask = nil
-    }
-
-    private var idleHintText: String {
-        gameState.currentLevel.variant.idleHint
+    private func helpRow(number: String, title: String, body: String) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Text(number)
+                .font(EgyptFont.titleBold(16))
+                .foregroundStyle(Color.goldBright)
+                .frame(width: 22, alignment: .center)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(EgyptFont.titleBold(15))
+                    .foregroundStyle(Color.papyrus)
+                Text(body)
+                    .font(EgyptFont.body(13))
+                    .foregroundStyle(Color.papyrus.opacity(0.75))
+                    .lineSpacing(3)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(.bottom, 12)
     }
 
     // MARK: Background
