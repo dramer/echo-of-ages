@@ -166,7 +166,14 @@ struct LevelCompleteView: View {
                     .offset(y: appeared ? 0 : 16)
                     .animation(.easeOut(duration: 0.6).delay(0.2), value: appeared)
 
-                    Spacer(minLength: 28)
+                    Spacer(minLength: 20)
+
+                    // Progressive tomb scene
+                    EgyptWinnerScene(completedLevelIndex: gameState.currentLevelIndex)
+                        .opacity(appeared ? 1 : 0)
+                        .animation(.easeOut(duration: 0.6).delay(0.15), value: appeared)
+
+                    Spacer(minLength: 24)
 
                     // Decoded message reveal
                     if messageRevealed && !message.isEmpty {
@@ -357,7 +364,14 @@ struct GameCompleteView: View {
                     .offset(y: appeared ? 0 : 18)
                     .animation(.easeOut(duration: 0.7).delay(0.25), value: appeared)
 
-                    Spacer(minLength: 32)
+                    Spacer(minLength: 20)
+
+                    // Full tomb reveal — all 5 puzzles solved
+                    EgyptWinnerScene(completedLevelIndex: Level.allLevels.count - 1)
+                        .opacity(appeared ? 1 : 0)
+                        .animation(.easeOut(duration: 0.7).delay(0.3), value: appeared)
+
+                    Spacer(minLength: 28)
 
                     // Newly unlocked civilizations
                     if unlockedRevealed && !newlyUnlocked.isEmpty {
