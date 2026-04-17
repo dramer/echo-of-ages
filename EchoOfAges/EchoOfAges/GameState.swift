@@ -96,7 +96,13 @@ final class GameState: ObservableObject {
     // Used by Continue Journey to return to exactly where they left off.
     @Published var lastActiveCivilization: CivilizationID? = nil
 
-    var currentLevel: Level { Level.allLevels[currentLevelIndex] }
+    // Generated fresh each session — keeps narrative, randomises solution + fixed cells.
+    // nil only before the first level is loaded.
+    @Published var egyptCurrentLevel: Level? = nil
+
+    var currentLevel: Level {
+        egyptCurrentLevel ?? Level.allLevels[currentLevelIndex]
+    }
 
     // Ordered list of discovered glyphs (respects Glyph.allCases canonical order)
     var codexGlyphs: [Glyph] {
@@ -382,13 +388,25 @@ final class GameState: ObservableObject {
         egyptDecipherFailCount = 0
         egyptPenaltyFixedPositions = nil
         egyptPenaltyMessage = nil
-        resetGrid(for: Level.allLevels[index])
+        // Generate a fresh puzzle each time the player enters a level.
+        // Narrative (title, lore, inscriptions, journal entry) is preserved;
+        // only the solution grid and fixed positions are randomised.
+        let template = Level.allLevels[index]
+        egyptCurrentLevel = EgyptianGenerator.refresh(template)
+        resetGrid(for: currentLevel)
         lastActiveCivilization = .egyptian
     }
 
     func resetCurrentLevel() {
+        // Restore the current generated puzzle to its initial state
+        // WITHOUT generating a new puzzle — the player sees the same clues again.
         HapticFeedback.heavy()
-        loadLevel(currentLevelIndex)
+        selectedGlyph = nil
+        errorCells = []
+        egyptDecipherFailCount = 0
+        egyptPenaltyFixedPositions = nil
+        egyptPenaltyMessage = nil
+        resetGrid(for: currentLevel)
     }
 
     private func resetGrid(for level: Level) {
