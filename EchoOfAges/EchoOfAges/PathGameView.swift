@@ -165,9 +165,7 @@ struct PathGameView: View {
             norseToolbarButton(icon: "book.fill", label: "Diary") {
                 gameState.openJournal()
             }
-            norseToolbarButton(icon: "arrow.counterclockwise", label: "Clear") {
-                gameState.resetNorsePath()
-            }
+            clearButton
             norseToolbarButton(icon: showRuneInscriptions ? "scroll.fill" : "scroll",
                                label: "Runes") {
                 withAnimation(.spring(response: 0.38, dampingFraction: 0.78)) {
@@ -205,6 +203,37 @@ struct PathGameView: View {
                 Text(label)
                     .font(EgyptFont.body(11))
                     .foregroundStyle(Color.stoneDark)
+                    .lineLimit(1)
+            }
+            .frame(maxWidth: .infinity)
+        }
+    }
+
+    // MARK: Clear Button (shows remaining same-puzzle resets before a new puzzle is drawn)
+
+    private var clearButton: some View {
+        let resetsLeft = max(0, 2 - gameState.norseResetCount)
+        let willDrawNew = gameState.norseResetCount >= 2
+        let dots = (0..<2).map { $0 < resetsLeft ? "●" : "○" }.joined(separator: " ")
+
+        return Button {
+            HapticFeedback.tap()
+            gameState.resetNorsePath()
+        } label: {
+            VStack(spacing: 2) {
+                Image(systemName: willDrawNew ? "shuffle" : "arrow.counterclockwise")
+                    .font(.system(size: 24))
+                    .foregroundStyle(Color(red: 0.20, green: 0.45, blue: 0.75))
+                    .frame(height: 44)
+                Text(willDrawNew ? "New" : "Clear")
+                    .font(EgyptFont.body(11))
+                    .foregroundStyle(Color.stoneDark)
+                    .lineLimit(1)
+                Text(dots)
+                    .font(.system(size: 9))
+                    .foregroundStyle(willDrawNew
+                        ? Color(red: 0.75, green: 0.30, blue: 0.20)
+                        : Color(red: 0.20, green: 0.45, blue: 0.75))
                     .lineLimit(1)
             }
             .frame(maxWidth: .infinity)

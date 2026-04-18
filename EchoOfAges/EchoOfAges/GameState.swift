@@ -671,9 +671,12 @@ final class GameState: ObservableObject {
     @Published var norseIsAnimatingCompletion: Bool = false
     @Published var norseUnlockedLevels: Set<Int> = []
 
-    // Fail-penalty tracking: wrong path completions + manual clears combined
+    // Fail-penalty tracking: wrong path completions trigger this after 3 attempts
     @Published var norseFailCount: Int = 0
     @Published var norsePenaltyMessage: String? = nil
+
+    // Manual reset tracking: player gets 2 same-puzzle resets before a new puzzle is drawn
+    @Published var norseResetCount: Int = 0
 
     /// The active variant of the current level — randomised path + runes.
     /// Replaced every time loadNorseLevel() or resetNorsePath() is called.
@@ -705,6 +708,7 @@ final class GameState: ObservableObject {
         norsePath = []
         norseErrorCells = []
         norseFailCount = 0
+        norseResetCount = 0
         norsePenaltyMessage = nil
         currentPuzzleHadDecipherError = false
         norseActiveLevel = generateNorseVariant(at: norseCurrentLevelIndex)
@@ -717,8 +721,14 @@ final class GameState: ObservableObject {
     func resetNorsePath() {
         norsePath = []
         norseErrorCells = []
-        // Manual clears do NOT count as failures — only wrong-path completions do.
-        norseActiveLevel = generateNorseVariant(at: norseCurrentLevelIndex)
+        if norseResetCount < 2 {
+            // Keep the same puzzle — just clear the drawn path
+            norseResetCount += 1
+        } else {
+            // Both resets used — draw a fresh puzzle variant
+            norseResetCount = 0
+            norseActiveLevel = generateNorseVariant(at: norseCurrentLevelIndex)
+        }
         HapticFeedback.heavy()
     }
 
