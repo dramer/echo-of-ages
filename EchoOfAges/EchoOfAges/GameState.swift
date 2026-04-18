@@ -92,6 +92,16 @@ final class GameState: ObservableObject {
     // When true, JournalView jumps straight to the settings page on appear.
     @Published var journalOpeningToSettings: Bool = false
 
+    // Tracks whether the player has ever opened the Field Diary (for openJournal achievement)
+    @Published var hasOpenedJournal: Bool = false
+
+    // Per-puzzle flag: did the active puzzle have any Decipher/verify call that returned errors?
+    // Reset each time a new puzzle is loaded. Not persisted — only relevant in the current session.
+    private var currentPuzzleHadDecipherError: Bool = false
+
+    // Civs where at least one puzzle produced a Decipher error. Persisted — blocks perfect_* forever.
+    @Published var civsWithDecipherErrors: Set<CivilizationID> = []
+
     // Tracks which civilization the player was last actively playing.
     // Used by Continue Journey to return to exactly where they left off.
     @Published var lastActiveCivilization: CivilizationID? = nil
@@ -292,6 +302,11 @@ final class GameState: ObservableObject {
     }
 
     func openJournal() {
+        if !hasOpenedJournal {
+            hasOpenedJournal = true
+            UserDefaults.standard.set(true, forKey: "EOA_hasOpenedJournal")
+            GameCenterManager.shared.unlock(GameCenterManager.Achievement.openJournal)
+        }
         previousScreen = currentScreen
         currentScreen = .journal
     }
@@ -398,6 +413,7 @@ final class GameState: ObservableObject {
         egyptDecipherFailCount = 0
         egyptPenaltyFixedPositions = nil
         egyptPenaltyMessage = nil
+        currentPuzzleHadDecipherError = false
         // Generate a fresh puzzle each time the player enters a level.
         // Narrative (title, lore, inscriptions, journal entry) is preserved;
         // only the solution grid and fixed positions are randomised.
@@ -494,6 +510,7 @@ final class GameState: ObservableObject {
             HapticFeedback.error()
             soundManager?.playEffect(.error)
             egyptDecipherFailCount += 1
+            currentPuzzleHadDecipherError = true
             errorCells = mistakes
             Task {
                 try? await Task.sleep(nanoseconds: 1_200_000_000)
@@ -544,6 +561,38 @@ final class GameState: ObservableObject {
         return currentLevel.isFixed(pos)
     }
 
+    // MARK: Achievement Helpers
+
+    /// Total puzzle count solved across all six civilizations.
+    private var totalPuzzlesSolved: Int {
+        let egyptCount  = Level.allLevels.filter { unlockedJournalEntries.contains($0.journalEntry.id) }.count
+        return egyptCount
+            + norseUnlockedLevels.count
+            + sumerianUnlockedLevels.count
+            + mayanUnlockedLevels.count
+            + chineseUnlockedLevels.count
+            + celticUnlockedLevels.count
+    }
+
+    /// Fires milestone achievements that depend on cross-civilization progress.
+    /// Call this at the end of every completion handler, after state is updated.
+    private func checkMilestoneAchievements() {
+        let gc = GameCenterManager.shared
+        let done = civilizationsCompletedForMandu
+        if done.count >= 3 {
+            gc.unlock(GameCenterManager.Achievement.threeCivs)
+        }
+        if allSixCivsComplete {
+            gc.unlock(GameCenterManager.Achievement.allCivs)
+        }
+        if discoveredKeys.count >= 6 {
+            gc.unlock(GameCenterManager.Achievement.allKeys)
+        }
+        if codexGlyphs.count == Glyph.allCases.count {
+            gc.unlock(GameCenterManager.Achievement.fullCodex)
+        }
+    }
+
     // MARK: Solution Check
 
     private func checkSolution() {
@@ -585,6 +634,21 @@ final class GameState: ObservableObject {
         }
 
         saveProgress()
+
+        // ── Game Center achievements ──────────────────────────────────────────
+        let gc = GameCenterManager.shared
+        if totalPuzzlesSolved == 1 {
+            gc.unlock(GameCenterManager.Achievement.firstSolve)
+        }
+        if currentLevelIndex == Level.allLevels.count - 1 {
+            gc.unlock(GameCenterManager.Achievement.egyptComplete)
+        }
+        if currentPuzzleHadDecipherError { civsWithDecipherErrors.insert(.egyptian) }
+        if !currentPuzzleHadDecipherError { gc.unlock(GameCenterManager.Achievement.noHints) }
+        if currentLevelIndex == Level.allLevels.count - 1 && !civsWithDecipherErrors.contains(.egyptian) {
+            gc.unlock(GameCenterManager.Achievement.perfectEgypt)
+        }
+        checkMilestoneAchievements()
 
         Task {
             try? await Task.sleep(nanoseconds: 1_400_000_000)
@@ -642,6 +706,7 @@ final class GameState: ObservableObject {
         norseErrorCells = []
         norseFailCount = 0
         norsePenaltyMessage = nil
+        currentPuzzleHadDecipherError = false
         norseActiveLevel = generateNorseVariant(at: norseCurrentLevelIndex)
         // Level 1 always starts with no mystery mark selected — player must tap to choose
         if norseCurrentLevelIndex == 0 {
@@ -773,6 +838,7 @@ final class GameState: ObservableObject {
                     } else {
                         // Correct path, wrong mark — flash and reset so player knows to check the diary
                         flashMysteryMarkWrong()
+                        currentPuzzleHadDecipherError = true
                         norseErrorCells = Set(norsePath)
                         norseFailCount += 1
                         let triggerPenalty = norseFailCount >= 3
@@ -792,6 +858,7 @@ final class GameState: ObservableObject {
                 }
             } else {
                 // Wrong path — flash all cells red then reset
+                currentPuzzleHadDecipherError = true
                 norseErrorCells = Set(norsePath)
                 HapticFeedback.error()
                 norseFailCount += 1
@@ -827,6 +894,20 @@ final class GameState: ObservableObject {
             recordKey(for: .norse)
         }
         saveProgress()
+        // ── Game Center achievements ──────────────────────────────────────────
+        let gc = GameCenterManager.shared
+        if totalPuzzlesSolved == 1 {
+            gc.unlock(GameCenterManager.Achievement.firstSolve)
+        }
+        if norseCurrentLevelIndex == PathLevel.allLevels.count - 1 {
+            gc.unlock(GameCenterManager.Achievement.norseComplete)
+        }
+        if currentPuzzleHadDecipherError { civsWithDecipherErrors.insert(.norse) }
+        if !currentPuzzleHadDecipherError { gc.unlock(GameCenterManager.Achievement.noHints) }
+        if norseCurrentLevelIndex == PathLevel.allLevels.count - 1 && !civsWithDecipherErrors.contains(.norse) {
+            gc.unlock(GameCenterManager.Achievement.perfectNorse)
+        }
+        checkMilestoneAchievements()
         // No auto-advance — player presses Continue or Open Diary in the completion card.
     }
 
@@ -978,6 +1059,7 @@ final class GameState: ObservableObject {
         sumerianErrorPositions = []
         sumerianPendingComplete = false
         sumerianAwaitingTruthTellerPick = false
+        currentPuzzleHadDecipherError = false
         let level = SumerianLevel.allLevels[sumerianCurrentLevelIndex]
         sumerianForeignMarkIndex = nil
         resetSumerianDecoded(for: level)
@@ -1093,6 +1175,7 @@ final class GameState: ObservableObject {
         } else {
             HapticFeedback.error()
             soundManager?.playEffect(.error)
+            currentPuzzleHadDecipherError = true
             sumerianErrorPositions = mistakes
             Task {
                 try? await Task.sleep(nanoseconds: 1_200_000_000)
@@ -1116,6 +1199,20 @@ final class GameState: ObservableObject {
             passKeyGate(for: .sumerian)
         }
         UserDefaults.standard.set(Array(sumerianUnlockedLevels), forKey: "EOA_sumerianUnlocked")
+        // ── Game Center achievements ──────────────────────────────────────────
+        let gc = GameCenterManager.shared
+        if totalPuzzlesSolved == 1 {
+            gc.unlock(GameCenterManager.Achievement.firstSolve)
+        }
+        if sumerianCurrentLevelIndex == SumerianLevel.allLevels.count - 1 {
+            gc.unlock(GameCenterManager.Achievement.sumerianComplete)
+        }
+        if currentPuzzleHadDecipherError { civsWithDecipherErrors.insert(.sumerian) }
+        if !currentPuzzleHadDecipherError { gc.unlock(GameCenterManager.Achievement.noHints) }
+        if sumerianCurrentLevelIndex == SumerianLevel.allLevels.count - 1 && !civsWithDecipherErrors.contains(.sumerian) {
+            gc.unlock(GameCenterManager.Achievement.perfectSumerian)
+        }
+        checkMilestoneAchievements()
         Task {
             try? await Task.sleep(nanoseconds: 800_000_000)
             sumerianPendingComplete = true
@@ -1374,6 +1471,7 @@ final class GameState: ObservableObject {
         masterMindGuessHistory.append(guess)
         if masterMindIsComplete {
             HapticFeedback.success()
+            GameCenterManager.shared.unlock(GameCenterManager.Achievement.gameComplete)
         } else if masterMindIsDefeated {
             HapticFeedback.heavy()
         } else {
@@ -1598,6 +1696,10 @@ final class GameState: ObservableObject {
         mysteryMarkIndex.removeValue(forKey: civId)
         if civId == .chinese { chinaMysteryMarkIndex2 = 0 }
 
+        // Reset decipher-error tracking so player can attempt perfect achievements again
+        civsWithDecipherErrors.remove(civId)
+        currentPuzzleHadDecipherError = false
+
         saveProgress()
         HapticFeedback.heavy()
     }
@@ -1638,6 +1740,7 @@ final class GameState: ObservableObject {
         mayanArmedGlyph = nil
         mayanErrorCells = []
         mayanPendingComplete = false
+        currentPuzzleHadDecipherError = false
     }
 
     func resetMayanGrid(for level: MayanLevel) {
@@ -1695,6 +1798,7 @@ final class GameState: ObservableObject {
         }
         mayanErrorCells = wrong
         if !wrong.isEmpty {
+            currentPuzzleHadDecipherError = true
             HapticFeedback.heavy()
             soundManager?.playEffect(.error)
             // Sync-rotation levels (Level 4): keep errors visible until the player corrects
@@ -1718,6 +1822,20 @@ final class GameState: ObservableObject {
         HapticFeedback.heavy()
         soundManager?.playEffect(.solve)
         mayanPendingComplete = true
+        // ── Game Center achievements ──────────────────────────────────────────
+        let gc = GameCenterManager.shared
+        if totalPuzzlesSolved == 1 {
+            gc.unlock(GameCenterManager.Achievement.firstSolve)
+        }
+        if mayanCurrentLevelIndex == MayanLevel.allLevels.count - 1 {
+            gc.unlock(GameCenterManager.Achievement.mayanComplete)
+        }
+        if currentPuzzleHadDecipherError { civsWithDecipherErrors.insert(.maya) }
+        if !currentPuzzleHadDecipherError { gc.unlock(GameCenterManager.Achievement.noHints) }
+        if mayanCurrentLevelIndex == MayanLevel.allLevels.count - 1 && !civsWithDecipherErrors.contains(.maya) {
+            gc.unlock(GameCenterManager.Achievement.perfectMaya)
+        }
+        checkMilestoneAchievements()
         // Navigation handled by the completion card buttons — no auto-advance.
     }
 
@@ -1770,6 +1888,7 @@ final class GameState: ObservableObject {
         chineseSelectedPieceId = nil
         chineseArmedRotation = 0
         chinesePendingComplete = false
+        currentPuzzleHadDecipherError = false
     }
 
     func resetChinesePieces(for level: ChineseBoxLevel) {
@@ -1846,6 +1965,20 @@ final class GameState: ObservableObject {
         HapticFeedback.heavy()
         soundManager?.playEffect(.solve)
         chinesePendingComplete = true
+        // ── Game Center achievements ──────────────────────────────────────────
+        let gc = GameCenterManager.shared
+        if totalPuzzlesSolved == 1 {
+            gc.unlock(GameCenterManager.Achievement.firstSolve)
+        }
+        if chineseCurrentLevelIndex == ChineseBoxLevel.allLevels.count - 1 {
+            gc.unlock(GameCenterManager.Achievement.chineseComplete)
+        }
+        // Chinese has no Decipher button — auto-solves, so noHints always qualifies
+        gc.unlock(GameCenterManager.Achievement.noHints)
+        if chineseCurrentLevelIndex == ChineseBoxLevel.allLevels.count - 1 && !civsWithDecipherErrors.contains(.chinese) {
+            gc.unlock(GameCenterManager.Achievement.perfectChinese)
+        }
+        checkMilestoneAchievements()
         // Navigation handled by the completion card buttons — no auto-advance.
     }
 
@@ -1898,6 +2031,7 @@ final class GameState: ObservableObject {
         celticArmedGlyph = nil
         celticErrorCells = []
         celticPendingComplete = false
+        currentPuzzleHadDecipherError = false
     }
 
     func armCelticGlyph(_ glyph: OghamGlyph) {
@@ -2000,6 +2134,7 @@ final class GameState: ObservableObject {
         }
         celticErrorCells = errors
         if !errors.isEmpty {
+            currentPuzzleHadDecipherError = true
             HapticFeedback.heavy()
             soundManager?.playEffect(.error)
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
@@ -2018,6 +2153,20 @@ final class GameState: ObservableObject {
         HapticFeedback.heavy()
         soundManager?.playEffect(.solve)
         celticPendingComplete = true
+        // ── Game Center achievements ──────────────────────────────────────────
+        let gc = GameCenterManager.shared
+        if totalPuzzlesSolved == 1 {
+            gc.unlock(GameCenterManager.Achievement.firstSolve)
+        }
+        if celticCurrentLevelIndex == CelticDifficulty.all.count - 1 {
+            gc.unlock(GameCenterManager.Achievement.celticComplete)
+        }
+        if currentPuzzleHadDecipherError { civsWithDecipherErrors.insert(.celtic) }
+        if !currentPuzzleHadDecipherError { gc.unlock(GameCenterManager.Achievement.noHints) }
+        if celticCurrentLevelIndex == CelticDifficulty.all.count - 1 && !civsWithDecipherErrors.contains(.celtic) {
+            gc.unlock(GameCenterManager.Achievement.perfectCeltic)
+        }
+        checkMilestoneAchievements()
         // Navigation handled by the completion card buttons — no auto-advance.
     }
 
@@ -2081,6 +2230,8 @@ final class GameState: ObservableObject {
         let keysDict = discoveredKeys.reduce(into: [String: String]()) { $0[$1.key.rawValue] = $1.value }
         UserDefaults.standard.set(keysDict, forKey: "EOA_discoveredKeys")
         UserDefaults.standard.set(civKeyGateAnswered.map(\.rawValue), forKey: "EOA_keyGateAnswered")
+        UserDefaults.standard.set(hasOpenedJournal, forKey: "EOA_hasOpenedJournal")
+        UserDefaults.standard.set(civsWithDecipherErrors.map(\.rawValue), forKey: "EOA_civsWithErrors")
     }
 
     private func loadProgress() {
@@ -2128,6 +2279,11 @@ final class GameState: ObservableObject {
         }
 
         playerName = UserDefaults.standard.string(forKey: "EOA_playerName") ?? ""
+
+        hasOpenedJournal = UserDefaults.standard.bool(forKey: "EOA_hasOpenedJournal")
+
+        let rawErrors = UserDefaults.standard.array(forKey: "EOA_civsWithErrors") as? [String] ?? []
+        civsWithDecipherErrors = Set(rawErrors.compactMap { CivilizationID(rawValue: $0) })
 
         loadMasterMindProgress()
     }
@@ -2221,6 +2377,9 @@ final class GameState: ObservableObject {
         lastActiveCivilization = nil
         journalTargetPage = nil
         previousScreen = .title
+        hasOpenedJournal = false
+        civsWithDecipherErrors = []
+        currentPuzzleHadDecipherError = false
 
         // ── UserDefaults ──────────────────────────────────────────
         let keysToErase = [
@@ -2228,7 +2387,8 @@ final class GameState: ObservableObject {
             "EOA_norseUnlocked", "EOA_sumerianUnlocked", "EOA_mayanUnlocked",
             "EOA_chineseUnlocked", "EOA_celticUnlocked", "EOA_lastCiv",
             "EOA_discoveredKeys", "EOA_keyGateAnswered",
-            "EOA_hasSeenIntro", "EOA_masterMindSlots", "EOA_masterMindHistory"
+            "EOA_hasSeenIntro", "EOA_masterMindSlots", "EOA_masterMindHistory",
+            "EOA_hasOpenedJournal", "EOA_civsWithErrors"
         ]
         keysToErase.forEach { UserDefaults.standard.removeObject(forKey: $0) }
         // Keep showIntroOnLaunch and playerName — the player set those deliberately.

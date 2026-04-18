@@ -6,10 +6,12 @@
 // Changes take effect immediately and persist across sessions.
 
 import SwiftUI
+import GameKit
 
 struct SettingsView: View {
     @Environment(SoundManager.self) var soundManager
     @Environment(\.dismiss) private var dismiss
+    @State private var showAchievements = false
 
     var body: some View {
         @Bindable var sm = soundManager
@@ -32,7 +34,7 @@ struct SettingsView: View {
                             .padding(.trailing, 24)
                             .padding(.top, 20)
                         }
-                        Text("SOUND SETTINGS")
+                        Text("SETTINGS")
                             .font(EgyptFont.title(13))
                             .foregroundStyle(Color.goldBright)
                             .tracking(3)
@@ -125,9 +127,26 @@ struct SettingsView: View {
                         accent: Color(red: 0.75, green: 0.55, blue: 0.85),
                         sfSymbol: true)
 
+                    divider
+
+                    // MARK: Game Center
+                    sectionLabel("GAME CENTER")
+                    actionRow(
+                        icon: "gamecontroller.fill",
+                        label: "Achievements",
+                        sublabel: "View your earned achievements",
+                        accent: Color(red: 0.35, green: 0.75, blue: 0.55)
+                    ) {
+                        showAchievements = true
+                    }
+
                     Spacer(minLength: 40)
                 }
             }
+        }
+        .sheet(isPresented: $showAchievements) {
+            GameCenterAchievementsView()
+                .ignoresSafeArea()
         }
     }
 
@@ -170,6 +189,41 @@ struct SettingsView: View {
         .background(Rectangle().fill(Color.white.opacity(0.03)).padding(.horizontal, 12))
     }
 
+    // MARK: - Action Row (tappable, no toggle)
+
+    private func actionRow(
+        icon: String, label: String, sublabel: String,
+        accent: Color, action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(spacing: 14) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(accent.opacity(0.15))
+                        .frame(width: 42, height: 42)
+                    Image(systemName: icon)
+                        .font(.system(size: 18))
+                        .foregroundStyle(accent)
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(label)
+                        .font(EgyptFont.bodyItalic(15))
+                        .foregroundStyle(Color.papyrus.opacity(0.90))
+                    Text(sublabel)
+                        .font(EgyptFont.body(11))
+                        .foregroundStyle(Color.papyrus.opacity(0.42))
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Color.papyrus.opacity(0.30))
+            }
+            .padding(.horizontal, 24)
+            .padding(.vertical, 10)
+            .background(Rectangle().fill(Color.white.opacity(0.03)).padding(.horizontal, 12))
+        }
+    }
+
     // MARK: - Helpers
 
     private func sectionLabel(_ text: String) -> some View {
@@ -188,5 +242,27 @@ struct SettingsView: View {
             .background(Color.goldMid.opacity(0.25))
             .padding(.horizontal, 24)
             .padding(.vertical, 4)
+    }
+}
+
+// MARK: - Game Center Achievements Wrapper
+
+/// Wraps GKGameCenterViewController so it can be presented as a SwiftUI sheet.
+struct GameCenterAchievementsView: UIViewControllerRepresentable {
+
+    func makeCoordinator() -> Coordinator { Coordinator() }
+
+    func makeUIViewController(context: Context) -> GKGameCenterViewController {
+        let vc = GKGameCenterViewController(state: .achievements)
+        vc.gameCenterDelegate = context.coordinator
+        return vc
+    }
+
+    func updateUIViewController(_ uiViewController: GKGameCenterViewController, context: Context) {}
+
+    class Coordinator: NSObject, GKGameCenterControllerDelegate {
+        func gameCenterViewControllerDidFinish(_ gameCenterViewController: GKGameCenterViewController) {
+            gameCenterViewController.dismiss(animated: true)
+        }
     }
 }
