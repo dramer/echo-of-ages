@@ -603,9 +603,9 @@ struct MayanGameView: View {
             mayanHelpRow(number: "2", title: "No symbol repeats within a ring",
                          body: "Each glyph appears exactly once per ring. If a symbol is already placed in the same ring, it cannot appear again in that ring.")
             mayanHelpRow(number: "3", title: "Select and place",
-                         body: "Tap a ring cell to select it, then tap a symbol in the palette below to place it. Tap Verify to check your work — wrong cells flash red.")
-            mayanHelpRow(number: "4", title: "Level 4 — the synchronised wheel",
-                         body: "On the rotating wheel puzzle, watch for the moment the rings align at 12 o'clock. All ring cells at that position accept any symbol from the full palette.")
+                         body: "Tap a ring cell to select it, then tap a symbol in the palette below to place it. Tap Decipher to check your work — wrong cells flash red.")
+            mayanHelpRow(number: "4", title: "Level 4 — the rotating wheel",
+                         body: "The rings rotate as you fill them. Watch what passes through the 12 o'clock position to find where in the cycle you entered, then apply the pairing rule you discovered in the previous tablet to fill each blank.")
 
             Button { withAnimation { showHelp = false } } label: {
                 Text("Got it")
@@ -672,6 +672,9 @@ struct MayanGameView: View {
                         .font(EgyptFont.bodyItalic(17))
                         .foregroundStyle(Color.papyrus)
                 }
+
+                WinnerScene(imageName: "maya_final",
+                            completedLevelIndex: gameState.mayanCurrentLevelIndex)
 
                 if messageRevealed {
                     Text(level.decodedMessage)

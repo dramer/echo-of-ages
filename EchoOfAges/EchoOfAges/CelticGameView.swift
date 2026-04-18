@@ -505,6 +505,9 @@ struct CelticGameView: View {
                         .foregroundStyle(Color.celticGold.opacity(0.75))
                 }
 
+                WinnerScene(imageName: "celtic_final",
+                            completedLevelIndex: gameState.celticCurrentLevelIndex)
+
                 if messageRevealed {
                     Text(difficulty.decodedMessage)
                         .font(EgyptFont.bodyItalic(15))

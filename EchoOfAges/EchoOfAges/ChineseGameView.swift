@@ -786,6 +786,9 @@ struct ChineseGameView: View {
                         .foregroundStyle(warmGold.opacity(0.75))
                 }
 
+                WinnerScene(imageName: "chinese_final",
+                            completedLevelIndex: gameState.chineseCurrentLevelIndex)
+
                 if messageRevealed {
                     Text(level.decodedMessage)
                         .font(EgyptFont.bodyItalic(15))

@@ -1,9 +1,9 @@
 // GlyphGridView.swift
 // EchoOfAges
 //
-// Game screen with image-button toolbar at top.
+// Game screen with standard header bar matching all other civilizations.
 // Field Notes and Known Glyphs open as large modal sheets.
-// No scrolling — everything fits on one screen.
+// Decipher and Reset live in the bottom action row.
 
 import SwiftUI
 
@@ -26,13 +26,33 @@ struct GameView: View {
 
     var body: some View {
         GeometryReader { geo in
-            ZStack {
+            ZStack(alignment: .top) {
                 stoneBackground
 
-                if geo.size.width > geo.size.height {
-                    landscapeLayout(geo: geo)
-                } else {
-                    portraitLayout(geo: geo)
+                VStack(spacing: 0) {
+                    headerBar
+
+                    ScrollView(showsIndicators: false) {
+                        VStack(spacing: 14) {
+                            levelTitle
+                                .padding(.horizontal, 16)
+
+                            GlyphGridView(availableWidth: geo.size.width - 32,
+                                          availableHeight: 600)
+                                .padding(.horizontal, 16)
+
+                            palette
+                                .padding(.horizontal, 16)
+
+                            actionRow
+                                .padding(.horizontal, 16)
+
+                            secondaryRow
+                                .padding(.horizontal, 16)
+                                .padding(.bottom, 24)
+                        }
+                        .padding(.top, 14)
+                    }
                 }
 
                 // Help overlay
@@ -73,142 +93,132 @@ struct GameView: View {
         }
     }
 
-    // MARK: Portrait Layout
+    // MARK: Header Bar
 
-    @ViewBuilder
-    private func portraitLayout(geo: GeometryProxy) -> some View {
-        let barH:       CGFloat = 84
-        let titleH:     CGFloat = 70   // title + subtitle + rule description line
-        let paletteH:   CGFloat = 78
-        let spacing:    CGFloat = 8 * 4
-        let safeBottom: CGFloat = 16
-        let reserved  = barH + titleH + paletteH + spacing + safeBottom
-        let gridAvailH = geo.size.height - reserved
-        let gridAvailW = geo.size.width - 32
-
-        VStack(spacing: 0) {
-            imageButtonBar
-                .padding(.horizontal, 12)
-                .padding(.top, 10)
-
-            Spacer(minLength: 8)
-            levelTitle.padding(.horizontal, 16)
-            Spacer(minLength: 8)
-
-            GlyphGridView(availableWidth: gridAvailW,
-                          availableHeight: max(gridAvailH, 100))
-                .padding(.horizontal, 16)
-
-            Spacer(minLength: 10)
-            palette.padding(.horizontal, 16)
-            Spacer(minLength: safeBottom)
-        }
-    }
-
-    // MARK: Landscape Layout
-
-    @ViewBuilder
-    private func landscapeLayout(geo: GeometryProxy) -> some View {
-        let leftW  = geo.size.width * 0.55
-        let rightW = geo.size.width - leftW
-        let barH:  CGFloat = 84
-        let gridAvailW = leftW - 28
-        let gridAvailH = geo.size.height - barH - 28
-
-        VStack(spacing: 0) {
-            imageButtonBar
-                .padding(.horizontal, 12)
-                .padding(.top, 10)
-
-            HStack(spacing: 0) {
-                // ── Left: grid ──
-                VStack(spacing: 6) {
-                    GlyphGridView(availableWidth: gridAvailW,
-                                  availableHeight: max(gridAvailH, 80))
-                        .padding(.horizontal, 14)
-                    Spacer(minLength: 0)
+    private var headerBar: some View {
+        HStack {
+            Button {
+                HapticFeedback.tap()
+                gameState.goToTitle()
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 14, weight: .semibold))
+                    Text("Return")
+                        .font(EgyptFont.titleBold(15))
                 }
-                .padding(.vertical, 10)
-                .frame(width: leftW)
-
-                Rectangle()
-                    .fill(Color.goldDark.opacity(0.22))
-                    .frame(width: 1)
-                    .padding(.vertical, 16)
-
-                // ── Right: title + palette ──
-                VStack(spacing: 0) {
-                    levelTitle
-                    Spacer(minLength: 10)
-                    palette
-                    Spacer(minLength: 0)
-                }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-                .frame(width: rightW)
+                .foregroundStyle(Color.goldBright)
             }
-        }
-    }
+            .frame(minWidth: 80, alignment: .leading)
 
-    // MARK: Image Button Bar
+            Spacer()
 
-    private var imageButtonBar: some View {
-        HStack(spacing: 0) {
-            toolbarButton(asset: "open_journal",  fallback: "book.fill",
-                          label: "Diary")       { gameState.openJournal() }
-            toolbarButton(asset: "field_notes",   fallback: "pencil",
-                          label: "Notes")       { showFieldNotes = true }
-            toolbarButton(asset: "known_glypths", fallback: "magnifyingglass",
-                          label: "Glyphs")      { showKnownGlyphs = true }
-            toolbarButton(asset: "desipher",      fallback: "eye.fill",
-                          label: "Decipher")    { handleDecipher() }
-            toolbarButton(asset: "reset",         fallback: "arrow.counterclockwise",
-                          label: "Reset")       { gameState.resetCurrentLevel() }
-            toolbarButton(asset: "help",          fallback: "questionmark.circle.fill",
-                          label: "Help")        { withAnimation { showHelp = true } }
-            toolbarButton(asset: "settings",      fallback: "gearshape.fill",
-                          label: "Settings")    { gameState.openSettings() }
+            Text("𓂀  Egyptian Inscription")
+                .font(EgyptFont.titleBold(16))
+                .foregroundStyle(Color.goldBright)
+                .tracking(1)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+
+            Spacer()
+
+            HStack(spacing: 10) {
+                Text(gameState.currentLevel.romanNumeral)
+                    .font(EgyptFont.titleBold(15))
+                    .foregroundStyle(Color.goldBright.opacity(0.75))
+
+                Button {
+                    HapticFeedback.tap()
+                    withAnimation { showHelp = true }
+                } label: {
+                    Image(systemName: "questionmark.circle.fill")
+                        .font(.system(size: 22))
+                        .foregroundStyle(Color.goldBright)
+                }
+            }
+            .frame(minWidth: 80, alignment: .trailing)
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 8)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
         .background(
-            RoundedRectangle(cornerRadius: 14)
-                .fill(Color.white)
+            Color.stoneMid.opacity(0.5)
                 .overlay(
-                    RoundedRectangle(cornerRadius: 14)
-                        .stroke(Color.goldDark.opacity(0.4), lineWidth: 1)
+                    Rectangle()
+                        .fill(Color.goldDark.opacity(0.3))
+                        .frame(height: 0.8),
+                    alignment: .bottom
                 )
         )
-        .shadow(color: .black.opacity(0.4), radius: 6, x: 0, y: 3)
     }
 
-    /// Single toolbar button: shows the image asset if it has artwork, otherwise the fallback SF symbol.
-    private func toolbarButton(asset: String,
-                               fallback: String,
-                               label: String,
-                               action: @escaping () -> Void) -> some View {
-        Button(action: {
+    // MARK: Action Row (Decipher + Reset)
+
+    private var actionRow: some View {
+        HStack(spacing: 12) {
+            Button {
+                HapticFeedback.tap()
+                gameState.resetCurrentLevel()
+            } label: {
+                Label("Reset", systemImage: "arrow.counterclockwise")
+                    .font(EgyptFont.titleBold(15))
+                    .foregroundStyle(Color.papyrus.opacity(0.85))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(
+                        RoundedRectangle(cornerRadius: 9)
+                            .fill(Color.stoneMid)
+                            .overlay(RoundedRectangle(cornerRadius: 9)
+                                .stroke(Color.stoneLight.opacity(0.3), lineWidth: 1))
+                    )
+            }
+
+            Button {
+                HapticFeedback.tap()
+                handleDecipher()
+            } label: {
+                Label("Decipher", systemImage: "checkmark.seal")
+                    .font(EgyptFont.titleBold(15))
+                    .foregroundStyle(Color.stoneDark)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(
+                        RoundedRectangle(cornerRadius: 9)
+                            .fill(Color.goldMid)
+                            .overlay(RoundedRectangle(cornerRadius: 9)
+                                .stroke(Color.goldBright.opacity(0.5), lineWidth: 1))
+                    )
+            }
+        }
+    }
+
+    // MARK: Secondary Row (Notes · Glyphs · Journal)
+
+    private var secondaryRow: some View {
+        HStack(spacing: 12) {
+            secondaryButton("Notes", icon: "pencil")         { showFieldNotes = true }
+            secondaryButton("Glyphs", icon: "magnifyingglass") { showKnownGlyphs = true }
+            secondaryButton("Journal", icon: "book.fill")    { gameState.openJournal() }
+        }
+    }
+
+    private func secondaryButton(_ label: String,
+                                  icon: String,
+                                  action: @escaping () -> Void) -> some View {
+        Button {
             HapticFeedback.tap()
             action()
-        }) {
-            VStack(spacing: 4) {
-                if UIImage(named: asset) != nil {
-                    Image(asset)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(height: 44)
-                } else {
-                    Image(systemName: fallback)
-                        .font(.system(size: 26))
-                        .foregroundStyle(Color.goldMid)
-                        .frame(height: 44)
-                }
-                Text(label)
-                    .font(EgyptFont.body(11))
-                    .foregroundStyle(Color.stoneDark)
-                    .lineLimit(1)
-            }
-            .frame(maxWidth: .infinity)
+        } label: {
+            Label(label, systemImage: icon)
+                .font(EgyptFont.body(13))
+                .foregroundStyle(Color.goldMid)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 9)
+                .background(
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color.stoneMid.opacity(0.5))
+                        .overlay(RoundedRectangle(cornerRadius: 8)
+                            .stroke(Color.goldDark.opacity(0.3), lineWidth: 0.8))
+                )
         }
     }
 

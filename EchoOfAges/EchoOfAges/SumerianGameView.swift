@@ -818,6 +818,9 @@ struct SumerianGameView: View {
                         .foregroundStyle(parchment)
                 }
 
+                WinnerScene(imageName: "sumerian_final",
+                            completedLevelIndex: gameState.sumerianCurrentLevelIndex)
+
                 if messageRevealed {
                     VStack(alignment: .leading, spacing: 8) {
                         Label("Decoded Message", systemImage: "scroll")

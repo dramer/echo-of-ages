@@ -436,6 +436,10 @@ struct PathGameView: View {
                                 .foregroundStyle(accentBlue.opacity(0.8))
                         }
 
+                        // Winner image
+                        WinnerScene(imageName: "norse_final",
+                                    completedLevelIndex: gameState.norseCurrentLevelIndex)
+
                         // Decoded message
                         VStack(alignment: .leading, spacing: 8) {
                             Label("Rune Message", systemImage: "scroll")

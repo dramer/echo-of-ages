@@ -1555,7 +1555,6 @@ private struct SettingsJournalContent: View {
             soundRow(icon: "ᚁ",   label: "Celtic",      isOn: $sm.celticEnabled,   sfSymbol: false)
             soundRow(icon: "☰",   label: "Chinese",     isOn: $sm.chineseEnabled,  sfSymbol: false)
             soundRow(icon: "book.fill", label: "Field Diary", isOn: $sm.journalEnabled)
-            soundRow(icon: "waveform.circle.fill", label: "Move Sounds", isOn: $sm.effectsEnabled)
         }
         .disabled(!sm.masterEnabled)
         .opacity(sm.masterEnabled ? 1.0 : 0.38)
@@ -1568,10 +1567,11 @@ private struct SettingsJournalContent: View {
     private var hapticsSection: some View {
         @Bindable var sm = soundManager
 
-        HandTitle(text: "Haptics", size: 17, color: .inkBlue)
-        HandNote(text: "Vibration feedback on taps, errors, and puzzle solves.", size: 12, color: Color.inkSepia.opacity(0.55))
+        HandTitle(text: "Haptics & Move Sounds", size: 17, color: .inkBlue)
+        HandNote(text: "Action feedback on taps, placements, errors, and puzzle solves.", size: 12, color: Color.inkSepia.opacity(0.55))
         Spacer(minLength: 6)
-        soundRow(icon: "hand.tap.fill", label: "Gameplay Haptics", isOn: $sm.hapticsEnabled)
+        soundRow(icon: "hand.tap.fill",        label: "Gameplay Haptics", isOn: $sm.hapticsEnabled)
+        soundRow(icon: "waveform.circle.fill", label: "Move Sounds",      isOn: $sm.effectsEnabled)
     }
 
     // MARK: - Shared toggle row (diary style)
