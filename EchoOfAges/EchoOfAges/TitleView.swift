@@ -79,10 +79,34 @@ struct TitleView: View {
                 if gameState.hasProgress {
                     // Returning player — Continue + Journal side by side
                     HStack(spacing: 16) {
-                        landingButton(asset: "continue_journey", fallback: "forward.fill") {
-                            HapticFeedback.tap()
-                            withAnimation(.easeInOut(duration: 0.4)) { gameState.continueGame() }
+                        // Continue Journey — green pill Play button
+                        Button {
+                            HapticFeedback.heavy()
+                            withAnimation(.easeInOut(duration: 0.4)) {
+                                gameState.openJournalToCivilizations()
+                            }
+                        } label: {
+                            Text("Play")
+                                .font(EgyptFont.titleBold(32))
+                                .foregroundStyle(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 22)
+                                .background(
+                                    Capsule()
+                                        .fill(LinearGradient(
+                                            colors: [Color(red: 0.25, green: 0.78, blue: 0.35),
+                                                     Color(red: 0.15, green: 0.60, blue: 0.25)],
+                                            startPoint: .top, endPoint: .bottom))
+                                )
+                                .overlay(
+                                    Capsule()
+                                        .stroke(Color(red: 0.10, green: 0.45, blue: 0.18), lineWidth: 1.5)
+                                )
+                                .shadow(color: Color(red: 0.10, green: 0.45, blue: 0.18).opacity(0.6),
+                                        radius: 10, x: 0, y: 5)
                         }
+
+                        // Open the Journal
                         Button {
                             HapticFeedback.tap()
                             withAnimation(.easeInOut(duration: 0.4)) { gameState.openJournal() }
@@ -97,6 +121,9 @@ struct TitleView: View {
                                     .font(EgyptFont.bodyItalic(28))
                                     .foregroundStyle(Color(red: 0.22, green: 0.14, blue: 0.05).opacity(0.85))
                                     .multilineTextAlignment(.center)
+                                    .lineLimit(2)
+                                    .minimumScaleFactor(0.65)
+                                    .fixedSize(horizontal: false, vertical: true)
                             }
                         }
                     }
@@ -121,6 +148,9 @@ struct TitleView: View {
                                     .font(EgyptFont.bodyItalic(28))
                                     .foregroundStyle(Color(red: 0.22, green: 0.14, blue: 0.05).opacity(0.85))
                                     .multilineTextAlignment(.center)
+                                    .lineLimit(2)
+                                    .minimumScaleFactor(0.65)
+                                    .fixedSize(horizontal: false, vertical: true)
                             }
                         }
                     }

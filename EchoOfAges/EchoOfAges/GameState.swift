@@ -296,6 +296,13 @@ final class GameState: ObservableObject {
         currentScreen = .journal
     }
 
+    /// Opens the journal directly to The Six Civilizations page.
+    /// Page index 6 is the fixed position of .civilizations in the diary pages array.
+    func openJournalToCivilizations() {
+        openJournal()
+        journalTargetPage = 6
+    }
+
     func closeJournal() {
         // Return to the screen the player came from.
         // If that screen is one of the active game/puzzle screens, go back there.
