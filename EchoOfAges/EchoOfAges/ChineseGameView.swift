@@ -586,9 +586,13 @@ struct ChineseGameView: View {
             DragGesture(minimumDistance: 8, coordinateSpace: .global)
                 .onChanged { value in
                     if draggedPieceId == nil {
-                        // Arm this piece for drag — also select it in palette
                         draggedPieceId = piece.id
-                        gameState.selectChinesePiece(id: piece.id)
+                        // Only call selectChinesePiece when this piece isn't already armed.
+                        // selectChinesePiece rotates when the same ID is passed in, which
+                        // would clobber the rotation the user just set.
+                        if gameState.chineseSelectedPieceId != piece.id {
+                            gameState.selectChinesePiece(id: piece.id)
+                        }
                     }
                     updateGhostAnchor(at: value.location, cellSize: computedCellSize)
                 }
