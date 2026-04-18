@@ -29,6 +29,11 @@ struct ChineseGameView: View {
     @State private var showVerifyError: Bool  = false
     @State private var showHelp:          Bool = false
 
+    // Drag-to-place state
+    @State private var draggedPieceId: String?           = nil
+    @State private var ghostAnchor: (row: Int, col: Int)? = nil
+    @State private var cellGridOrigin: CGPoint            = .zero
+
     private var level: ChineseBoxLevel { gameState.chineseCurrentLevel }
 
     // MARK: - Colors
@@ -308,6 +313,17 @@ struct ChineseGameView: View {
                         }
                     }
                 }
+                .background(
+                    GeometryReader { geo in
+                        Color.clear
+                            .onAppear {
+                                cellGridOrigin = geo.frame(in: .global).origin
+                            }
+                            .onChange(of: geo.frame(in: .global).origin) { _, newOrigin in
+                                cellGridOrigin = newOrigin
+                            }
+                    }
+                )
                 .padding(8)
             }
             .frame(maxWidth: .infinity, alignment: .center)
@@ -358,6 +374,37 @@ struct ChineseGameView: View {
                     )
                     .padding(1)
             }
+
+            // Ghost overlay — shown while dragging a piece from the palette
+            if let dId = draggedPieceId,
+               let anchor = ghostAnchor,
+               let piece = level.pieces.first(where: { $0.id == dId }),
+               occupantId == nil {
+                let rotation = gameState.chineseArmedRotation
+                let pieceCells = piece.cells(rotation: rotation)
+                let isGhostCell = pieceCells.contains(where: {
+                    anchor.row + $0.0 == row && anchor.col + $0.1 == col
+                })
+                if isGhostCell {
+                    let proposed = ChinesePiecePlacement(
+                        row: anchor.row, col: anchor.col, rotation: rotation)
+                    let valid = level.isValidPlacement(
+                        piece: piece, proposed: proposed,
+                        existing: gameState.chinesePlacedPieces)
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(valid
+                              ? Color.green.opacity(0.50)
+                              : Color.red.opacity(0.50))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 6)
+                                .stroke(valid
+                                        ? Color.green.opacity(0.80)
+                                        : Color.red.opacity(0.80),
+                                        lineWidth: 1.5)
+                        )
+                        .padding(1)
+                }
+            }
         }
         .frame(width: cs, height: cs)
         .contentShape(Rectangle())
@@ -367,6 +414,20 @@ struct ChineseGameView: View {
     }
 
     // MARK: - Board Tap Handling
+
+    /// Converts a global drag coordinate to a board (row, col) and stores it in ghostAnchor.
+    /// Sets ghostAnchor to nil when the finger is outside the board.
+    private func updateGhostAnchor(at globalPoint: CGPoint, cellSize cs: CGFloat) {
+        let x = globalPoint.x - cellGridOrigin.x
+        let y = globalPoint.y - cellGridOrigin.y
+        let col = Int(x / cs)
+        let row = Int(y / cs)
+        if row >= 0 && row < level.rows && col >= 0 && col < level.cols {
+            ghostAnchor = (row: row, col: col)
+        } else {
+            ghostAnchor = nil
+        }
+    }
 
     private func handleBoardTap(row: Int, col: Int, board: [[String?]]) {
         if let selectedId = gameState.chineseSelectedPieceId {
@@ -521,6 +582,37 @@ struct ChineseGameView: View {
             )
         }
         .buttonStyle(.plain)
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 8, coordinateSpace: .global)
+                .onChanged { value in
+                    if draggedPieceId == nil {
+                        // Arm this piece for drag — also select it in palette
+                        draggedPieceId = piece.id
+                        gameState.selectChinesePiece(id: piece.id)
+                    }
+                    updateGhostAnchor(at: value.location, cellSize: computedCellSize)
+                }
+                .onEnded { value in
+                    defer {
+                        draggedPieceId = nil
+                        ghostAnchor   = nil
+                    }
+                    guard let anchor = ghostAnchor,
+                          let pid    = draggedPieceId,
+                          !isPlaced,
+                          let p = level.pieces.first(where: { $0.id == pid }) else { return }
+                    let rotation = gameState.chineseArmedRotation
+                    let proposed = ChinesePiecePlacement(
+                        row: anchor.row, col: anchor.col, rotation: rotation)
+                    if level.isValidPlacement(piece: p, proposed: proposed,
+                                              existing: gameState.chinesePlacedPieces) {
+                        HapticFeedback.tap()
+                        gameState.placeChinesePiece(id: pid, row: anchor.row, col: anchor.col)
+                    } else {
+                        HapticFeedback.error()
+                    }
+                }
+        )
     }
 
     // MARK: - Piece Shape Mini-renderer
@@ -714,8 +806,8 @@ struct ChineseGameView: View {
                            body: "Tap any wooden piece at the bottom to select it. The selected piece is highlighted. Tap it again to deselect.")
             chineseHelpRow(number: "2", title: "Rotate before placing",
                            body: "Tap the Rotate button to turn the selected piece 90° clockwise. Pieces can be rotated up to three times.")
-            chineseHelpRow(number: "3", title: "Place the piece on the board",
-                           body: "Tap any empty board cell. The piece is anchored at its top-left corner at that position. If it doesn't fit, the placement is rejected.")
+            chineseHelpRow(number: "3", title: "Drag the piece onto the board",
+                           body: "Drag the selected piece from the palette and drop it onto the board. A green ghost shows where it will land — red means it won't fit. You can also tap an empty board cell to place it.")
             chineseHelpRow(number: "4", title: "Fill the board completely",
                            body: "All pieces must fit on the board without overlapping. The puzzle solves automatically once every cell is covered.")
 
