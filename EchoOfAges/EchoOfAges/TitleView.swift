@@ -77,9 +77,30 @@ struct TitleView: View {
                 Spacer()
 
                 if gameState.hasProgress {
-                    // Returning player — Continue + Journal side by side
-                    HStack(spacing: 16) {
-                        // Continue Journey — green pill Play button
+                    // Returning player — diary centered, Play button below full width
+                    VStack(spacing: 16) {
+                        // Open the Journal — centered
+                        Button {
+                            HapticFeedback.tap()
+                            withAnimation(.easeInOut(duration: 0.4)) { gameState.openJournal() }
+                        } label: {
+                            VStack(spacing: 10) {
+                                Image("diary")
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(height: 140)
+                                Text("Open the Journal")
+                                    .font(EgyptFont.bodyItalic(24))
+                                    .foregroundStyle(Color(red: 0.22, green: 0.14, blue: 0.05).opacity(0.85))
+                                    .multilineTextAlignment(.center)
+                                    .lineLimit(2)
+                                    .minimumScaleFactor(0.65)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                            .frame(maxWidth: .infinity)
+                        }
+
+                        // Play — full width green pill, always goes to Six Civilizations
                         Button {
                             HapticFeedback.heavy()
                             withAnimation(.easeInOut(duration: 0.4)) {
@@ -87,10 +108,10 @@ struct TitleView: View {
                             }
                         } label: {
                             Text("Play")
-                                .font(EgyptFont.titleBold(32))
+                                .font(EgyptFont.titleBold(22))
                                 .foregroundStyle(.white)
                                 .frame(maxWidth: .infinity)
-                                .padding(.vertical, 22)
+                                .padding(.vertical, 14)
                                 .background(
                                     Capsule()
                                         .fill(LinearGradient(
@@ -102,56 +123,36 @@ struct TitleView: View {
                                     Capsule()
                                         .stroke(Color(red: 0.10, green: 0.45, blue: 0.18), lineWidth: 1.5)
                                 )
-                                .shadow(color: Color(red: 0.10, green: 0.45, blue: 0.18).opacity(0.6),
-                                        radius: 10, x: 0, y: 5)
-                        }
-
-                        // Open the Journal
-                        Button {
-                            HapticFeedback.tap()
-                            withAnimation(.easeInOut(duration: 0.4)) { gameState.openJournal() }
-                        } label: {
-                            VStack(spacing: 14) {
-                                Image("diary")
-                                    .resizable()
-                                    .scaledToFit()
-                                    .frame(maxWidth: .infinity)
-                                    .frame(height: 160)
-                                Text("Open the Journal")
-                                    .font(EgyptFont.bodyItalic(28))
-                                    .foregroundStyle(Color(red: 0.22, green: 0.14, blue: 0.05).opacity(0.85))
-                                    .multilineTextAlignment(.center)
-                                    .lineLimit(2)
-                                    .minimumScaleFactor(0.65)
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
+                                .shadow(color: Color(red: 0.10, green: 0.45, blue: 0.18).opacity(0.5),
+                                        radius: 8, x: 0, y: 4)
                         }
                     }
                 } else {
-                    // First launch — image buttons matching returning-player style
-                    HStack(spacing: 16) {
-                        landingButton(asset: "begin_journey", fallback: "arrow.right.circle.fill") {
-                            HapticFeedback.heavy()
-                            withAnimation(.easeInOut(duration: 0.4)) { gameState.startNewGame() }
-                        }
+                    // First launch — diary centered, Begin button below
+                    VStack(spacing: 16) {
                         Button {
                             HapticFeedback.tap()
                             withAnimation(.easeInOut(duration: 0.4)) { gameState.openJournal() }
                         } label: {
-                            VStack(spacing: 14) {
+                            VStack(spacing: 10) {
                                 Image("diary")
                                     .resizable()
                                     .scaledToFit()
-                                    .frame(maxWidth: .infinity)
-                                    .frame(height: 160)
+                                    .frame(height: 140)
                                 Text("Read the Field Diary")
-                                    .font(EgyptFont.bodyItalic(28))
+                                    .font(EgyptFont.bodyItalic(24))
                                     .foregroundStyle(Color(red: 0.22, green: 0.14, blue: 0.05).opacity(0.85))
                                     .multilineTextAlignment(.center)
                                     .lineLimit(2)
                                     .minimumScaleFactor(0.65)
                                     .fixedSize(horizontal: false, vertical: true)
                             }
+                            .frame(maxWidth: .infinity)
+                        }
+
+                        landingButton(asset: "begin_journey", fallback: "arrow.right.circle.fill") {
+                            HapticFeedback.heavy()
+                            withAnimation(.easeInOut(duration: 0.4)) { gameState.startNewGame() }
                         }
                     }
                 }

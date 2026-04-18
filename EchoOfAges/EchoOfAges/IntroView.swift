@@ -41,7 +41,7 @@ struct IntroView: View {
 
     // Crawl layer
     @State private var crawlOpacity:    Double = 0
-    @State private var crawlOffset:     CGFloat = 0
+    @State private var crawlOffset:     CGFloat = 9999  // large value keeps content off-screen until beginCrawl runs
     @State private var contentHeight:   CGFloat = 0
     @State private var crawlStarted:    Bool    = false
 
@@ -54,7 +54,7 @@ struct IntroView: View {
     // Audio
     @State private var audioPlayer: AVAudioPlayer?
 
-    private let crawlSpeed: CGFloat = 46   // points per second
+    private let crawlSpeed: CGFloat = 38   // points per second
 
     // MARK: Body
 
@@ -260,6 +260,10 @@ struct IntroView: View {
                 .tracking(10)
                 .padding(.top, 80)
 
+            // Large spacer pushes the tablet down so it arrives on screen
+            // after the text has cleared — giving it a clear, unhurried reveal
+            Spacer().frame(height: 320)
+
             // Tablet of Mandu scrolls in as the final reveal
             VStack(spacing: 20) {
                 Text("· · · · ·")
@@ -271,7 +275,7 @@ struct IntroView: View {
                 Image("tree_tablet")
                     .resizable()
                     .scaledToFit()
-                    .frame(maxWidth: 340)
+                    .frame(maxWidth: 360)
                     .shadow(color: Color.goldBright.opacity(0.45), radius: 40, x: 0, y: 0)
 
                 Text("THE TABLET OF MANDU")
@@ -280,11 +284,11 @@ struct IntroView: View {
                     .tracking(5)
             }
             .padding(.top, 40)
-            .padding(.bottom, 160)
+            .padding(.bottom, 400)
         }
         .multilineTextAlignment(.center)
-        .padding(.horizontal, 32)
-        .frame(maxWidth: 580)
+        .padding(.horizontal, 16)
+        .frame(maxWidth: 640)
         .frame(maxWidth: .infinity)
     }
 
@@ -347,9 +351,10 @@ struct IntroView: View {
         crawlStarted = true
 
         let screenH = UIScreen.main.bounds.height
-        crawlOffset = screenH   // start below screen (no animation)
+        // Start with the first text at the middle of the screen (Star Wars style)
+        crawlOffset = screenH * 0.5
 
-        let totalDistance = screenH + contentHeight
+        let totalDistance = (screenH * 0.5) + contentHeight + 100
         let duration = Double(totalDistance) / Double(crawlSpeed)
 
         DispatchQueue.main.async {
@@ -358,7 +363,7 @@ struct IntroView: View {
             }
         }
 
-        // When crawl finishes, fade to black
+        // Fade to black after everything has scrolled off
         DispatchQueue.main.asyncAfter(deadline: .now() + duration) {
             endIntro()
         }

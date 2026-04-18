@@ -140,6 +140,10 @@ struct JournalView: View {
                 if let idx = pages.firstIndex(of: .settingsPage) {
                     currentPageIndex = idx
                 }
+            } else if let target = gameState.journalTargetPage {
+                // Explicit target page (e.g. Play button → Six Civilizations) — highest priority
+                currentPageIndex = min(target, pages.count - 1)
+                gameState.journalTargetPage = nil
             } else if let spotId = gameState.spotlightJournalId {
                 gameState.spotlightJournalId = nil
                 if let idx = pages.firstIndex(of: .chronicle(spotId)) {
@@ -155,6 +159,7 @@ struct JournalView: View {
             UserDefaults.standard.set(idx, forKey: "EOA_journalPage")
         }
         .onChange(of: gameState.journalTargetPage) { _, target in
+            // Handles target page changes while the journal is already open
             if let t = target {
                 currentPageIndex = min(t, pages.count - 1)
                 gameState.journalTargetPage = nil
