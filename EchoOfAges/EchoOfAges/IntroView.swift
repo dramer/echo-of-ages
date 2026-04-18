@@ -15,8 +15,7 @@ import AVFoundation
 
 private enum IntroPhase {
     case mapReveal    // map is showing
-    case crawl        // text scrolling
-    case tabletReveal // tree_tablet image shown before fade to black
+    case crawl        // text scrolling (tablet image included at bottom)
 }
 
 // MARK: - Crawl height preference key
@@ -45,10 +44,6 @@ struct IntroView: View {
     @State private var crawlOffset:     CGFloat = 0
     @State private var contentHeight:   CGFloat = 0
     @State private var crawlStarted:    Bool    = false
-
-    // Tablet reveal layer
-    @State private var tabletOpacity:   Double = 0
-    @State private var tabletScale:     Double = 0.88
 
     // Fade-to-black overlay (used for final transition)
     @State private var blackOpacity:    Double = 0
@@ -79,14 +74,9 @@ struct IntroView: View {
                 mapRevealLayer
             }
 
-            // ── Phase 2: Text crawl ───────────────────────────────────────────
+            // ── Phase 2: Text crawl (tablet image included at bottom) ─────────
             if phase == .crawl {
                 crawlLayer
-            }
-
-            // ── Phase 3: Tablet reveal ────────────────────────────────────────
-            if phase == .tabletReveal {
-                tabletRevealLayer
             }
 
             // ── Fade-to-black overlay (final transition) ──────────────────────
@@ -114,11 +104,7 @@ struct IntroView: View {
                 HStack {
                     Spacer()
                     Button(action: {
-                        if phase == .tabletReveal {
-                            endIntro()
-                        } else {
-                            showTablet()
-                        }
+                        endIntro()
                     }) {
                         HStack(spacing: 6) {
                             Text("Skip")
@@ -171,31 +157,6 @@ struct IntroView: View {
                     .foregroundStyle(Color.papyrus.opacity(0.65))
             }
             .opacity(mapLabelOpacity)
-
-            Spacer()
-        }
-        .frame(maxWidth: .infinity)
-    }
-
-    // MARK: Tablet reveal layer
-
-    private var tabletRevealLayer: some View {
-        VStack(spacing: 24) {
-            Spacer()
-
-            Image("tree_tablet")
-                .resizable()
-                .scaledToFit()
-                .frame(maxWidth: 460)
-                .shadow(color: Color.goldBright.opacity(0.35), radius: 40, x: 0, y: 0)
-                .opacity(tabletOpacity)
-                .scaleEffect(tabletScale)
-
-            Text("THE TABLET OF MANDU")
-                .font(EgyptFont.titleBold(20))
-                .foregroundStyle(Color.goldBright)
-                .tracking(5)
-                .opacity(tabletOpacity)
 
             Spacer()
         }
@@ -298,10 +259,31 @@ struct IntroView: View {
                 .foregroundStyle(Color.goldMid.opacity(0.4))
                 .tracking(10)
                 .padding(.top, 80)
-                .padding(.bottom, 130)
+
+            // Tablet of Mandu scrolls in as the final reveal
+            VStack(spacing: 20) {
+                Text("· · · · ·")
+                    .font(EgyptFont.title(16))
+                    .foregroundStyle(Color.goldDark.opacity(0.5))
+                    .tracking(8)
+                    .padding(.bottom, 16)
+
+                Image("tree_tablet")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(maxWidth: 340)
+                    .shadow(color: Color.goldBright.opacity(0.45), radius: 40, x: 0, y: 0)
+
+                Text("THE TABLET OF MANDU")
+                    .font(EgyptFont.titleBold(20))
+                    .foregroundStyle(Color.goldBright)
+                    .tracking(5)
+            }
+            .padding(.top, 40)
+            .padding(.bottom, 160)
         }
         .multilineTextAlignment(.center)
-        .padding(.horizontal, 44)
+        .padding(.horizontal, 32)
         .frame(maxWidth: 580)
         .frame(maxWidth: .infinity)
     }
@@ -311,6 +293,8 @@ struct IntroView: View {
             .font(EgyptFont.body(22))
             .foregroundStyle(Color(red: 0.88, green: 0.82, blue: 0.60))
             .lineSpacing(9)
+            .lineLimit(nil)
+            .fixedSize(horizontal: false, vertical: true)
             .padding(.bottom, 38)
     }
 
@@ -319,6 +303,8 @@ struct IntroView: View {
             .font(EgyptFont.titleBold(24))
             .foregroundStyle(Color.goldBright)
             .tracking(2)
+            .lineLimit(nil)
+            .fixedSize(horizontal: false, vertical: true)
             .padding(.bottom, 38)
     }
 
@@ -372,25 +358,8 @@ struct IntroView: View {
             }
         }
 
-        // When crawl finishes, show the tablet before ending
+        // When crawl finishes, fade to black
         DispatchQueue.main.asyncAfter(deadline: .now() + duration) {
-            showTablet()
-        }
-    }
-
-    private func showTablet() {
-        // Fade out crawl, switch to tablet phase
-        withAnimation(.easeOut(duration: 1.0)) { crawlOpacity = 0 }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-            phase = .tabletReveal
-            // Tablet rises in with a gentle scale + fade
-            withAnimation(.easeOut(duration: 1.6)) {
-                tabletOpacity = 1.0
-                tabletScale   = 1.0
-            }
-        }
-        // Hold on tablet for ~4 seconds then fade everything to black
-        DispatchQueue.main.asyncAfter(deadline: .now() + 5.2) {
             endIntro()
         }
     }
