@@ -23,7 +23,16 @@ struct ContentView: View {
             }
             .onAppear {
                 gameState.soundManager = soundManager
+                authenticateGameCenter()
             }
+    }
+
+    /// Authenticates the local player with Game Center.
+    /// Called once on first appear — Game Center ignores repeat calls.
+    private func authenticateGameCenter() {
+        guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let root  = scene.windows.first?.rootViewController else { return }
+        GameCenterManager.shared.authenticate(in: root)
     }
 
     @ViewBuilder
