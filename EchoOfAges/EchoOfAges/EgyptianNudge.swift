@@ -79,23 +79,26 @@ struct EgyptianNudge: View {
 
     var body: some View {
         GeometryReader { geo in
-            ZStack {
+            ZStack(alignment: .bottom) {
                 // Dim layer with spotlight cutout
                 SpotlightOverlay(rect: spotlightFrame, screenSize: geo.size)
                     .animation(.easeInOut(duration: 0.35), value: step)
+                    .ignoresSafeArea()
 
-                // Instruction card — positioned above or below the spotlight
-                instructionCard(screenSize: geo.size)
+                // Instruction card — always anchored to the bottom of the screen
+                instructionCard
                     .opacity(cardOpacity)
                     .animation(.easeInOut(duration: 0.25), value: step)
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 32)
+                    .frame(maxWidth: 520)
+                    .frame(maxWidth: .infinity)   // centre on wide iPad
 
-                // Skip button — top right
+                // Skip button — top right, sits above everything
                 VStack {
                     HStack {
                         Spacer()
-                        Button {
-                            finish()
-                        } label: {
+                        Button(action: finish) {
                             Text("Skip")
                                 .font(EgyptFont.body(14))
                                 .foregroundStyle(Color.papyrus.opacity(0.55))
@@ -116,19 +119,9 @@ struct EgyptianNudge: View {
 
     // MARK: - Instruction Card
 
-    private func instructionCard(screenSize: CGSize) -> some View {
-        let sf = spotlightFrame
-        let cardHeight: CGFloat = 170
-        let padding: CGFloat = 24
-        let spaceBelow = screenSize.height - sf.maxY - padding
-        let placeBelow = spaceBelow >= cardHeight
-
-        let cardY: CGFloat = placeBelow
-            ? sf.maxY + padding
-            : sf.minY - cardHeight - padding
-
-        return VStack(alignment: .leading, spacing: 10) {
-            // Step indicator dots
+    private var instructionCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // Step indicator dots + counter
             HStack(spacing: 6) {
                 ForEach(NudgeStep.allCases, id: \.rawValue) { s in
                     Circle()
@@ -151,8 +144,6 @@ struct EgyptianNudge: View {
                 .lineSpacing(4)
                 .fixedSize(horizontal: false, vertical: true)
 
-            Spacer(minLength: 6)
-
             // Next / Got it button
             Button(action: advance) {
                 Text(isLastStep ? "Got it" : "Next →")
@@ -160,14 +151,12 @@ struct EgyptianNudge: View {
                     .foregroundStyle(Color.stoneDark)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 11)
-                    .background(
-                        RoundedRectangle(cornerRadius: 9)
-                            .fill(Color.goldMid)
-                    )
+                    .background(RoundedRectangle(cornerRadius: 9).fill(Color.goldMid))
             }
             .buttonStyle(.plain)
+            .padding(.top, 4)
         }
-        .padding(18)
+        .padding(20)
         .background(
             RoundedRectangle(cornerRadius: 14)
                 .fill(Color(red: 0.08, green: 0.05, blue: 0.02).opacity(0.95))
@@ -177,9 +166,6 @@ struct EgyptianNudge: View {
                 )
         )
         .shadow(color: .black.opacity(0.55), radius: 16, x: 0, y: 4)
-        .padding(.horizontal, 24)
-        .frame(maxWidth: 500)
-        .position(x: screenSize.width / 2, y: cardY + cardHeight / 2)
     }
 
     // MARK: - Actions
