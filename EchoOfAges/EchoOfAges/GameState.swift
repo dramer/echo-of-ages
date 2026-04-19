@@ -1641,6 +1641,7 @@ final class GameState: ObservableObject {
             discoveredGlyphs.removeAll { civGlyphs.subtracting(otherGlyphs).contains($0) }
             currentLevelIndex = 0
             resetGrid(for: Level.allLevels[0])
+            clearEgyptianSave()
 
         case .norse:
             norseUnlockedLevels = []
@@ -1650,6 +1651,7 @@ final class GameState: ObservableObject {
             norseIsAnimatingCompletion = false
             norseActiveLevel = nil
             UserDefaults.standard.removeObject(forKey: "EOA_norseUnlocked")
+            clearNorseSave()
 
         case .sumerian:
             sumerianUnlockedLevels = []
@@ -1662,6 +1664,7 @@ final class GameState: ObservableObject {
             sumerianForeignMarkIndex = nil
             resetSumerianDecoded(for: SumerianLevel.allLevels[0])
             UserDefaults.standard.removeObject(forKey: "EOA_sumerianUnlocked")
+            clearSumerianSave()
 
         case .maya:
             mayanUnlockedLevels = []
@@ -1674,6 +1677,7 @@ final class GameState: ObservableObject {
             mayanGeneratedLevel4 = nil
             resetMayanGrid(for: MayanLevel.allLevels[0])
             UserDefaults.standard.removeObject(forKey: "EOA_mayanUnlocked")
+            clearMayanSave()
 
         case .celtic:
             celticUnlockedLevels = []
@@ -1684,6 +1688,7 @@ final class GameState: ObservableObject {
             celticErrorCells = []
             celticPendingComplete = false
             UserDefaults.standard.removeObject(forKey: "EOA_celticUnlocked")
+            clearCelticSave()
 
         case .chinese:
             chineseUnlockedLevels = []
@@ -1693,6 +1698,7 @@ final class GameState: ObservableObject {
             chinesePendingComplete = false
             resetChinesePieces(for: ChineseBoxLevel.allLevels[0])
             UserDefaults.standard.removeObject(forKey: "EOA_chineseUnlocked")
+            clearChineseSave()
         }
 
         // ── Key gate + produced key + mystery cycling position ────
