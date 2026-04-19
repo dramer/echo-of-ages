@@ -2058,9 +2058,14 @@ final class GameState: ObservableObject {
 
     func saveEgyptianState() {
         guard !playerGrid.isEmpty else { return }
+        let level = currentLevel
+        let solution = level.solution.map { row in row.map { $0.rawValue } }
+        let fixedPositions = level.fixedPositions.map { SavedPos(row: $0.row, col: $0.col) }
         let grid = playerGrid.map { row in row.map { $0?.rawValue } }
         PuzzleStateSaver.saveEgyptian(EgyptianSave(
-            v: 1, levelIndex: currentLevelIndex, grid: grid, savedAt: Date()
+            v: 2, levelIndex: currentLevelIndex,
+            solution: solution, fixedPositions: fixedPositions,
+            grid: grid, savedAt: Date()
         ))
     }
 
@@ -2068,10 +2073,49 @@ final class GameState: ObservableObject {
     @discardableResult
     func restoreEgyptianState() -> Date? {
         guard let save = PuzzleStateSaver.loadEgyptian(levelIndex: currentLevelIndex),
-              save.grid.count == currentLevel.rows,
-              save.grid.first?.count == currentLevel.cols else { return nil }
-        for row in 0..<currentLevel.rows {
-            for col in 0..<currentLevel.cols {
+              save.v == 2,
+              save.grid.count > 0 else { return nil }
+
+        // Decode saved solution
+        let savedSolution = save.solution.map { row in row.compactMap { Glyph(rawValue: $0) } }
+        let rows = savedSolution.count
+        guard rows > 0, let cols = savedSolution.first?.count, cols > 0 else { return nil }
+
+        // Decode saved fixed positions
+        let fixedSet = Set(save.fixedPositions.map { GridPosition(row: $0.row, col: $0.col) })
+
+        // Rebuild the initialGrid from solution + fixedPositions
+        let initialGrid: [[Glyph?]] = (0..<rows).map { r in
+            (0..<cols).map { c in
+                fixedSet.contains(GridPosition(row: r, col: c)) ? savedSolution[r][c] : nil
+            }
+        }
+
+        // Reconstruct the exact same generated Level so the board layout matches
+        let template = Level.allLevels[currentLevelIndex]
+        egyptCurrentLevel = Level(
+            id:              template.id,
+            civilization:    template.civilization,
+            title:           template.title,
+            subtitle:        template.subtitle,
+            lore:            template.lore,
+            inscriptions:    template.inscriptions,
+            rows:            rows,
+            cols:            cols,
+            availableGlyphs: template.availableGlyphs,
+            initialGrid:     initialGrid,
+            fixedPositions:  fixedSet,
+            solution:        savedSolution,
+            journalEntry:    template.journalEntry,
+            decodedMessage:  template.decodedMessage,
+            newGlyphs:       template.newGlyphs,
+            variant:         template.variant
+        )
+
+        // Reset the player grid to the initial state, then layer in saved placements
+        resetGrid(for: currentLevel)
+        for row in 0..<rows {
+            for col in 0..<cols {
                 let pos = GridPosition(row: row, col: col)
                 guard !isEgyptianFixed(pos) else { continue }
                 if let raw = save.grid[row][col], let glyph = Glyph(rawValue: raw) {
@@ -2079,6 +2123,7 @@ final class GameState: ObservableObject {
                 }
             }
         }
+
         lastRestoredDate = save.savedAt
         return save.savedAt
     }

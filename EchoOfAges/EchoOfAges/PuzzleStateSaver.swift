@@ -16,9 +16,11 @@ struct SavedPos: Codable {
 // MARK: - Per-civilization save envelopes
 
 struct EgyptianSave: Codable {
-    let v: Int                  // format version — always 1
+    let v: Int                  // format version — always 2
     let levelIndex: Int
-    let grid: [[String?]]       // Glyph.rawValue or nil
+    let solution: [[String]]    // Glyph.rawValue for every cell of the generated solution
+    let fixedPositions: [SavedPos] // which cells are pre-filled (the anchor cells)
+    let grid: [[String?]]       // player's placed glyphs — Glyph.rawValue or nil
     let savedAt: Date
 }
 
@@ -97,13 +99,13 @@ enum PuzzleStateSaver {
     // MARK: Egyptian
 
     static func saveEgyptian(_ save: EgyptianSave) {
-        store(save, key: "EOA_pstate_egypt_v1_\(save.levelIndex)")
+        store(save, key: "EOA_pstate_egypt_v2_\(save.levelIndex)")
     }
     static func loadEgyptian(levelIndex: Int) -> EgyptianSave? {
-        load(EgyptianSave.self, key: "EOA_pstate_egypt_v1_\(levelIndex)")
+        load(EgyptianSave.self, key: "EOA_pstate_egypt_v2_\(levelIndex)")
     }
     static func clearEgyptian(levelIndex: Int) {
-        UserDefaults.standard.removeObject(forKey: "EOA_pstate_egypt_v1_\(levelIndex)")
+        UserDefaults.standard.removeObject(forKey: "EOA_pstate_egypt_v2_\(levelIndex)")
     }
 
     // MARK: Sumerian
