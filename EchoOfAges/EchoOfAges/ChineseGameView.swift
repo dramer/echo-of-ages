@@ -97,20 +97,31 @@ struct ChineseGameView: View {
         }
         .onChange(of: gameState.chinesePendingComplete) { _, newVal in
             if newVal {
-                // On Level 1, briefly pulse the two gate-mark cells before the card appears
                 if gameState.chineseCurrentLevelIndex == 0 {
-                    withAnimation(.easeInOut(duration: 0.35)) { glowGateCells = true }
+                    // Level 1: let the player see the solved board and the two gate marks
+                    // glowing side by side for 5 seconds before the completion card appears.
                     Task {
-                        try? await Task.sleep(nanoseconds: 900_000_000)
-                        withAnimation(.easeOut(duration: 0.4)) { glowGateCells = false }
+                        // Glow on immediately
+                        withAnimation(.easeInOut(duration: 0.35)) { glowGateCells = true }
+                        // Hold glow for ~3 s, then fade — card arrives at 5 s
+                        try? await Task.sleep(nanoseconds: 3_000_000_000)
+                        withAnimation(.easeOut(duration: 0.5)) { glowGateCells = false }
+                        try? await Task.sleep(nanoseconds: 2_000_000_000)
+                        withAnimation(.spring(response: 0.5, dampingFraction: 0.72)) {
+                            showComplete = true
+                        }
+                        try? await Task.sleep(nanoseconds: 700_000_000)
+                        withAnimation(.easeOut(duration: 0.6)) { messageRevealed = true }
                     }
-                }
-                withAnimation(.spring(response: 0.5, dampingFraction: 0.72)) {
-                    showComplete = true
-                }
-                Task {
-                    try? await Task.sleep(nanoseconds: 700_000_000)
-                    withAnimation(.easeOut(duration: 0.6)) { messageRevealed = true }
+                } else {
+                    // All other levels: show completion card immediately
+                    withAnimation(.spring(response: 0.5, dampingFraction: 0.72)) {
+                        showComplete = true
+                    }
+                    Task {
+                        try? await Task.sleep(nanoseconds: 700_000_000)
+                        withAnimation(.easeOut(duration: 0.6)) { messageRevealed = true }
+                    }
                 }
             } else {
                 glowGateCells = false
