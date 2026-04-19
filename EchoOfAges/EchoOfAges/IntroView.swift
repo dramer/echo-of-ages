@@ -367,20 +367,23 @@ struct IntroView: View {
         guard !crawlStarted else { return }
         crawlStarted = true
 
-        // Content top starts at screen centre. Scrolls until the last line clears the top.
-        let startOffset  = screenH
-        let endOffset    = -(contentHeight + 80)
-        let totalDistance = startOffset - endOffset
+        let startOffset = screenH
+
+        // Scroll just far enough for the last line to clear the top fade mask (110 pt).
+        // This is when the bottom of the content reaches y = 110.
+        // crawlOffset at that moment = -(contentHeight - 110)
+        let endOffset     = -(contentHeight - 110)
+        let totalDistance = startOffset - endOffset            // screenH + contentHeight - 110
         let scrollDuration = Double(totalDistance) / Double(crawlSpeed)
 
-        // Wait for the fade-in to finish before the crawl begins, so the
-        // opening title card is clearly readable at the centre of the screen.
+        // Wait for the fade-in to finish before the crawl begins.
         DispatchQueue.main.asyncAfter(deadline: .now() + fadeInDuration) {
             withAnimation(.linear(duration: scrollDuration)) {
                 crawlOffset = endOffset
             }
 
-            // After all text has cleared, reveal the Mandu tablet centred on screen
+            // The tablet reveal is tied directly to when the last text visually clears —
+            // i.e. exactly when the scroll animation ends — no extra overshoot wait.
             DispatchQueue.main.asyncAfter(deadline: .now() + scrollDuration) {
                 phase = .tabletReveal
                 withAnimation(.easeIn(duration: 0.3)) { tabletOpacity = 1 }
