@@ -6,6 +6,10 @@
 //   Phase 2 — Tablet reveal: Mandu tablet image fades in and holds.
 //   Phase 3 — Text crawl:    story text scrolls bottom→top; intro ends
 //                             the moment the last line exits the screen.
+//
+// Scroll timing is calculated from the measured content height.
+// .fixedSize(horizontal:vertical:) forces the VStack to report its true
+// natural height rather than the height the ZStack proposes to it.
 
 import SwiftUI
 import AVFoundation
@@ -18,14 +22,12 @@ private enum IntroPhase {
     case crawl
 }
 
-// MARK: - Sentinel preference key
-// Tracks the global Y of the 1-pt sentinel at the END of the crawl text.
-// When it drops ≤ 110 (behind the top fade mask) all text has cleared.
+// MARK: - Content height preference key
 
-private struct TextEndYKey: PreferenceKey {
-    static var defaultValue: CGFloat = CGFloat.greatestFiniteMagnitude
+private struct CrawlHeightKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = min(value, nextValue())
+        value = max(value, nextValue())
     }
 }
 
@@ -37,27 +39,28 @@ struct IntroView: View {
     @State private var phase: IntroPhase = .mapReveal
 
     // Map layer
-    @State private var mapOpacity:      Double = 0
-    @State private var mapLabelOpacity: Double = 0
+    @State private var mapOpacity:      Double  = 0
+    @State private var mapLabelOpacity: Double  = 0
 
     // Tablet layer
-    @State private var tabletOpacity:   Double = 0
+    @State private var tabletOpacity:   Double  = 0
 
-    // Crawl layer
-    @State private var crawlOpacity:    Double = 0
-    @State private var crawlOffset:     CGFloat = 0
-    @State private var crawlStarted:    Bool   = false
+    // Crawl layer — offset starts at screenH so content enters from below
+    @State private var crawlOffset:     CGFloat = UIScreen.main.bounds.height
+    @State private var crawlOpacity:    Double  = 0
+    @State private var contentHeight:   CGFloat = 0
+    @State private var crawlStarted:    Bool    = false
 
     // Fade-to-black
-    @State private var blackOpacity:    Double = 0
+    @State private var blackOpacity:    Double  = 0
 
     // Skip button
-    @State private var skipOpacity:     Double = 0
+    @State private var skipOpacity:     Double  = 0
 
     // Audio
     @State private var audioPlayer: AVAudioPlayer?
 
-    private let crawlSpeed: CGFloat = 45   // pts / second
+    private let crawlSpeed: CGFloat = 50   // pts / second
     private var screenH: CGFloat { UIScreen.main.bounds.height }
 
     // MARK: Body
@@ -82,7 +85,7 @@ struct IntroView: View {
                 tabletLayer
             }
 
-            // Phase 3 — Crawl
+            // Phase 3 — Crawl (invisible size-reader always present once in crawl phase)
             if phase == .crawl {
                 crawlLayer
             }
@@ -191,23 +194,39 @@ struct IntroView: View {
     // MARK: - Phase 3: Crawl
 
     private var crawlLayer: some View {
-        crawlContent
-            .offset(y: crawlOffset)
-            .opacity(crawlOpacity)
-            // Sentinel fires each animation frame — end intro when text clears
-            .onPreferenceChange(TextEndYKey.self) { y in
-                guard phase == .crawl, !crawlStarted == false, y <= 110 else { return }
-                // All text has cleared the top fade mask
-                endIntro()
-            }
+        ZStack(alignment: .top) {
+            // ── Invisible size reader ─────────────────────────────────────────
+            // .fixedSize forces the VStack to use its true natural height,
+            // not the height that the outer ZStack proposes to it.
+            crawlContent
+                .fixedSize(horizontal: false, vertical: true)
+                .hidden()
+                .background(
+                    GeometryReader { g in
+                        Color.clear
+                            .preference(key: CrawlHeightKey.self, value: g.size.height)
+                    }
+                )
+
+            // ── Visible scrolling content ─────────────────────────────────────
+            crawlContent
+                .offset(y: crawlOffset)
+                .opacity(crawlOpacity)
+        }
+        .onPreferenceChange(CrawlHeightKey.self) { h in
+            guard h > 0, !crawlStarted else { return }
+            contentHeight = h
+            beginScroll()
+        }
     }
 
+    // MARK: - Crawl content
+
     private var crawlContent: some View {
-        let name = gameState.playerName.trimmingCharacters(in: .whitespaces)
+        let name     = gameState.playerName.trimmingCharacters(in: .whitespaces)
         let greeting = name.isEmpty ? "Archaeologist" : name
 
         return VStack(spacing: 0) {
-
             Text("𓊹  ·  𓂀  ·  𓊹")
                 .font(.system(size: 26))
                 .foregroundStyle(Color.goldMid.opacity(0.55))
@@ -248,26 +267,12 @@ struct IntroView: View {
             crawlParagraph("Your insights may be\nthe ones that finally\ncomplete what was started\nthousands of years ago.")
             crawlEmphasis("Begin with Egypt.")
             crawlEmphasis("The tablets await.")
-
             Text("𓅱  𓆑  𓏏  𓈖  𓊪")
                 .font(.system(size: 22))
                 .foregroundStyle(Color.goldMid.opacity(0.4))
                 .tracking(10)
                 .padding(.top, 80)
-                .padding(.bottom, 40)
-
-            // Sentinel: 1 pt tall, reports its global Y each frame so we know
-            // the instant the last line of text clears the top fade mask.
-            Color.clear
-                .frame(height: 1)
-                .background(
-                    GeometryReader { g in
-                        Color.clear.preference(
-                            key: TextEndYKey.self,
-                            value: g.frame(in: .global).maxY
-                        )
-                    }
-                )
+                .padding(.bottom, 60)
         }
         .multilineTextAlignment(.center)
         .padding(.horizontal, 16)
@@ -308,7 +313,6 @@ struct IntroView: View {
     private func startIntro() {
         playAudio()
 
-        // Skip button appears after a beat
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
             withAnimation(.easeIn(duration: 1.0)) { skipOpacity = 1 }
         }
@@ -318,8 +322,6 @@ struct IntroView: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
             withAnimation(.easeIn(duration: 1.2)) { mapLabelOpacity = 1 }
         }
-
-        // Hold map for 5 s then fade out → Phase 2
         DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
             withAnimation(.easeOut(duration: 1.2)) { mapOpacity = 0; mapLabelOpacity = 0 }
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
@@ -332,43 +334,43 @@ struct IntroView: View {
     private func showTabletPhase() {
         phase = .tabletReveal
         withAnimation(.easeIn(duration: 1.5)) { tabletOpacity = 1 }
-
-        // Hold tablet for 4 s then fade out → Phase 3
         DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {
             withAnimation(.easeOut(duration: 1.0)) { tabletOpacity = 0 }
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                startCrawlPhase()
+                phase = .crawl   // renders crawlLayer → size reader fires → beginScroll()
+                withAnimation(.easeIn(duration: 0.8)) { crawlOpacity = 1 }
             }
         }
     }
 
-    // ── Phase 3: Crawl ────────────────────────────────────────────────────────
-    private func startCrawlPhase() {
-        // Position content just off the bottom before making it visible
-        withAnimation(.none) { crawlOffset = screenH }
-        phase = .crawl
+    // ── Phase 3: Scroll (called once contentHeight is known) ─────────────────
+    private func beginScroll() {
+        guard !crawlStarted else { return }
+        crawlStarted = true
 
-        // Fade in the crawl text
-        withAnimation(.easeIn(duration: 0.8)) { crawlOpacity = 1 }
+        // Total distance: content enters from screenH, last line must pass y=0 (top).
+        // Add a small buffer (screenH) so the end of content clears fully.
+        let distance = screenH + contentHeight
+        let duration = Double(distance) / Double(crawlSpeed)
+        let endOffset = -(contentHeight)
 
-        // Wait for fade-in, then begin scrolling
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-            crawlStarted = true
-            // Scroll far enough that even a very tall content block clears fully.
-            // The sentinel preference key ends the intro the moment the last line
-            // passes through the top fade mask — this distance is just a ceiling.
-            let distance   = screenH * 2 + 4000   // generous upper bound
-            let duration   = Double(distance) / Double(crawlSpeed)
-            withAnimation(.linear(duration: duration)) {
-                crawlOffset = -4000
-            }
+        withAnimation(.linear(duration: duration)) {
+            crawlOffset = endOffset
+        }
+
+        // End the intro the moment the last line exits through the top fade mask.
+        // The last line is at the bottom of the content. It clears y=110 when
+        // crawlOffset = -(contentHeight - 110), i.e. after slightly less than
+        // the full duration. We subtract that time so the cut is precise.
+        let clearTime = Double(screenH + contentHeight - 110) / Double(crawlSpeed)
+        DispatchQueue.main.asyncAfter(deadline: .now() + clearTime) {
+            endIntro()
         }
     }
 
     // ── End ───────────────────────────────────────────────────────────────────
     private func endIntro() {
-        // Guard against double-fire from the sentinel
-        guard blackOpacity == 0 else { return }
+        guard blackOpacity == 0 else { return }   // prevent double-fire
         fadeOutAudio(duration: 2.0)
         withAnimation(.easeIn(duration: 0.4)) { skipOpacity = 0 }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
@@ -393,8 +395,8 @@ struct IntroView: View {
     }
 
     private func fadeAudioIn(targetVolume: Float = 0.70, steps: Int = 20) {
-        let stepTime    = 2.0 / Double(steps)
-        let stepVolume  = targetVolume / Float(steps)
+        let stepTime   = 2.0 / Double(steps)
+        let stepVolume = targetVolume / Float(steps)
         for i in 0..<steps {
             DispatchQueue.main.asyncAfter(deadline: .now() + stepTime * Double(i)) {
                 audioPlayer?.volume = stepVolume * Float(i + 1)
