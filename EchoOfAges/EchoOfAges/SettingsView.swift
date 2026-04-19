@@ -13,6 +13,10 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showAchievements = false
 
+    /// True = nudge will appear next time Egyptian Level 1 is opened.
+    /// Stored as the inverse of EOA_hasSeenEgyptNudge.
+    @State private var egyptNudgeOn: Bool = !UserDefaults.standard.bool(forKey: "EOA_hasSeenEgyptNudge")
+
     var body: some View {
         @Bindable var sm = soundManager
 
@@ -125,6 +129,29 @@ struct SettingsView: View {
                         sublabel: "Vibration feedback on taps, errors, and solves",
                         isOn: $sm.hapticsEnabled,
                         accent: Color(red: 0.75, green: 0.55, blue: 0.85),
+                        sfSymbol: true)
+
+                    divider
+
+                    // MARK: Gameplay
+                    sectionLabel("GAMEPLAY")
+                    row(icon: "hand.tap.fill",
+                        label: "Egyptian Tutorial",
+                        sublabel: egyptNudgeOn
+                            ? "Step-by-step guide shows on next Egyptian Level 1"
+                            : "Tutorial complete — toggle to show it again",
+                        isOn: Binding(
+                            get: { egyptNudgeOn },
+                            set: { on in
+                                egyptNudgeOn = on
+                                if on {
+                                    UserDefaults.standard.removeObject(forKey: "EOA_hasSeenEgyptNudge")
+                                } else {
+                                    UserDefaults.standard.set(true, forKey: "EOA_hasSeenEgyptNudge")
+                                }
+                            }
+                        ),
+                        accent: Color(red: 0.82, green: 0.68, blue: 0.35),
                         sfSymbol: true)
 
                     divider
