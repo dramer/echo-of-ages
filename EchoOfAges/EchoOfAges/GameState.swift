@@ -2376,7 +2376,8 @@ final class GameState: ObservableObject {
             "EOA_chineseUnlocked", "EOA_celticUnlocked", "EOA_lastCiv",
             "EOA_discoveredKeys", "EOA_keyGateAnswered",
             "EOA_hasSeenIntro", "EOA_masterMindSlots", "EOA_masterMindHistory",
-            "EOA_hasOpenedJournal", "EOA_civsWithErrors"
+            "EOA_hasOpenedJournal", "EOA_civsWithErrors",
+            "EOA_hasSeenEgyptNudge"
         ]
         keysToErase.forEach { UserDefaults.standard.removeObject(forKey: $0) }
         // Keep showIntroOnLaunch and playerName — the player set those deliberately.
