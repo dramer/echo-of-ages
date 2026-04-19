@@ -867,7 +867,7 @@ final class GameState: ObservableObject {
                     handleNorseLevelComplete()
                 }
             } else {
-                // Wrong path — flash all cells red then reset
+                // Wrong path — flash all cells red, then clear path and consume a reset
                 currentPuzzleHadDecipherError = true
                 norseErrorCells = Set(norsePath)
                 HapticFeedback.error()
@@ -880,7 +880,15 @@ final class GameState: ObservableObject {
                     if triggerPenalty {
                         applyNorsePenalty()
                     } else {
-                        norseActiveLevel = generateNorseVariant(at: norseCurrentLevelIndex)
+                        // Count this as a reset attempt — only generate a new puzzle
+                        // when the player exhausts their 2 resets (same logic as the Reset button).
+                        if norseResetCount < 2 {
+                            norseResetCount += 1
+                            // Same puzzle — player tries again from scratch
+                        } else {
+                            norseResetCount = 0
+                            norseActiveLevel = generateNorseVariant(at: norseCurrentLevelIndex)
+                        }
                     }
                 }
             }
