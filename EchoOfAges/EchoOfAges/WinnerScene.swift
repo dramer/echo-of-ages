@@ -49,9 +49,8 @@ struct WinnerScene: View {
     private var imageCard: some View {
         Image(imageName)
             .resizable()
-            .scaledToFill()
-            .frame(maxWidth: .infinity)
-            .frame(height: 220)
+            .scaledToFit()
+            .frame(maxWidth: 320, maxHeight: 440)
             .blur(radius: blurRevealed ? targetBlur : startBlur)
             .animation(.easeOut(duration: 1.4), value: blurRevealed)
             .clipShape(RoundedRectangle(cornerRadius: 14))
