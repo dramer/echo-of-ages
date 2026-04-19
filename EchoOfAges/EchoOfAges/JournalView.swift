@@ -200,41 +200,73 @@ struct JournalView: View {
     }
 
     private var pageNav: some View {
-        HStack {
+        HStack(spacing: 0) {
+
+            // ── Quick-jump: Civilizations ─────────────────────────
             Button(action: {
-                if currentPageIndex > 0 {
-                    withAnimation(.easeInOut(duration: 0.25)) { currentPageIndex -= 1 }
-                    HapticFeedback.tap()
+                HapticFeedback.tap()
+                if let idx = pages.firstIndex(of: .civilizations) {
+                    withAnimation(.easeInOut(duration: 0.25)) { currentPageIndex = idx }
                 }
             }) {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 18, weight: .medium))
-                    .foregroundStyle(currentPageIndex > 0
-                                     ? Color(red: 0.75, green: 0.60, blue: 0.35)
-                                     : Color(red: 0.35, green: 0.25, blue: 0.12))
-                    .frame(width: 44, height: 36)
+                Image(systemName: "globe")
+                    .font(.system(size: 17, weight: .medium))
+                    .foregroundStyle(Color(red: 0.65, green: 0.50, blue: 0.28))
+                    .frame(width: 40, height: 36)
             }
 
             Spacer()
 
-            Text("\(currentPageIndex + 1)  of  \(pages.count)")
-                .font(handFont(15))
-                .foregroundStyle(Color(red: 0.65, green: 0.50, blue: 0.28))
+            // ── Prev / counter / next  ────────────────────────────
+            HStack(spacing: 2) {
+                Button(action: {
+                    if currentPageIndex > 0 {
+                        withAnimation(.easeInOut(duration: 0.25)) { currentPageIndex -= 1 }
+                        HapticFeedback.tap()
+                    }
+                }) {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 17, weight: .medium))
+                        .foregroundStyle(currentPageIndex > 0
+                                         ? Color(red: 0.75, green: 0.60, blue: 0.35)
+                                         : Color(red: 0.35, green: 0.25, blue: 0.12))
+                        .frame(width: 36, height: 36)
+                }
+
+                Text("\(currentPageIndex + 1) of \(pages.count)")
+                    .font(handFont(14))
+                    .foregroundStyle(Color(red: 0.65, green: 0.50, blue: 0.28))
+                    .monospacedDigit()
+                    .padding(.horizontal, 4)
+
+                Button(action: {
+                    if currentPageIndex < pages.count - 1 {
+                        withAnimation(.easeInOut(duration: 0.25)) { currentPageIndex += 1 }
+                        HapticFeedback.tap()
+                    }
+                }) {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 17, weight: .medium))
+                        .foregroundStyle(currentPageIndex < pages.count - 1
+                                         ? Color(red: 0.75, green: 0.60, blue: 0.35)
+                                         : Color(red: 0.35, green: 0.25, blue: 0.12))
+                        .frame(width: 36, height: 36)
+                }
+            }
 
             Spacer()
 
+            // ── Quick-jump: Settings ──────────────────────────────
             Button(action: {
-                if currentPageIndex < pages.count - 1 {
-                    withAnimation(.easeInOut(duration: 0.25)) { currentPageIndex += 1 }
-                    HapticFeedback.tap()
+                HapticFeedback.tap()
+                if let idx = pages.firstIndex(of: .settingsPage) {
+                    withAnimation(.easeInOut(duration: 0.25)) { currentPageIndex = idx }
                 }
             }) {
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 18, weight: .medium))
-                    .foregroundStyle(currentPageIndex < pages.count - 1
-                                     ? Color(red: 0.75, green: 0.60, blue: 0.35)
-                                     : Color(red: 0.35, green: 0.25, blue: 0.12))
-                    .frame(width: 44, height: 36)
+                Image(systemName: "gearshape")
+                    .font(.system(size: 17, weight: .medium))
+                    .foregroundStyle(Color(red: 0.65, green: 0.50, blue: 0.28))
+                    .frame(width: 40, height: 36)
             }
         }
         .padding(.horizontal, 16)
