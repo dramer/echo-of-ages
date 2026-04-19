@@ -356,7 +356,7 @@ struct IntroView: View {
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                 // Position content at screen mid-point BEFORE making it visible,
                 // using withAnimation(.none) so the jump is instant with no inherited transaction
-                withAnimation(.none) { crawlOffset = screenH * 0.5 }
+                withAnimation(.none) { crawlOffset = screenH }
                 phase = .crawl
                 withAnimation(.easeIn(duration: fadeInDuration)) { crawlOpacity = 1 }
             }
@@ -368,7 +368,7 @@ struct IntroView: View {
         crawlStarted = true
 
         // Content top starts at screen centre. Scrolls until the last line clears the top.
-        let startOffset  = screenH * 0.5
+        let startOffset  = screenH
         let endOffset    = -(contentHeight + 80)
         let totalDistance = startOffset - endOffset
         let scrollDuration = Double(totalDistance) / Double(crawlSpeed)
