@@ -383,7 +383,7 @@ struct IntroView: View {
             // After all text has cleared, reveal the Mandu tablet centred on screen
             DispatchQueue.main.asyncAfter(deadline: .now() + scrollDuration) {
                 phase = .tabletReveal
-                withAnimation(.easeIn(duration: 1.2)) { tabletOpacity = 1 }
+                withAnimation(.easeIn(duration: 0.3)) { tabletOpacity = 1 }
 
                 // Hold the tablet for 3.5 s then fade to black → title
                 DispatchQueue.main.asyncAfter(deadline: .now() + 3.5) {
