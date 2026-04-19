@@ -1393,6 +1393,7 @@ private struct SettingsJournalContent: View {
     @State private var confirmingResetAll = false
     @State private var editingName = false
     @State private var nameInput: String = ""
+    @State private var egyptNudgeOn: Bool = !UserDefaults.standard.bool(forKey: "EOA_hasSeenEgyptNudge")
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -1509,6 +1510,38 @@ private struct SettingsJournalContent: View {
                         .overlay(RoundedRectangle(cornerRadius: 7)
                             .stroke(Color.inkSepia.opacity(0.25), lineWidth: 1))
                 )
+            }
+
+            SectionRule()
+
+            // Gameplay
+            HandTitle(text: "Gameplay", size: 17, color: .inkBlue)
+            Spacer(minLength: 2)
+            HStack {
+                VStack(alignment: .leading, spacing: 3) {
+                    HandBody(text: "Egyptian Tutorial", size: 15)
+                    HandNote(
+                        text: egyptNudgeOn
+                            ? "Step-by-step guide shows on next Egyptian Level 1."
+                            : "Tutorial complete — toggle to show it again.",
+                        size: 12,
+                        color: Color.inkSepia.opacity(0.55)
+                    )
+                }
+                Spacer()
+                Toggle("", isOn: Binding(
+                    get: { egyptNudgeOn },
+                    set: { on in
+                        egyptNudgeOn = on
+                        if on {
+                            UserDefaults.standard.removeObject(forKey: "EOA_hasSeenEgyptNudge")
+                        } else {
+                            UserDefaults.standard.set(true, forKey: "EOA_hasSeenEgyptNudge")
+                        }
+                    }
+                ))
+                .labelsHidden()
+                .toggleStyle(GreenRedToggleStyle())
             }
 
             SectionRule()
