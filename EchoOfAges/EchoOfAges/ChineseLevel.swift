@@ -21,7 +21,7 @@ import Foundation
 
 // MARK: - Piece Placement
 
-struct ChinesePiecePlacement: Equatable, Hashable {
+struct ChinesePiecePlacement: Equatable, Hashable, Codable {
     let row: Int
     let col: Int
     let rotation: Int   // 0=0°, 1=90° CW, 2=180°, 3=270° CW

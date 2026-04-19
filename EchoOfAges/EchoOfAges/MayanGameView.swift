@@ -21,6 +21,7 @@ struct MayanGameView: View {
     @State private var messageRevealed = false
     @State private var inscriptionsExpanded = false
     @State private var showHelp        = false
+    @State private var restoredDate: Date? = nil
 
     private var level: MayanLevel { gameState.mayanCurrentLevel }
 
@@ -60,6 +61,17 @@ struct MayanGameView: View {
                         .transition(.scale(scale: 0.92).combined(with: .opacity))
                         .zIndex(12)
                 }
+
+                // Restore banner
+                if let d = restoredDate {
+                    VStack {
+                        Spacer()
+                        RestoreBanner(savedAt: d)
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                            .padding(.bottom, 24)
+                    }
+                    .zIndex(15)
+                }
             }
         }
         .onChange(of: gameState.mayanPendingComplete) { _, newVal in
@@ -73,7 +85,18 @@ struct MayanGameView: View {
                 }
             }
         }
+        .onAppear {
+            if let d = gameState.restoreMayanState() {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    withAnimation { restoredDate = d }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 3.5) {
+                        withAnimation { restoredDate = nil }
+                    }
+                }
+            }
+        }
         .onDisappear {
+            gameState.saveMayanState()
             showComplete = false
             messageRevealed = false
         }

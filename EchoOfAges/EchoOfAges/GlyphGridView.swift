@@ -22,6 +22,9 @@ struct GameView: View {
     @State private var toastDismissTask: Task<Void, Never>? = nil
     @State private var showHelp:         Bool   = false
 
+    // Restore banner
+    @State private var restoredDate: Date? = nil
+
     // Egyptian Nudge — shown once on Level 1, first play ever
     @State private var showNudge:    Bool   = false
     @State private var paletteFrame: CGRect = .zero
@@ -109,6 +112,17 @@ struct GameView: View {
                     .zIndex(20)
                 }
 
+                // Restore banner
+                if let d = restoredDate {
+                    VStack {
+                        Spacer()
+                        RestoreBanner(savedAt: d)
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                            .padding(.bottom, 24)
+                    }
+                    .zIndex(15)
+                }
+
                 // Centred toast overlay
                 if toastVisible {
                     Color.black.opacity(0.45)
@@ -143,6 +157,17 @@ struct GameView: View {
                     withAnimation(.easeIn(duration: 0.3)) { showNudge = true }
                 }
             }
+            if let d = gameState.restoreEgyptianState() {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    withAnimation { restoredDate = d }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 3.5) {
+                        withAnimation { restoredDate = nil }
+                    }
+                }
+            }
+        }
+        .onDisappear {
+            gameState.saveEgyptianState()
         }
     }
 

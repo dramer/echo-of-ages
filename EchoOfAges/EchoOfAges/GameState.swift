@@ -608,6 +608,7 @@ final class GameState: ObservableObject {
     }
 
     private func handleLevelComplete() {
+        clearEgyptianSave()
         isAnimatingCompletion = true
         HapticFeedback.success()
         soundManager?.playEffect(.solve)
@@ -904,6 +905,7 @@ final class GameState: ObservableObject {
     // MARK: Norse Completion
 
     private func handleNorseLevelComplete() {
+        clearNorseSave()
         norseIsAnimatingCompletion = true
         HapticFeedback.success()
         soundManager?.playEffect(.solve)
@@ -1207,6 +1209,7 @@ final class GameState: ObservableObject {
     // MARK: Sumerian Level Complete
 
     private func handleSumerianLevelComplete() {
+        clearSumerianSave()
         HapticFeedback.success()
         let level = sumerianCurrentLevel
         sumerianUnlockedLevels.insert(level.id)
@@ -1816,6 +1819,7 @@ final class GameState: ObservableObject {
     }
 
     func completeMayanLevel() {
+        clearMayanSave()
         let level = mayanCurrentLevel
         mayanUnlockedLevels.insert(level.id)
         if mayanCurrentLevelIndex == MayanLevel.allLevels.count - 1 {
@@ -1985,6 +1989,7 @@ final class GameState: ObservableObject {
     }
 
     func completeChineseLevel() {
+        clearChineseSave()
         let level = chineseCurrentLevel
         chineseUnlockedLevels.insert(level.id)
         if chineseCurrentLevelIndex == ChineseBoxLevel.allLevels.count - 1 {
@@ -2036,6 +2041,258 @@ final class GameState: ObservableObject {
         // Level 1 gate passes automatically when the puzzle is solved
         if idx == 0 { passKeyGate(for: .chinese) }
         completeChineseLevel()
+    }
+
+    // MARK: - Puzzle State Save / Restore
+
+    /// Set by restore calls — each game view reads this in onAppear to show the banner.
+    @Published var lastRestoredDate: Date? = nil
+
+    // ── Egyptian ──────────────────────────────────────────────────────────────
+
+    func saveEgyptianState() {
+        guard !playerGrid.isEmpty else { return }
+        let grid = playerGrid.map { row in row.map { $0?.rawValue } }
+        PuzzleStateSaver.saveEgyptian(EgyptianSave(
+            v: 1, levelIndex: currentLevelIndex, grid: grid, savedAt: Date()
+        ))
+    }
+
+    /// Restores saved Egyptian state for the current level. Returns the save date if restored.
+    @discardableResult
+    func restoreEgyptianState() -> Date? {
+        guard let save = PuzzleStateSaver.loadEgyptian(levelIndex: currentLevelIndex),
+              save.grid.count == currentLevel.rows,
+              save.grid.first?.count == currentLevel.cols else { return nil }
+        for row in 0..<currentLevel.rows {
+            for col in 0..<currentLevel.cols {
+                let pos = GridPosition(row: row, col: col)
+                guard !isEgyptianFixed(pos) else { continue }
+                if let raw = save.grid[row][col], let glyph = Glyph(rawValue: raw) {
+                    playerGrid[row][col] = glyph
+                }
+            }
+        }
+        lastRestoredDate = save.savedAt
+        return save.savedAt
+    }
+
+    func clearEgyptianSave() {
+        PuzzleStateSaver.clearEgyptian(levelIndex: currentLevelIndex)
+    }
+
+    // ── Sumerian ──────────────────────────────────────────────────────────────
+
+    func saveSumerianState() {
+        guard !playerSumerianDecoded.isEmpty else { return }
+        let decoded = playerSumerianDecoded.map { $0?.rawValue }
+        PuzzleStateSaver.saveSumerian(SumerianSave(
+            v: 1, levelIndex: sumerianCurrentLevelIndex, decoded: decoded, savedAt: Date()
+        ))
+    }
+
+    @discardableResult
+    func restoreSumerianState() -> Date? {
+        guard let save = PuzzleStateSaver.loadSumerian(levelIndex: sumerianCurrentLevelIndex),
+              save.decoded.count == playerSumerianDecoded.count else { return nil }
+        let level = sumerianCurrentLevel
+        for i in 0..<save.decoded.count {
+            // Don't overwrite anchor (pre-revealed) positions
+            let isAnchor = level.revealedPositions.contains(i)
+            if !isAnchor, let raw = save.decoded[i], let glyph = CuneiformGlyph(rawValue: raw) {
+                playerSumerianDecoded[i] = glyph
+            }
+        }
+        lastRestoredDate = save.savedAt
+        return save.savedAt
+    }
+
+    func clearSumerianSave() {
+        PuzzleStateSaver.clearSumerian(levelIndex: sumerianCurrentLevelIndex)
+    }
+
+    // ── Maya ──────────────────────────────────────────────────────────────────
+
+    func saveMayanState() {
+        guard !mayanPlayerGrid.isEmpty else { return }
+        let grid = mayanPlayerGrid.map { row in row.map { $0?.rawValue } }
+        PuzzleStateSaver.saveMaya(MayanSave(
+            v: 1, levelIndex: mayanCurrentLevelIndex, grid: grid, savedAt: Date()
+        ))
+    }
+
+    @discardableResult
+    func restoreMayanState() -> Date? {
+        guard let save = PuzzleStateSaver.loadMaya(levelIndex: mayanCurrentLevelIndex),
+              save.grid.count == mayanPlayerGrid.count else { return nil }
+        let level = mayanCurrentLevel
+        for cycle in 0..<save.grid.count {
+            guard cycle < mayanPlayerGrid.count,
+                  save.grid[cycle].count == mayanPlayerGrid[cycle].count else { continue }
+            for pos in 0..<save.grid[cycle].count {
+                let isFixed = level.cycles[cycle].revealedPositions.contains(pos)
+                if !isFixed, let raw = save.grid[cycle][pos],
+                   let glyph = MayanGlyph(rawValue: raw) {
+                    mayanPlayerGrid[cycle][pos] = glyph
+                }
+            }
+        }
+        lastRestoredDate = save.savedAt
+        return save.savedAt
+    }
+
+    func clearMayanSave() {
+        PuzzleStateSaver.clearMaya(levelIndex: mayanCurrentLevelIndex)
+    }
+
+    // ── Celtic ────────────────────────────────────────────────────────────────
+
+    func saveCelticState() {
+        guard let puzzle = celticCurrentPuzzle, !celticPlayerGrid.isEmpty else { return }
+        let fixedCells = puzzle.fixedValues.map { coord, value in
+            CelticSaveCell(row: coord.row, col: coord.col, value: value)
+        }
+        let playerGrid = celticPlayerGrid.map { row in row.map { $0?.rawValue } }
+        PuzzleStateSaver.saveCeltic(CelticSave(
+            v: 1,
+            levelIndex: celticCurrentLevelIndex,
+            rows: puzzle.rows,
+            cols: puzzle.cols,
+            rowSums: puzzle.rowSums,
+            colSums: puzzle.colSums,
+            fixedCells: fixedCells,
+            solution: puzzle.solution,
+            playerGrid: playerGrid,
+            savedAt: Date()
+        ))
+    }
+
+    @discardableResult
+    func restoreCelticState() -> Date? {
+        guard let save = PuzzleStateSaver.loadCeltic(levelIndex: celticCurrentLevelIndex) else { return nil }
+
+        // Reconstruct CelticPuzzle from saved data
+        var fixedCellSet = Set<CelticCellCoord>()
+        var fixedValues  = [CelticCellCoord: Int]()
+        for cell in save.fixedCells {
+            let coord = CelticCellCoord(row: cell.row, col: cell.col)
+            fixedCellSet.insert(coord)
+            fixedValues[coord] = cell.value
+        }
+        let reconstructed = CelticPuzzle(
+            rows: save.rows, cols: save.cols,
+            rowSums: save.rowSums, colSums: save.colSums,
+            fixedCells: fixedCellSet, fixedValues: fixedValues,
+            solution: save.solution
+        )
+        celticCurrentPuzzle = reconstructed
+
+        // Restore player grid
+        var grid = reconstructed.initialGrid()
+        for r in 0..<save.rows {
+            for c in 0..<save.cols {
+                let coord = CelticCellCoord(row: r, col: c)
+                if !fixedCellSet.contains(coord),
+                   let raw = save.playerGrid[r][c],
+                   let glyph = OghamGlyph(rawValue: raw) {
+                    grid[r][c] = glyph
+                }
+            }
+        }
+        celticPlayerGrid = grid
+        lastRestoredDate = save.savedAt
+        return save.savedAt
+    }
+
+    func clearCelticSave() {
+        PuzzleStateSaver.clearCeltic(levelIndex: celticCurrentLevelIndex)
+    }
+
+    // ── Chinese ───────────────────────────────────────────────────────────────
+
+    func saveChineseState() {
+        guard !chinesePlacedPieces.isEmpty else { return }
+        PuzzleStateSaver.saveChinese(ChineseSave(
+            v: 1, levelIndex: chineseCurrentLevelIndex,
+            pieces: chinesePlacedPieces, savedAt: Date()
+        ))
+    }
+
+    @discardableResult
+    func restoreChineseState() -> Date? {
+        guard let save = PuzzleStateSaver.loadChinese(levelIndex: chineseCurrentLevelIndex) else { return nil }
+        let level = chineseCurrentLevel
+        for (id, placement) in save.pieces {
+            guard let piece = level.pieces.first(where: { $0.id == id }) else { continue }
+            if level.isValidPlacement(piece: piece, proposed: placement, existing: chinesePlacedPieces) {
+                chinesePlacedPieces[id] = placement
+            }
+        }
+        lastRestoredDate = save.savedAt
+        return save.savedAt
+    }
+
+    func clearChineseSave() {
+        PuzzleStateSaver.clearChinese(levelIndex: chineseCurrentLevelIndex)
+    }
+
+    // ── Norse ─────────────────────────────────────────────────────────────────
+
+    func saveNorseState() {
+        guard let active = norseActiveLevel else { return }
+        let save = NorseSave(
+            v: 1,
+            levelIndex: norseCurrentLevelIndex,
+            solution: active.solution.map { SavedPos(row: $0.row, col: $0.col) },
+            blocked:  active.blockedCells.map { SavedPos(row: $0.row, col: $0.col) },
+            waypoints: active.waypoints.map { wp in
+                NorseSaveWaypoint(id: wp.id, pathIndex: wp.pathIndex,
+                                  pos: SavedPos(row: wp.position.row, col: wp.position.col),
+                                  rune: wp.rune, runeName: wp.runeName,
+                                  meaning: wp.meaning, isStart: wp.isStart, isEnd: wp.isEnd)
+            },
+            path: norsePath.map { SavedPos(row: $0.row, col: $0.col) },
+            resetCount: norseResetCount,
+            savedAt: Date()
+        )
+        PuzzleStateSaver.saveNorse(save)
+    }
+
+    @discardableResult
+    func restoreNorseState() -> Date? {
+        guard let save = PuzzleStateSaver.loadNorse(levelIndex: norseCurrentLevelIndex) else { return nil }
+
+        // Reconstruct PathLevel from saved data
+        let template = PathLevel.allLevels[norseCurrentLevelIndex]
+        let restoredLevel = PathLevel(
+            id: template.id,
+            civilization: template.civilization,
+            title: template.title,
+            subtitle: template.subtitle,
+            lore: template.lore,
+            inscriptions: template.inscriptions,
+            rows: template.rows,
+            cols: template.cols,
+            solution: save.solution.map { GridPosition(row: $0.row, col: $0.col) },
+            waypoints: save.waypoints.map { wp in
+                Waypoint(id: wp.id, pathIndex: wp.pathIndex,
+                         position: GridPosition(row: wp.pos.row, col: wp.pos.col),
+                         rune: wp.rune, runeName: wp.runeName, meaning: wp.meaning,
+                         isStart: wp.isStart, isEnd: wp.isEnd)
+            },
+            blockedCells: Set(save.blocked.map { GridPosition(row: $0.row, col: $0.col) }),
+            journalEntry: template.journalEntry,
+            decodedMessage: template.decodedMessage
+        )
+        norseActiveLevel = restoredLevel
+        norsePath = save.path.map { GridPosition(row: $0.row, col: $0.col) }
+        norseResetCount = save.resetCount
+        lastRestoredDate = save.savedAt
+        return save.savedAt
+    }
+
+    func clearNorseSave() {
+        PuzzleStateSaver.clearNorse(levelIndex: norseCurrentLevelIndex)
     }
 
     // MARK: - Celtic Ogham Ordering
@@ -2175,6 +2432,7 @@ final class GameState: ObservableObject {
     }
 
     func completeCelticLevel() {
+        clearCelticSave()
         let levelId = celticCurrentLevelIndex + 1   // IDs are 1-based
         celticUnlockedLevels.insert(levelId)
         if celticCurrentLevelIndex == CelticDifficulty.all.count - 1 {

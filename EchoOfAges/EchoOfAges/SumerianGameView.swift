@@ -25,6 +25,7 @@ struct SumerianGameView: View {
     @State private var inscriptionsExpanded = false
     @State private var showTabletGateNote   = false
     @State private var showHelpDialog       = false
+    @State private var restoredDate: Date?  = nil
 
     /// Tablet is always open — testimonies are read-only reference material.
     private var scribeGateActive: Bool { false }
@@ -116,6 +117,17 @@ struct SumerianGameView: View {
                     .transition(.scale(scale: 0.93).combined(with: .opacity))
                     .zIndex(12)
             }
+
+            // Restore banner
+            if let d = restoredDate {
+                VStack {
+                    Spacer()
+                    RestoreBanner(savedAt: d)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .padding(.bottom, 24)
+                }
+                .zIndex(15)
+            }
         }
         .onChange(of: gameState.sumerianPendingComplete) { _, newVal in
             if newVal {
@@ -128,7 +140,18 @@ struct SumerianGameView: View {
                 }
             }
         }
+        .onAppear {
+            if let d = gameState.restoreSumerianState() {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    withAnimation { restoredDate = d }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 3.5) {
+                        withAnimation { restoredDate = nil }
+                    }
+                }
+            }
+        }
         .onDisappear {
+            gameState.saveSumerianState()
             showComplete = false
             messageRevealed = false
         }

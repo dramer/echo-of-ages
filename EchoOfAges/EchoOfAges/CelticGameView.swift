@@ -16,6 +16,7 @@ struct CelticGameView: View {
     @State private var messageRevealed = false
     @State private var showInscriptions = false
     @State private var showHelp        = false
+    @State private var restoredDate: Date? = nil
 
     private var difficulty: CelticDifficulty { gameState.celticCurrentDifficulty }
     private var puzzle: CelticPuzzle?         { gameState.celticCurrentPuzzle }
@@ -87,8 +88,30 @@ struct CelticGameView: View {
                     .transition(.scale(scale: 0.92).combined(with: .opacity))
                     .zIndex(10)
             }
+
+            // Restore banner
+            if let d = restoredDate {
+                VStack {
+                    Spacer()
+                    RestoreBanner(savedAt: d)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .padding(.bottom, 24)
+                }
+                .zIndex(15)
+            }
+        }
+        .onAppear {
+            if let d = gameState.restoreCelticState() {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    withAnimation { restoredDate = d }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 3.5) {
+                        withAnimation { restoredDate = nil }
+                    }
+                }
+            }
         }
         .onDisappear {
+            gameState.saveCelticState()
             showComplete = false
             messageRevealed = false
         }

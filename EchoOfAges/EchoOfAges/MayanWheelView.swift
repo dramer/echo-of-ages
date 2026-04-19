@@ -59,6 +59,9 @@ struct MayanWheelView: View {
     // Help overlay
     @State private var showHelp: Bool = false
 
+    // Restore banner
+    @State private var restoredDate: Date? = nil
+
     // Jade green matching MayanGameView
     private var jadeColor: Color { Color(red: 0.18, green: 0.72, blue: 0.42) }
 
@@ -101,11 +104,30 @@ struct MayanWheelView: View {
                         .transition(.scale(scale: 0.93).combined(with: .opacity))
                         .zIndex(12)
                 }
+
+                // Restore banner
+                if let d = restoredDate {
+                    VStack {
+                        Spacer()
+                        RestoreBanner(savedAt: d)
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                            .padding(.bottom, 24)
+                    }
+                    .zIndex(15)
+                }
             }
         }
         .onAppear {
             startBothRings()
             scheduleCenterAdvance()
+            if let d = gameState.restoreMayanState() {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    withAnimation { restoredDate = d }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 3.5) {
+                        withAnimation { restoredDate = nil }
+                    }
+                }
+            }
         }
         .onChange(of: gameState.mayanPendingComplete) { _, newVal in
             if newVal {
@@ -119,6 +141,7 @@ struct MayanWheelView: View {
             }
         }
         .onDisappear {
+            gameState.saveMayanState()
             showComplete = false
             messageRevealed = false
         }

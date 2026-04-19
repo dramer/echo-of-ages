@@ -24,6 +24,9 @@ struct PathGameView: View {
     // Inscription panel
     @State private var showRuneInscriptions: Bool = false
 
+    // Restore banner
+    @State private var restoredDate: Date? = nil
+
     // MARK: Body
 
     var body: some View {
@@ -73,9 +76,33 @@ struct PathGameView: View {
                             removal: .opacity))
                         .zIndex(10)
                 }
+
+                // Restore banner
+                if let d = restoredDate {
+                    VStack {
+                        Spacer()
+                        RestoreBanner(savedAt: d)
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                            .padding(.bottom, 24)
+                    }
+                    .zIndex(15)
+                }
             }
         }
         .background(norseBackground)
+        .onAppear {
+            if let d = gameState.restoreNorseState() {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    withAnimation { restoredDate = d }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 3.5) {
+                        withAnimation { restoredDate = nil }
+                    }
+                }
+            }
+        }
+        .onDisappear {
+            gameState.saveNorseState()
+        }
         .onChange(of: gameState.norsePenaltyMessage) { _, message in
             guard let message else { return }
             showToast(message, duration: 6.0)

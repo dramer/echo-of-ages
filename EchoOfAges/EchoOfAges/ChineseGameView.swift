@@ -28,6 +28,7 @@ struct ChineseGameView: View {
     @State private var errorCell: (Int, Int)? = nil
     @State private var showVerifyError: Bool  = false
     @State private var showHelp:          Bool = false
+    @State private var restoredDate: Date?    = nil
 
     // Drag-to-place state
     @State private var draggedPieceId: String?           = nil
@@ -104,6 +105,30 @@ struct ChineseGameView: View {
                     .transition(.scale(scale: 0.92).combined(with: .opacity))
                     .zIndex(12)
             }
+
+            // Restore banner
+            if let d = restoredDate {
+                VStack {
+                    Spacer()
+                    RestoreBanner(savedAt: d)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .padding(.bottom, 24)
+                }
+                .zIndex(15)
+            }
+        }
+        .onAppear {
+            if let d = gameState.restoreChineseState() {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    withAnimation { restoredDate = d }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 3.5) {
+                        withAnimation { restoredDate = nil }
+                    }
+                }
+            }
+        }
+        .onDisappear {
+            gameState.saveChineseState()
         }
         .onChange(of: gameState.chinesePendingComplete) { _, newVal in
             if newVal {
