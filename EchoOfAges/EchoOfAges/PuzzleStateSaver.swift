@@ -31,10 +31,18 @@ struct SumerianSave: Codable {
     let savedAt: Date
 }
 
+struct MayanSaveCycle: Codable {
+    let symbols: [String]           // MayanGlyph.rawValue for each symbol in the cycle
+    let startOffset: Int
+    let revealedPositions: [Int]    // Set<Int> serialised as sorted array
+}
+
 struct MayanSave: Codable {
-    let v: Int
+    let v: Int                      // format version — always 2
     let levelIndex: Int
-    let grid: [[String?]]       // MayanGlyph.rawValue or nil
+    let cycles: [MayanSaveCycle]    // full generated cycle structure (needed for L3 & L4)
+    let sequenceLength: Int
+    let grid: [[String?]]           // player's placed glyphs — MayanGlyph.rawValue or nil
     let savedAt: Date
 }
 
@@ -123,13 +131,13 @@ enum PuzzleStateSaver {
     // MARK: Maya
 
     static func saveMaya(_ save: MayanSave) {
-        store(save, key: "EOA_pstate_maya_v1_\(save.levelIndex)")
+        store(save, key: "EOA_pstate_maya_v2_\(save.levelIndex)")
     }
     static func loadMaya(levelIndex: Int) -> MayanSave? {
-        load(MayanSave.self, key: "EOA_pstate_maya_v1_\(levelIndex)")
+        load(MayanSave.self, key: "EOA_pstate_maya_v2_\(levelIndex)")
     }
     static func clearMaya(levelIndex: Int) {
-        UserDefaults.standard.removeObject(forKey: "EOA_pstate_maya_v1_\(levelIndex)")
+        UserDefaults.standard.removeObject(forKey: "EOA_pstate_maya_v2_\(levelIndex)")
     }
 
     // MARK: Celtic

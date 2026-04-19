@@ -2166,28 +2166,84 @@ final class GameState: ObservableObject {
 
     func saveMayanState() {
         guard !mayanPlayerGrid.isEmpty else { return }
+        let level = mayanCurrentLevel
+        let savedCycles = level.cycles.map { cycle in
+            MayanSaveCycle(
+                symbols: cycle.symbols.map { $0.rawValue },
+                startOffset: cycle.startOffset,
+                revealedPositions: cycle.revealedPositions.sorted()
+            )
+        }
         let grid = mayanPlayerGrid.map { row in row.map { $0?.rawValue } }
         PuzzleStateSaver.saveMaya(MayanSave(
-            v: 1, levelIndex: mayanCurrentLevelIndex, grid: grid, savedAt: Date()
+            v: 2, levelIndex: mayanCurrentLevelIndex,
+            cycles: savedCycles, sequenceLength: level.sequenceLength,
+            grid: grid, savedAt: Date()
         ))
     }
 
     @discardableResult
     func restoreMayanState() -> Date? {
         guard let save = PuzzleStateSaver.loadMaya(levelIndex: mayanCurrentLevelIndex),
-              save.grid.count == mayanPlayerGrid.count else { return nil }
+              save.v == 2,
+              !save.cycles.isEmpty else { return nil }
+
+        // For randomly-generated levels (3 and 4), reconstruct the exact same MayanLevel
+        // from saved cycle data so the board layout matches what the player was solving.
+        let levelIndex = mayanCurrentLevelIndex
+        if levelIndex == 2 || levelIndex == 3 {
+            let reconstructedCycles: [MayanCycle] = save.cycles.map { sc in
+                MayanCycle(
+                    label: sc.symbols.count == 2 ? "Sacred Wheel" : "Day Wheel",
+                    symbols: sc.symbols.compactMap { MayanGlyph(rawValue: $0) },
+                    startOffset: sc.startOffset,
+                    revealedPositions: Set(sc.revealedPositions)
+                )
+            }
+            // Fix the labels based on position (Day Wheel is always first)
+            let labeledCycles: [MayanCycle] = reconstructedCycles.enumerated().map { i, c in
+                MayanCycle(label: i == 0 ? "Day Wheel" : "Sacred Wheel",
+                           symbols: c.symbols, startOffset: c.startOffset,
+                           revealedPositions: c.revealedPositions)
+            }
+            let template = MayanLevel.allLevels[levelIndex]
+            let restored = MayanLevel(
+                id: template.id,
+                usesWheelMechanic: template.usesWheelMechanic,
+                usesSynchronizedRotation: template.usesSynchronizedRotation,
+                title: template.title,
+                subtitle: template.subtitle,
+                lore: template.lore,
+                inscriptions: template.inscriptions,
+                cycles: labeledCycles,
+                sequenceLength: save.sequenceLength,
+                decodedMessage: template.decodedMessage,
+                newGlyphs: template.newGlyphs,
+                artifact: template.artifact,
+                journalTitle: template.journalTitle,
+                journalBody: template.journalBody
+            )
+            if levelIndex == 2 { mayanGeneratedLevel3 = restored }
+            else                { mayanGeneratedLevel4 = restored }
+            // Reinitialise the player grid to match the restored puzzle layout
+            resetMayanGrid(for: restored)
+        }
+
+        // Overlay saved player moves onto the (now-correct) grid
         let level = mayanCurrentLevel
-        for cycle in 0..<save.grid.count {
-            guard cycle < mayanPlayerGrid.count,
-                  save.grid[cycle].count == mayanPlayerGrid[cycle].count else { continue }
-            for pos in 0..<save.grid[cycle].count {
-                let isFixed = level.cycles[cycle].revealedPositions.contains(pos)
-                if !isFixed, let raw = save.grid[cycle][pos],
+        guard save.grid.count == mayanPlayerGrid.count else { return nil }
+        for ci in 0..<save.grid.count {
+            guard ci < mayanPlayerGrid.count,
+                  save.grid[ci].count == mayanPlayerGrid[ci].count else { continue }
+            for pos in 0..<save.grid[ci].count {
+                let isFixed = level.cycles[ci].revealedPositions.contains(pos)
+                if !isFixed, let raw = save.grid[ci][pos],
                    let glyph = MayanGlyph(rawValue: raw) {
-                    mayanPlayerGrid[cycle][pos] = glyph
+                    mayanPlayerGrid[ci][pos] = glyph
                 }
             }
         }
+
         lastRestoredDate = save.savedAt
         return save.savedAt
     }
