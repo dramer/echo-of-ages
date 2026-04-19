@@ -97,6 +97,7 @@ struct GameView: View {
                         gridFrame:     gridFrame,
                         decipherFrame: decipherFrame
                     )
+                    .environmentObject(gameState)
                     .transition(.opacity)
                     .zIndex(20)
                 }
