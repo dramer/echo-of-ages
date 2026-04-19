@@ -128,41 +128,46 @@ struct MayanGameView: View {
 
     private var headerBar: some View {
         HStack {
-            Button(action: { gameState.closeMayanGame() }) {
-                HStack(spacing: 6) {
+            Button {
+                HapticFeedback.tap()
+                gameState.closeMayanGame()
+            } label: {
+                HStack(spacing: 4) {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 14, weight: .semibold))
                     Text("Return")
-                        .font(EgyptFont.body(17))
+                        .font(EgyptFont.titleBold(15))
                 }
                 .foregroundStyle(jadeColor)
             }
+            .frame(minWidth: 80, alignment: .leading)
+
             Spacer()
-            VStack(spacing: 1) {
-                Text("MAYA")
-                    .font(EgyptFont.titleBold(16))
-                    .tracking(3)
-                    .foregroundStyle(jadeColor)
-                Text("Calendar Puzzles")
-                    .font(EgyptFont.body(12))
-                    .foregroundStyle(jadeColor.opacity(0.6))
-            }
+
+            Text("🌿  Maya")
+                .font(EgyptFont.titleBold(16))
+                .foregroundStyle(jadeColor)
+                .tracking(1)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+
             Spacer()
-            HStack(spacing: 12) {
+
+            HStack(spacing: 10) {
                 Text(level.romanNumeral)
-                    .font(EgyptFont.titleBold(22))
-                    .foregroundStyle(jadeColor)
+                    .font(EgyptFont.titleBold(15))
+                    .foregroundStyle(jadeColor.opacity(0.75))
                 Button { withAnimation { showHelp = true } } label: {
                     Image(systemName: "questionmark.circle.fill")
                         .font(.system(size: 22))
-                        .foregroundStyle(jadeColor.opacity(0.80))
+                        .foregroundStyle(jadeColor)
                 }
                 .buttonStyle(.plain)
             }
-            .frame(width: 70, alignment: .trailing)
+            .frame(minWidth: 80, alignment: .trailing)
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 14)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
         .background(
             Color(red: 0.06, green: 0.12, blue: 0.08)
                 .overlay(
@@ -485,42 +490,40 @@ struct MayanGameView: View {
         return HStack(spacing: 12) {
             Button(action: {
                 HapticFeedback.tap()
-                gameState.verifyMayanPlacement()
+                gameState.resetMayanGrid()
             }) {
-                HStack(spacing: 8) {
-                    Image(systemName: "magnifyingglass").font(.system(size: 15))
-                    Text("Decipher").font(EgyptFont.title(15))
-                }
-                .foregroundStyle(canDecipher ? jadeColor : jadeColor.opacity(0.35))
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 13)
-                .background(
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(jadeColor.opacity(canDecipher ? 0.12 : 0.05))
-                        .overlay(RoundedRectangle(cornerRadius: 10)
-                            .stroke(jadeColor.opacity(canDecipher ? 0.45 : 0.18), lineWidth: 1))
-                )
+                Label("Reset", systemImage: "arrow.counterclockwise")
+                    .font(EgyptFont.titleBold(15))
+                    .foregroundStyle(jadeColor.opacity(0.80))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(
+                        RoundedRectangle(cornerRadius: 9)
+                            .fill(Color.white.opacity(0.04))
+                            .overlay(RoundedRectangle(cornerRadius: 9)
+                                .stroke(jadeColor.opacity(0.25), lineWidth: 1))
+                    )
             }
-            .disabled(!canDecipher)
 
             Button(action: {
                 HapticFeedback.tap()
-                gameState.resetMayanGrid()
+                gameState.verifyMayanPlacement()
             }) {
-                HStack(spacing: 8) {
-                    Image(systemName: "arrow.counterclockwise").font(.system(size: 15))
-                    Text("Reset").font(EgyptFont.title(15))
-                }
-                .foregroundStyle(Color(red: 0.75, green: 0.55, blue: 0.35))
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 13)
-                .background(
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(Color.white.opacity(0.04))
-                        .overlay(RoundedRectangle(cornerRadius: 10)
-                            .stroke(Color(red: 0.75, green: 0.55, blue: 0.35).opacity(0.35), lineWidth: 1))
-                )
+                Label("Decipher", systemImage: "checkmark.seal")
+                    .font(EgyptFont.titleBold(15))
+                    .foregroundStyle(canDecipher
+                                     ? Color(red: 0.06, green: 0.12, blue: 0.08)
+                                     : jadeColor.opacity(0.40))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(
+                        RoundedRectangle(cornerRadius: 9)
+                            .fill(canDecipher ? jadeColor : jadeColor.opacity(0.12))
+                            .overlay(RoundedRectangle(cornerRadius: 9)
+                                .stroke(jadeColor.opacity(canDecipher ? 0.6 : 0.20), lineWidth: 1))
+                    )
             }
+            .disabled(!canDecipher)
         }
     }
 

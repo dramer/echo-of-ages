@@ -86,19 +86,18 @@ struct PathGameView: View {
 
     @ViewBuilder
     private func portraitLayout(geo: GeometryProxy) -> some View {
-        let barH:       CGFloat = 84
+        let barH:       CGFloat = 48
         let titleH:     CGFloat = 76
         let runeBarH:   CGFloat = 64
-        let spacing:    CGFloat = 8 * 3
+        let actionBarH: CGFloat = 48
+        let spacing:    CGFloat = 8 * 4
         let safeBottom: CGFloat = 16
-        let reserved    = barH + titleH + runeBarH + spacing + safeBottom
+        let reserved    = barH + titleH + runeBarH + actionBarH + spacing + safeBottom
         let gridAvailH  = geo.size.height - reserved
         let gridAvailW  = geo.size.width - 32
 
         VStack(spacing: 0) {
-            imageButtonBar
-                .padding(.horizontal, 12)
-                .padding(.top, 10)
+            norseHeaderBar
 
             Spacer(minLength: 8)
             levelTitle.padding(.horizontal, 16)
@@ -109,6 +108,8 @@ struct PathGameView: View {
 
             Spacer(minLength: 10)
             waypointBar.padding(.horizontal, 16)
+            Spacer(minLength: 8)
+            norseActionRow.padding(.horizontal, 16)
             Spacer(minLength: safeBottom)
         }
     }
@@ -119,14 +120,12 @@ struct PathGameView: View {
     private func landscapeLayout(geo: GeometryProxy) -> some View {
         let leftW      = geo.size.width * 0.60
         let rightW     = geo.size.width - leftW
-        let barH:  CGFloat = 84
+        let barH:  CGFloat = 48
         let gridAvailW = leftW - 28
         let gridAvailH = geo.size.height - barH - 28
 
         VStack(spacing: 0) {
-            imageButtonBar
-                .padding(.horizontal, 12)
-                .padding(.top, 10)
+            norseHeaderBar
 
             HStack(spacing: 0) {
                 VStack(spacing: 6) {
@@ -146,6 +145,8 @@ struct PathGameView: View {
                     levelTitle
                     Spacer(minLength: 10)
                     waypointBar
+                    Spacer(minLength: 8)
+                    norseActionRow
                     Spacer(minLength: 0)
                 }
                 .padding(.horizontal, 14)
@@ -155,88 +156,135 @@ struct PathGameView: View {
         }
     }
 
-    // MARK: Image Button Bar
+    // MARK: Standard Header Bar (Norse)
 
-    private var imageButtonBar: some View {
-        HStack(spacing: 0) {
-            norseToolbarButton(icon: "chevron.left", label: "Return") {
+    private var norseHeaderBar: some View {
+        let norsBlue = Color(red: 0.45, green: 0.75, blue: 1.0)
+        return HStack {
+            Button {
+                HapticFeedback.tap()
                 gameState.closeNorseGame()
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 14, weight: .semibold))
+                    Text("Return")
+                        .font(EgyptFont.titleBold(15))
+                }
+                .foregroundStyle(norsBlue)
             }
-            norseToolbarButton(icon: "book.fill", label: "Diary") {
-                gameState.openJournal()
-            }
-            clearButton
-            norseToolbarButton(icon: showRuneInscriptions ? "scroll.fill" : "scroll",
-                               label: "Runes") {
-                withAnimation(.spring(response: 0.38, dampingFraction: 0.78)) {
-                    showRuneInscriptions.toggle()
+            .frame(minWidth: 80, alignment: .leading)
+
+            Spacer()
+
+            Text("ᚱ  Norse")
+                .font(EgyptFont.titleBold(16))
+                .foregroundStyle(norsBlue)
+                .tracking(1)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+
+            Spacer()
+
+            HStack(spacing: 10) {
+                Text(gameState.norseCurrentLevel.romanNumeral)
+                    .font(EgyptFont.titleBold(15))
+                    .foregroundStyle(norsBlue.opacity(0.75))
+                Button { withAnimation { showHelp = true } } label: {
+                    Image(systemName: "questionmark.circle.fill")
+                        .font(.system(size: 22))
+                        .foregroundStyle(norsBlue)
                 }
             }
-            norseToolbarButton(icon: "questionmark.circle.fill", label: "Help") {
-                withAnimation { showHelp = true }
-            }
-            norseToolbarButton(icon: "gearshape.fill", label: "Settings") {
-                gameState.openSettings()
-            }
+            .frame(minWidth: 80, alignment: .trailing)
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 8)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
         .background(
-            RoundedRectangle(cornerRadius: 14)
-                .fill(Color.white)
-                .overlay(RoundedRectangle(cornerRadius: 14)
-                    .stroke(Color(red: 0.45, green: 0.75, blue: 1.0).opacity(0.4), lineWidth: 1))
+            Color(red: 0.08, green: 0.12, blue: 0.20)
+                .overlay(
+                    Rectangle()
+                        .fill(Color(red: 0.45, green: 0.75, blue: 1.0).opacity(0.3))
+                        .frame(height: 0.8),
+                    alignment: .bottom
+                )
         )
-        .shadow(color: .black.opacity(0.4), radius: 6, x: 0, y: 3)
     }
 
-    private func norseToolbarButton(icon: String, label: String, action: @escaping () -> Void) -> some View {
-        Button(action: {
-            HapticFeedback.tap()
-            action()
-        }) {
-            VStack(spacing: 4) {
-                Image(systemName: icon)
-                    .font(.system(size: 24))
-                    .foregroundStyle(Color(red: 0.20, green: 0.45, blue: 0.75))
-                    .frame(height: 44)
-                Text(label)
-                    .font(EgyptFont.body(11))
-                    .foregroundStyle(Color.stoneDark)
-                    .lineLimit(1)
-            }
-            .frame(maxWidth: .infinity)
-        }
-    }
+    // MARK: Norse Action Row (Reset + Runes + Journal) — below waypoints
 
-    // MARK: Clear Button (shows remaining same-puzzle resets before a new puzzle is drawn)
-
-    private var clearButton: some View {
-        let resetsLeft = max(0, 2 - gameState.norseResetCount)
+    private var norseActionRow: some View {
+        let norsBlue = Color(red: 0.45, green: 0.75, blue: 1.0)
+        let resetsLeft  = max(0, 2 - gameState.norseResetCount)
         let willDrawNew = gameState.norseResetCount >= 2
         let dots = (0..<2).map { $0 < resetsLeft ? "●" : "○" }.joined(separator: " ")
 
-        return Button {
-            HapticFeedback.tap()
-            gameState.resetNorsePath()
-        } label: {
-            VStack(spacing: 2) {
-                Image(systemName: willDrawNew ? "shuffle" : "arrow.counterclockwise")
-                    .font(.system(size: 24))
-                    .foregroundStyle(Color(red: 0.20, green: 0.45, blue: 0.75))
-                    .frame(height: 44)
-                Text(willDrawNew ? "New" : "Clear")
-                    .font(EgyptFont.body(11))
-                    .foregroundStyle(Color.stoneDark)
-                    .lineLimit(1)
-                Text(dots)
-                    .font(.system(size: 9))
-                    .foregroundStyle(willDrawNew
-                        ? Color(red: 0.75, green: 0.30, blue: 0.20)
-                        : Color(red: 0.20, green: 0.45, blue: 0.75))
-                    .lineLimit(1)
+        return HStack(spacing: 10) {
+            // Reset / New puzzle
+            Button {
+                HapticFeedback.tap()
+                gameState.resetNorsePath()
+            } label: {
+                VStack(spacing: 2) {
+                    Label(willDrawNew ? "New" : "Reset",
+                          systemImage: willDrawNew ? "shuffle" : "arrow.counterclockwise")
+                        .font(EgyptFont.titleBold(13))
+                    Text(dots)
+                        .font(.system(size: 9))
+                        .foregroundStyle(willDrawNew
+                            ? Color(red: 0.85, green: 0.45, blue: 0.35)
+                            : norsBlue.opacity(0.7))
+                }
+                .foregroundStyle(norsBlue.opacity(0.85))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 9)
+                .background(
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color.white.opacity(0.05))
+                        .overlay(RoundedRectangle(cornerRadius: 8)
+                            .stroke(norsBlue.opacity(0.25), lineWidth: 0.8))
+                )
             }
-            .frame(maxWidth: .infinity)
+
+            // Runes toggle
+            Button {
+                HapticFeedback.tap()
+                withAnimation(.spring(response: 0.38, dampingFraction: 0.78)) {
+                    showRuneInscriptions.toggle()
+                }
+            } label: {
+                Label("Runes", systemImage: showRuneInscriptions ? "scroll.fill" : "scroll")
+                    .font(EgyptFont.titleBold(13))
+                    .foregroundStyle(showRuneInscriptions ? norsBlue : norsBlue.opacity(0.65))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 9)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(showRuneInscriptions
+                                  ? norsBlue.opacity(0.12)
+                                  : Color.white.opacity(0.05))
+                            .overlay(RoundedRectangle(cornerRadius: 8)
+                                .stroke(norsBlue.opacity(0.25), lineWidth: 0.8))
+                    )
+            }
+
+            // Journal
+            Button {
+                HapticFeedback.tap()
+                gameState.openJournal()
+            } label: {
+                Label("Journal", systemImage: "book.fill")
+                    .font(EgyptFont.titleBold(13))
+                    .foregroundStyle(norsBlue.opacity(0.65))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 9)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(Color.white.opacity(0.05))
+                            .overlay(RoundedRectangle(cornerRadius: 8)
+                                .stroke(norsBlue.opacity(0.25), lineWidth: 0.8))
+                    )
+            }
         }
     }
 

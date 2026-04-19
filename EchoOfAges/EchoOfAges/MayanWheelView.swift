@@ -56,6 +56,9 @@ struct MayanWheelView: View {
     @State private var showComplete: Bool = false
     @State private var messageRevealed: Bool = false
 
+    // Help overlay
+    @State private var showHelp: Bool = false
+
     // Jade green matching MayanGameView
     private var jadeColor: Color { Color(red: 0.18, green: 0.72, blue: 0.42) }
 
@@ -88,6 +91,15 @@ struct MayanWheelView: View {
                     levelCompleteCard(maxHeight: geo.size.height * 0.88)
                         .transition(.scale(scale: 0.92).combined(with: .opacity))
                         .zIndex(10)
+                }
+
+                if showHelp {
+                    Color.black.opacity(0.50).ignoresSafeArea()
+                        .onTapGesture { withAnimation { showHelp = false } }
+                        .transition(.opacity).zIndex(11)
+                    mayanWheelHelpDialog
+                        .transition(.scale(scale: 0.93).combined(with: .opacity))
+                        .zIndex(12)
                 }
             }
         }
@@ -174,33 +186,46 @@ struct MayanWheelView: View {
 
     private var headerBar: some View {
         HStack {
-            Button(action: { gameState.closeMayanGame() }) {
-                HStack(spacing: 6) {
+            Button {
+                HapticFeedback.tap()
+                gameState.closeMayanGame()
+            } label: {
+                HStack(spacing: 4) {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 14, weight: .semibold))
-                    Text("Journal")
-                        .font(EgyptFont.body(17))
+                    Text("Return")
+                        .font(EgyptFont.titleBold(15))
                 }
                 .foregroundStyle(jadeColor)
             }
+            .frame(minWidth: 80, alignment: .leading)
+
             Spacer()
-            VStack(spacing: 1) {
-                Text("MAYA")
-                    .font(EgyptFont.titleBold(16))
-                    .tracking(3)
-                    .foregroundStyle(jadeColor)
-                Text("Calendar Puzzles")
-                    .font(EgyptFont.body(12))
-                    .foregroundStyle(jadeColor.opacity(0.6))
-            }
-            Spacer()
-            Text(level.romanNumeral)
-                .font(EgyptFont.titleBold(22))
+
+            Text("🌿  Maya")
+                .font(EgyptFont.titleBold(16))
                 .foregroundStyle(jadeColor)
-                .frame(width: 60, alignment: .trailing)
+                .tracking(1)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+
+            Spacer()
+
+            HStack(spacing: 10) {
+                Text(level.romanNumeral)
+                    .font(EgyptFont.titleBold(15))
+                    .foregroundStyle(jadeColor.opacity(0.75))
+                Button { withAnimation { showHelp = true } } label: {
+                    Image(systemName: "questionmark.circle.fill")
+                        .font(.system(size: 22))
+                        .foregroundStyle(jadeColor)
+                }
+                .buttonStyle(.plain)
+            }
+            .frame(minWidth: 80, alignment: .trailing)
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 14)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
         .background(
             Color(red: 0.06, green: 0.12, blue: 0.08)
                 .overlay(
@@ -685,28 +710,7 @@ struct MayanWheelView: View {
         return HStack(spacing: 12) {
             Button(action: {
                 HapticFeedback.tap()
-                gameState.verifyMayanPlacement()
-            }) {
-                HStack(spacing: 8) {
-                    Image(systemName: "magnifyingglass").font(.system(size: 15))
-                    Text("Decipher").font(EgyptFont.title(15))
-                }
-                .foregroundStyle(canDecipher ? jadeColor : jadeColor.opacity(0.35))
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 13)
-                .background(
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(jadeColor.opacity(canDecipher ? 0.12 : 0.05))
-                        .overlay(RoundedRectangle(cornerRadius: 10)
-                            .stroke(jadeColor.opacity(canDecipher ? 0.45 : 0.18), lineWidth: 1))
-                )
-            }
-            .disabled(!canDecipher)
-
-            Button(action: {
-                HapticFeedback.tap()
                 gameState.resetMayanGrid()
-                // Reset ring state
                 outerRing.rotationDeg = 0
                 outerRing.currentStep = 0
                 outerRing.isPaused    = false
@@ -716,24 +720,40 @@ struct MayanWheelView: View {
                 innerRing.isPaused    = false
                 innerRing.isAnimating = false
                 isSynced = false
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    startBothRings()
-                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { startBothRings() }
             }) {
-                HStack(spacing: 8) {
-                    Image(systemName: "arrow.counterclockwise").font(.system(size: 15))
-                    Text("Reset").font(EgyptFont.title(15))
-                }
-                .foregroundStyle(Color(red: 0.75, green: 0.55, blue: 0.35))
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 13)
-                .background(
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(Color.white.opacity(0.04))
-                        .overlay(RoundedRectangle(cornerRadius: 10)
-                            .stroke(Color(red: 0.75, green: 0.55, blue: 0.35).opacity(0.35), lineWidth: 1))
-                )
+                Label("Reset", systemImage: "arrow.counterclockwise")
+                    .font(EgyptFont.titleBold(15))
+                    .foregroundStyle(jadeColor.opacity(0.80))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(
+                        RoundedRectangle(cornerRadius: 9)
+                            .fill(Color.white.opacity(0.04))
+                            .overlay(RoundedRectangle(cornerRadius: 9)
+                                .stroke(jadeColor.opacity(0.25), lineWidth: 1))
+                    )
             }
+
+            Button(action: {
+                HapticFeedback.tap()
+                gameState.verifyMayanPlacement()
+            }) {
+                Label("Decipher", systemImage: "checkmark.seal")
+                    .font(EgyptFont.titleBold(15))
+                    .foregroundStyle(canDecipher
+                                     ? Color(red: 0.06, green: 0.12, blue: 0.08)
+                                     : jadeColor.opacity(0.40))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(
+                        RoundedRectangle(cornerRadius: 9)
+                            .fill(canDecipher ? jadeColor : jadeColor.opacity(0.12))
+                            .overlay(RoundedRectangle(cornerRadius: 9)
+                                .stroke(jadeColor.opacity(canDecipher ? 0.6 : 0.20), lineWidth: 1))
+                    )
+            }
+            .disabled(!canDecipher)
         }
     }
 
@@ -880,6 +900,72 @@ struct MayanWheelView: View {
         .shadow(color: .black.opacity(0.5), radius: 20, x: 0, y: 8)
         .padding(.horizontal, 24)
         .frame(maxHeight: maxHeight)
+    }
+
+    // MARK: - Help Dialog
+
+    private var mayanWheelHelpDialog: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Text("🌿  How to Play")
+                    .font(EgyptFont.titleBold(20))
+                    .foregroundStyle(jadeColor)
+                Spacer()
+                Button { withAnimation { showHelp = false } } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 22))
+                        .foregroundStyle(jadeColor.opacity(0.70))
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.bottom, 14)
+
+            mayanHelpRow(number: "1", title: "Spin the outer wheel",
+                         body: "Tap any outer cell to cycle its glyph. Each glyph must appear once in the outer ring.")
+            mayanHelpRow(number: "2", title: "Spin the inner wheel",
+                         body: "Tap any inner cell to cycle its glyph. Each glyph must appear once in the inner ring.")
+            mayanHelpRow(number: "3", title: "Decipher when ready",
+                         body: "Tap Decipher when both rings are filled. Wrong cells flash red — use logic to find the correct positions.")
+
+            Button { withAnimation { showHelp = false } } label: {
+                Text("Got it")
+                    .font(EgyptFont.titleBold(17))
+                    .foregroundStyle(Color(red: 0.06, green: 0.12, blue: 0.08))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 13)
+                    .background(RoundedRectangle(cornerRadius: 10).fill(jadeColor))
+            }
+            .buttonStyle(.plain)
+            .padding(.top, 16)
+        }
+        .padding(22)
+        .background(
+            RoundedRectangle(cornerRadius: 18)
+                .fill(Color(red: 0.04, green: 0.08, blue: 0.05))
+                .overlay(RoundedRectangle(cornerRadius: 18)
+                    .stroke(jadeColor.opacity(0.45), lineWidth: 1.5))
+        )
+        .padding(.horizontal, 20)
+    }
+
+    private func mayanHelpRow(number: String, title: String, body: String) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Text(number)
+                .font(EgyptFont.titleBold(16))
+                .foregroundStyle(jadeColor)
+                .frame(width: 22, alignment: .center)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(EgyptFont.titleBold(15))
+                    .foregroundStyle(Color.papyrus)
+                Text(body)
+                    .font(EgyptFont.body(13))
+                    .foregroundStyle(Color.papyrus.opacity(0.75))
+                    .lineSpacing(3)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(.bottom, 12)
     }
 
     // MARK: - Background & Helpers

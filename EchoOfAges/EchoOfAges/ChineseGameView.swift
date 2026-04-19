@@ -141,40 +141,46 @@ struct ChineseGameView: View {
 
     private var headerBar: some View {
         HStack {
-            Button(action: { gameState.closeChineseGame() }) {
-                HStack(spacing: 6) {
+            Button {
+                HapticFeedback.tap()
+                gameState.closeChineseGame()
+            } label: {
+                HStack(spacing: 4) {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 14, weight: .semibold))
                     Text("Return")
-                        .font(EgyptFont.body(17))
+                        .font(EgyptFont.titleBold(15))
                 }
                 .foregroundStyle(vermillion)
             }
+            .frame(minWidth: 80, alignment: .leading)
+
             Spacer()
-            VStack(spacing: 1) {
-                Text("木工")
-                    .font(EgyptFont.titleBold(18))
-                    .foregroundStyle(vermillion)
-                Text("Wooden Puzzle")
-                    .font(EgyptFont.body(11))
-                    .foregroundStyle(vermillion.opacity(0.60))
-            }
+
+            Text("木工  Chinese")
+                .font(EgyptFont.titleBold(16))
+                .foregroundStyle(vermillion)
+                .tracking(1)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+
             Spacer()
-            HStack(spacing: 12) {
+
+            HStack(spacing: 10) {
                 Text(level.romanNumeral)
-                    .font(EgyptFont.titleBold(22))
-                    .foregroundStyle(warmGold)
+                    .font(EgyptFont.titleBold(15))
+                    .foregroundStyle(warmGold.opacity(0.85))
                 Button { withAnimation { showHelp = true } } label: {
                     Image(systemName: "questionmark.circle.fill")
                         .font(.system(size: 22))
-                        .foregroundStyle(warmGold.opacity(0.80))
+                        .foregroundStyle(warmGold)
                 }
                 .buttonStyle(.plain)
             }
-            .frame(width: 70, alignment: .trailing)
+            .frame(minWidth: 80, alignment: .trailing)
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 14)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
         .background(
             Color.stoneDark
                 .overlay(
@@ -612,49 +618,41 @@ struct ChineseGameView: View {
         HStack(spacing: 12) {
             Button(action: {
                 HapticFeedback.tap()
-                verifyPlacement()
+                gameState.resetChinesePieces()
             }) {
-                HStack(spacing: 8) {
-                    Image(systemName: "magnifyingglass")
-                        .font(.system(size: 15))
-                    Text("Verify")
-                        .font(EgyptFont.title(15))
-                }
-                .foregroundStyle(warmGold)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 13)
-                .background(
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(warmGold.opacity(0.10))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 10)
-                                .stroke(warmGold.opacity(0.45), lineWidth: 1)
-                        )
-                )
+                Label("Reset", systemImage: "arrow.counterclockwise")
+                    .font(EgyptFont.titleBold(15))
+                    .foregroundStyle(Color.stoneLight)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(
+                        RoundedRectangle(cornerRadius: 9)
+                            .fill(Color.stoneMid.opacity(0.12))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 9)
+                                    .stroke(Color.stoneMid.opacity(0.40), lineWidth: 1)
+                            )
+                    )
             }
             .buttonStyle(.plain)
 
             Button(action: {
                 HapticFeedback.tap()
-                gameState.resetChinesePieces()
+                verifyPlacement()
             }) {
-                HStack(spacing: 8) {
-                    Image(systemName: "arrow.counterclockwise")
-                        .font(.system(size: 15))
-                    Text("Reset")
-                        .font(EgyptFont.title(15))
-                }
-                .foregroundStyle(Color.stoneLight)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 13)
-                .background(
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(Color.stoneMid.opacity(0.12))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 10)
-                                .stroke(Color.stoneMid.opacity(0.40), lineWidth: 1)
-                        )
-                )
+                Label("Decipher", systemImage: "checkmark.seal")
+                    .font(EgyptFont.titleBold(15))
+                    .foregroundStyle(Color.stoneDark)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(
+                        RoundedRectangle(cornerRadius: 9)
+                            .fill(warmGold)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 9)
+                                    .stroke(warmGold.opacity(0.6), lineWidth: 1)
+                            )
+                    )
             }
             .buttonStyle(.plain)
         }

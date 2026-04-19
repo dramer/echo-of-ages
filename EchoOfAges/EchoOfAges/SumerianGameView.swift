@@ -128,43 +128,46 @@ struct SumerianGameView: View {
 
     private var headerBar: some View {
         HStack {
-            Button { HapticFeedback.tap(); gameState.closeSumerianGame() } label: {
-                HStack(spacing: 5) {
+            Button {
+                HapticFeedback.tap()
+                gameState.closeSumerianGame()
+            } label: {
+                HStack(spacing: 4) {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 14, weight: .semibold))
                     Text("Return")
-                        .font(EgyptFont.body(15))
+                        .font(EgyptFont.titleBold(15))
                 }
                 .foregroundStyle(clayDark)
             }
             .frame(minWidth: 80, alignment: .leading)
+
             Spacer()
-            VStack(spacing: 1) {
-                Text("𒀭 𒆳 𒀀 𒌓 𒃲")
-                    .font(.system(size: 13))
-                    .foregroundStyle(clayDark.opacity(0.50))
-                    .tracking(4)
-                Text("Cuneiform Cipher")
-                    .font(EgyptFont.title(11))
-                    .foregroundStyle(clayDark.opacity(0.50))
-                    .tracking(2)
-            }
+
+            Text("𒀭  Sumerian")
+                .font(EgyptFont.titleBold(16))
+                .foregroundStyle(clayDark)
+                .tracking(1)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+
             Spacer()
-            HStack(spacing: 14) {
+
+            HStack(spacing: 10) {
                 Text(level.romanNumeral)
-                    .font(EgyptFont.titleBold(20))
-                    .foregroundStyle(clayDark)
+                    .font(EgyptFont.titleBold(15))
+                    .foregroundStyle(clayDark.opacity(0.75))
                 Button { withAnimation { showHelpDialog = true } } label: {
                     Image(systemName: "questionmark.circle.fill")
                         .font(.system(size: 22))
-                        .foregroundStyle(clayDark.opacity(0.75))
+                        .foregroundStyle(clayDark)
                 }
                 .buttonStyle(.plain)
             }
             .frame(minWidth: 80, alignment: .trailing)
         }
-        .padding(.horizontal, 8)
-        .frame(height: 56)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
         .background(Color(red: 0.72, green: 0.54, blue: 0.34).opacity(0.6))
     }
 

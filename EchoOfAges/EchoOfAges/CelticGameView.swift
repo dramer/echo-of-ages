@@ -102,53 +102,56 @@ struct CelticGameView: View {
     // MARK: - Header
 
     private var celticHeader: some View {
-        ZStack {
-            Color.celticStone.opacity(0.25)
-            HStack {
-                Button {
-                    gameState.closeCelticGame()
-                } label: {
-                    HStack(spacing: 5) {
-                        Image(systemName: "chevron.left")
-                            .font(.system(size: 14, weight: .semibold))
-                        Text("Return")
-                            .font(EgyptFont.body(15))
-                    }
-                    .foregroundStyle(Color.celticGold)
-                    .padding(.leading, 16)
+        HStack {
+            Button {
+                HapticFeedback.tap()
+                gameState.closeCelticGame()
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 14, weight: .semibold))
+                    Text("Return")
+                        .font(EgyptFont.titleBold(15))
                 }
-                Spacer()
-                VStack(spacing: 2) {
-                    Text(difficulty.title)
-                        .font(.custom("Cinzel-Regular", size: 15))
-                        .foregroundStyle(Color.celticGold)
-                    Text("Stone \(difficulty.romanNumeral)  ·  Celtic / Druidic")
-                        .font(.system(size: 11))
-                        .foregroundStyle(Color.celticParchment.opacity(0.6))
-                }
-                Spacer()
-                HStack(spacing: 10) {
-                    ForEach(1...5, id: \.self) { i in
-                        Circle()
-                            .fill(gameState.celticUnlockedLevels.contains(i)
-                                  ? Color.celticGold
-                                  : (i == difficulty.id
-                                     ? Color.celticGold.opacity(0.5)
-                                     : Color.celticParchment.opacity(0.2)))
-                            .frame(width: 6, height: 6)
-                    }
-                    Button { withAnimation { showHelp = true } } label: {
-                        Image(systemName: "questionmark.circle.fill")
-                            .font(.system(size: 20))
-                            .foregroundStyle(Color.celticGold.opacity(0.80))
-                    }
-                    .buttonStyle(.plain)
-                }
-                .padding(.trailing, 16)
+                .foregroundStyle(Color.celticGold)
             }
-            .padding(.vertical, 12)
+            .frame(minWidth: 80, alignment: .leading)
+
+            Spacer()
+
+            Text("ᚁ  Celtic")
+                .font(EgyptFont.titleBold(16))
+                .foregroundStyle(Color.celticGold)
+                .tracking(1)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+
+            Spacer()
+
+            HStack(spacing: 10) {
+                Text(difficulty.romanNumeral)
+                    .font(EgyptFont.titleBold(15))
+                    .foregroundStyle(Color.celticGold.opacity(0.75))
+                Button { withAnimation { showHelp = true } } label: {
+                    Image(systemName: "questionmark.circle.fill")
+                        .font(.system(size: 22))
+                        .foregroundStyle(Color.celticGold)
+                }
+                .buttonStyle(.plain)
+            }
+            .frame(minWidth: 80, alignment: .trailing)
         }
-        .frame(height: 60)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(
+            Color.celticStone.opacity(0.35)
+                .overlay(
+                    Rectangle()
+                        .fill(Color.celticGold.opacity(0.25))
+                        .frame(height: 0.8),
+                    alignment: .bottom
+                )
+        )
     }
 
     // MARK: - Subtitle
@@ -399,15 +402,21 @@ struct CelticGameView: View {
     // MARK: - Action Buttons
 
     private var actionButtons: some View {
-        HStack(spacing: 14) {
-            Button { gameState.verifyCelticPlacement() } label: {
-                StoneButton(title: "Verify", icon: "checkmark.seal")
-            }
-            Button { gameState.resetCelticGrid() } label: {
+        HStack(spacing: 12) {
+            Button {
+                HapticFeedback.tap()
+                gameState.resetCelticGrid()
+            } label: {
                 StoneButton(title: "Reset", icon: "arrow.counterclockwise", style: .muted)
             }
+            Button {
+                HapticFeedback.tap()
+                gameState.verifyCelticPlacement()
+            } label: {
+                StoneButton(title: "Decipher", icon: "checkmark.seal")
+            }
         }
-        .padding(.horizontal, 20)
+        .padding(.horizontal, 16)
     }
 
     // MARK: - Help Dialog
