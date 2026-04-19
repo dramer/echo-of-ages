@@ -182,28 +182,39 @@ extension ChineseBoxLevel {
     // ── LEVEL 1 ─────────────────────────────────────────────────────────────
     // 3×4 tray, 3 pieces — I-4 strip + two L-hooks (same shape, two rotations)
     //
-    //   A A A A
-    //   B B B C
-    //   B C C C
+    // TWO valid tray packings exist:
+    //   Packing 1 (correct) — strip at top:     Packing 2 (wrong) — strip at bottom:
+    //     A A A A                                  B B B C
+    //     B B B C                                  B C C C
+    //     B C C C                                  A A A A
     //
-    // Pieces:
-    //   A = I-4  baseCells [(0,0),(0,1),(0,2),(0,3)]
-    //   B = L-4  baseCells [(0,0),(1,0),(2,0),(2,1)]  — placed at rot1
-    //   C = L-4  baseCells [(0,0),(1,0),(2,0),(2,1)]  — placed at rot3
+    // Gate mark design — marks must land ADJACENT for the gate to pass:
+    //   A (strip): gate mark at baseCells[2]=(0,2).
+    //     Packing 1 — A@(0,0)rot0: mark → board (0,2)
+    //     Packing 2 — A@(2,0)rot0: mark → board (2,2)
     //
-    // Rotation verification:
-    //   L rot1 = [(0,0),(0,1),(0,2),(1,0)]
-    //   L rot3 = [(0,2),(1,0),(1,1),(1,2)]
+    //   B (hook):  gate mark at baseCells[0]=(0,0).
+    //     Packing 1 — B@(1,0)rot1: baseCells[0]→rot1[0]=(0,2) → board (1,2)
+    //     Packing 2 — B@(0,0)rot1: baseCells[0]→rot1[0]=(0,2) → board (0,2)
     //
-    // Solution placements:
+    //   Packing 1: A mark=(0,2), B mark=(1,2) → vertically adjacent ✓  GATE PASSES
+    //   Packing 2: A mark=(2,2), B mark=(0,2) → two rows apart        ✗  GATE FAILS, board resets
+    //
+    // Rotation verification (L rot1 from baseCells [(0,0),(1,0),(2,0),(2,1)]):
+    //   apply (r,c)→(c,-r): (0,0)→(0,0) (1,0)→(0,-1) (2,0)→(0,-2) (2,1)→(1,-2)
+    //   normalize (+2 col):  (0,2)(0,1)(0,0)(1,0)
+    //
+    // L rot3: (1,0)(1,1)(1,2)(0,2)
+    //
+    // Solution placements (Packing 1):
     //   A@(0,0)rot0 → (0,0)(0,1)(0,2)(0,3)
     //   B@(1,0)rot1 → (1,0)(1,1)(1,2)(2,0)
     //   C@(1,1)rot3 → (1,3)(2,1)(2,2)(2,3)
     //
     // Verified cell map (all 12 cells):
-    //   (0,0)=A (0,1)=A (0,2)=A (0,3)=A
-    //   (1,0)=B (1,1)=B (1,2)=B (1,3)=C
-    //   (2,0)=B (2,1)=C (2,2)=C (2,3)=C  ✓
+    //   (0,0)=A (0,1)=A (0,2)=A✦ (0,3)=A
+    //   (1,0)=B (1,1)=B (1,2)=B✦ (1,3)=C
+    //   (2,0)=B (2,1)=C (2,2)=C  (2,3)=C  ✓  marks at (0,2)↕(1,2) — adjacent
     static let level1 = ChineseBoxLevel(
         id: 1,
         title: "The Turning Pieces",
@@ -216,19 +227,20 @@ extension ChineseBoxLevel {
         ],
         rows: 3, cols: 4,
         pieces: [
+            // Gate mark: baseCells[2]=(0,2) → rot0=(0,2) → board(0,2). Celtic ᚅ carved on the strip.
             ChineseBoxPiece(id: "A", name: "條", meaning: "Strip",
                             colorHex: "B5813A",
-                            baseCells: [(0,0),(0,1),(0,2),(0,3)]),
-            // Gate mark: baseCells[0]=(0,0) → rot1=(0,2) → board(1,2). Celtic ᚅ carved here.
+                            baseCells: [(0,0),(0,1),(0,2),(0,3)],
+                            gateMarkCellIndex: 2, gateMarkSymbol: "ᚅ"),
+            // Gate mark: baseCells[0]=(0,0) → rot1[0]=(0,2) → board(1,2). Maya ᛚ carved here.
             ChineseBoxPiece(id: "B", name: "鉤", meaning: "Hook",
                             colorHex: "9A6B2E",
                             baseCells: [(0,0),(1,0),(2,0),(2,1)],
-                            gateMarkCellIndex: 0, gateMarkSymbol: "ᚅ"),
-            // Gate mark: baseCells[3]=(2,1) → rot3=(0,2) → board(1,3). Maya ᛚ carved here.
+                            gateMarkCellIndex: 0, gateMarkSymbol: "ᛚ"),
+            // No gate mark on piece C.
             ChineseBoxPiece(id: "C", name: "鉤", meaning: "Hook",
                             colorHex: "C4924A",
-                            baseCells: [(0,0),(1,0),(2,0),(2,1)],
-                            gateMarkCellIndex: 3, gateMarkSymbol: "ᛚ")
+                            baseCells: [(0,0),(1,0),(2,0),(2,1)])
         ],
         // A@(0,0)rot0 → (0,0)(0,1)(0,2)(0,3)
         // B@(1,0)rot1 → (1,0)(1,1)(1,2)(2,0)

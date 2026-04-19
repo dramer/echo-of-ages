@@ -1010,6 +1010,8 @@ final class GameState: ObservableObject {
     @Published var chineseSelectedPieceId: String? = nil
     @Published var chineseArmedRotation: Int = 0
     @Published var chinesePendingComplete: Bool = false
+    /// True while the gate-mark mismatch error flash is playing on Level 1.
+    @Published var chineseGateMarkError: Bool = false
 
     var chineseCurrentLevel: ChineseBoxLevel { ChineseBoxLevel.allLevels[chineseCurrentLevelIndex] }
 
@@ -1937,11 +1939,43 @@ final class GameState: ObservableObject {
         HapticFeedback.tap()
         soundManager?.playEffect(.place)
         if level.isSolved(chinesePlacedPieces) {
-            // Level 1 gate: the two marks (ᛚ on Hook C, ᚅ on Hook B) appear
-            // adjacent automatically when the puzzle is solved — no picker needed.
-            if chineseCurrentLevelIndex == 0 { passKeyGate(for: .chinese) }
-            completeChineseLevel()
+            if chineseCurrentLevelIndex == 0 {
+                // Level 1 gate: the strip (ᚅ) and hook (ᛚ) marks must land
+                // on adjacent cells. The tray has two valid packings — only one
+                // puts the marks side by side. Wrong packing: flash and reset.
+                if chineseLevel1MarksAdjacent() {
+                    passKeyGate(for: .chinese)
+                    completeChineseLevel()
+                } else {
+                    HapticFeedback.error()
+                    soundManager?.playEffect(.error)
+                    chineseGateMarkError = true
+                    Task {
+                        try? await Task.sleep(nanoseconds: 1_800_000_000)
+                        chineseGateMarkError = false
+                        resetChinesePieces()
+                    }
+                }
+            } else {
+                completeChineseLevel()
+            }
         }
+    }
+
+    /// Returns true when all gate-marked pieces in the current Chinese level
+    /// land on mutually adjacent (horizontally or vertically neighbouring) cells.
+    private func chineseLevel1MarksAdjacent() -> Bool {
+        let level = chineseCurrentLevel
+        var marks: [(Int, Int)] = []
+        for piece in level.pieces {
+            guard let placement = chinesePlacedPieces[piece.id],
+                  let mark = piece.gateMarkBoardCell(at: placement) else { continue }
+            marks.append((mark.row, mark.col))
+        }
+        guard marks.count == 2 else { return false }
+        let dr = abs(marks[0].0 - marks[1].0)
+        let dc = abs(marks[0].1 - marks[1].1)
+        return (dr == 1 && dc == 0) || (dr == 0 && dc == 1)
     }
 
     func removeChinesePiece(id: String) {

@@ -292,24 +292,33 @@ struct ChineseGameView: View {
                 let gateMark  = placement.flatMap { piece.gateMarkBoardCell(at: $0) }
                 let isMarkCell = gateMark.map { $0.row == row && $0.col == col } ?? false
                 let glowing   = isMarkCell && glowGateCells
+                let markError = isMarkCell && gameState.chineseGateMarkError
 
                 RoundedRectangle(cornerRadius: 6)
-                    .fill(Color(hex: piece.colorHex) ?? warmGold)
+                    .fill(markError
+                          ? Color.red.opacity(0.55)
+                          : Color(hex: piece.colorHex) ?? warmGold)
                     .overlay(
                         RoundedRectangle(cornerRadius: 6)
-                            .stroke(Color.black.opacity(0.20), lineWidth: 0.5)
+                            .stroke(markError
+                                    ? Color.red.opacity(0.85)
+                                    : Color.black.opacity(0.20),
+                                    lineWidth: markError ? 1.5 : 0.5)
                     )
                     .shadow(color: glowing
                             ? Color.white.opacity(0.90)
-                            : Color.black.opacity(0.25),
-                            radius: glowing ? 10 : 2, x: 0, y: 1)
+                            : (markError ? Color.red.opacity(0.60) : Color.black.opacity(0.25)),
+                            radius: glowing ? 10 : (markError ? 8 : 2), x: 0, y: 1)
                     .padding(1)
+                    .animation(.easeInOut(duration: 0.25), value: markError)
 
                 if isMarkCell, let symbol = gateMark?.symbol {
                     // Gate mark carved into the wood — larger than piece name
                     Text(symbol)
                         .font(.system(size: cs * 0.46))
-                        .foregroundStyle(Color.black.opacity(glowing ? 0.90 : 0.55))
+                        .foregroundStyle(markError
+                                         ? Color.white.opacity(0.95)
+                                         : Color.black.opacity(glowing ? 0.90 : 0.55))
                         .shadow(color: glowing ? Color.white.opacity(0.80) : .clear,
                                 radius: 6, x: 0, y: 0)
                 } else {
