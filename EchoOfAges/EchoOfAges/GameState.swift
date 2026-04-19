@@ -2013,6 +2013,14 @@ final class GameState: ObservableObject {
     func debugSolveChineseLevel(_ level: ChineseBoxLevel) {
         guard let idx = ChineseBoxLevel.allLevels.firstIndex(where: { $0.id == level.id }) else { return }
         loadChineseLevel(idx)
+        // Auto-pass the two-slot key gate on Level 1 so the solve isn't blocked
+        if idx == 0 && needsKeyGate(for: .chinese) {
+            mysteryMarkIndex[.chinese] = TreeOfLifeKeys.chinaSlot1Choices
+                .firstIndex(of: TreeOfLifeKeys.maya) ?? 0
+            chinaMysteryMarkIndex2 = TreeOfLifeKeys.chinaSlot2Choices
+                .firstIndex(of: TreeOfLifeKeys.celtic) ?? 0
+            passKeyGate(for: .chinese)
+        }
         chinesePlacedPieces = ChineseBoxLevel.allLevels[idx].solutionPlacements
         completeChineseLevel()
     }
