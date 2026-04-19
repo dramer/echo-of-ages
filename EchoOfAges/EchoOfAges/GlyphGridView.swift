@@ -22,6 +22,12 @@ struct GameView: View {
     @State private var toastDismissTask: Task<Void, Never>? = nil
     @State private var showHelp:         Bool   = false
 
+    // Egyptian Nudge — shown once on Level 1, first play ever
+    @State private var showNudge:    Bool   = false
+    @State private var paletteFrame: CGRect = .zero
+    @State private var gridFrame:    CGRect = .zero
+    @State private var decipherFrame: CGRect = .zero
+
     // MARK: Body
 
     var body: some View {
@@ -40,12 +46,30 @@ struct GameView: View {
                             GlyphGridView(availableWidth: geo.size.width - 32,
                                           availableHeight: 600)
                                 .padding(.horizontal, 16)
+                                .background(GeometryReader { g in
+                                    Color.clear.onAppear {
+                                        gridFrame = g.frame(in: .global)
+                                    }
+                                })
 
                             palette
                                 .padding(.horizontal, 16)
+                                .background(GeometryReader { g in
+                                    Color.clear.onAppear {
+                                        paletteFrame = g.frame(in: .global)
+                                    }
+                                })
 
                             actionRow
                                 .padding(.horizontal, 16)
+                                .background(GeometryReader { g in
+                                    Color.clear.onAppear {
+                                        let f = g.frame(in: .global)
+                                        // Spotlight just the Decipher button (right half)
+                                        decipherFrame = CGRect(x: f.midX, y: f.minY,
+                                                               width: f.width / 2, height: f.height)
+                                    }
+                                })
 
                             secondaryRow
                                 .padding(.horizontal, 16)
@@ -63,6 +87,18 @@ struct GameView: View {
                     egyptHelpDialog
                         .transition(.scale(scale: 0.93).combined(with: .opacity))
                         .zIndex(10)
+                }
+
+                // First-play Egyptian nudge — level 1 only, fires once ever
+                if showNudge && !paletteFrame.isEmpty && !gridFrame.isEmpty && !decipherFrame.isEmpty {
+                    EgyptianNudge(
+                        isVisible: $showNudge,
+                        paletteFrame:  paletteFrame,
+                        gridFrame:     gridFrame,
+                        decipherFrame: decipherFrame
+                    )
+                    .transition(.opacity)
+                    .zIndex(20)
                 }
 
                 // Centred toast overlay
@@ -90,6 +126,15 @@ struct GameView: View {
             guard let msg = message else { return }
             showToast(msg, duration: 6.0)
             gameState.egyptPenaltyMessage = nil
+        }
+        .onAppear {
+            // Show the nudge on Level 1 first play, with a small delay so
+            // the GeometryReaders have time to capture their frames.
+            if gameState.currentLevelIndex == 0 && shouldShowEgyptNudge() {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                    withAnimation(.easeIn(duration: 0.3)) { showNudge = true }
+                }
+            }
         }
     }
 

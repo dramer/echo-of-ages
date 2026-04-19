@@ -31,6 +31,7 @@ private enum DiaryPage: Equatable {
     case rosettaStone
     case champollionMethod
     case howToPlay
+    case fieldMethods     // one illustrated card per civilization explaining its puzzle mechanic
     case howToSolve
     case inspirationPage        // Why Echo of Ages was created — tribute to Cliff Johnson
     case settingsPage
@@ -67,7 +68,7 @@ struct JournalView: View {
         var list: [DiaryPage] = [
             .frontPage, .tableOfContents,
             .drMandu, .mapPage, .tabletStory, .tabletGrid, .civilizations,
-            .howToPlay,
+            .howToPlay, .fieldMethods,
             .egyptPuzzle, .mesopotamiaPuzzle, .greecePuzzle,
             .chinaPuzzle, .norsePuzzle, .mesoamericanPuzzle
         ]
@@ -336,6 +337,7 @@ private struct BookPage: View {
         case .rosettaStone:        RosettaStoneContent()
         case .champollionMethod:   ChampollionContent()
         case .howToPlay:           HowToPlayContent()
+        case .fieldMethods:        FieldMethodsContent()
         case .howToSolve:          HowToSolveContent()
         case .inspirationPage:     InspirationPageContent()
         case .settingsPage:        SettingsJournalContent()
@@ -472,6 +474,7 @@ private struct TableOfContentsContent: View {
             TOCEntry(label: "The Stone Tablet",       icon: "square.grid.3x3.fill", page: .tabletGrid),
             TOCEntry(label: "Civilizations",          icon: "globe",                page: .civilizations),
             TOCEntry(label: "How to Play",            icon: "questionmark.circle.fill", page: .howToPlay),
+            TOCEntry(label: "Field Methods",          icon: "puzzlepiece.fill",         page: .fieldMethods),
             TOCEntry(label: "Field Notes",            icon: "note.text",            page: .fieldNotes),
             TOCEntry(label: "The Rosetta Stone",      icon: "doc.text.fill",        page: .rosettaStone),
             TOCEntry(label: "Champollion's Method",   icon: "text.magnifyingglass", page: .champollionMethod),
@@ -1189,6 +1192,117 @@ private struct HowToPlayContent: View {
                 }
             }
         }
+    }
+}
+
+// MARK: - Field Methods Page (one illustrated card per civilization)
+
+private struct FieldMethodsContent: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HandTitle(text: "Field Methods")
+            HandBody(text: "Each civilization sealed its knowledge in a different form. Six sites. Six puzzles. The rules are not written on the walls — they must be discovered.", size: 14)
+            Spacer(minLength: 12)
+
+            VStack(spacing: 10) {
+                MethodCard(
+                    emblem: "𓂀",
+                    civilization: "Egypt — The Inscription Grid",
+                    mechanic: "Latin square",
+                    description: "A stone tablet divided into rows and columns. Each hieroglyph appears exactly once in every row and once in every column. Some cells are already carved. The rest must be deduced — no guessing required.",
+                    accentColor: Color(red: 0.72, green: 0.52, blue: 0.18)
+                )
+                MethodCard(
+                    emblem: "ᚠ",
+                    civilization: "Norse — The Runestone Path",
+                    mechanic: "Pathfinding maze",
+                    description: "A grid of cells. Find the single unbroken path from start to finish that visits every cell exactly once. Tap cells to draw the route. Long-press to erase a step.",
+                    accentColor: Color(red: 0.40, green: 0.55, blue: 0.80)
+                )
+                MethodCard(
+                    emblem: "𒀭",
+                    civilization: "Sumerian — The Cipher Tablet",
+                    mechanic: "Substitution cipher",
+                    description: "Cuneiform signs stand in for hidden symbols. Clue tablets reveal which signs are truthful and which deceive. Use logic to eliminate — the correct reading is the only one that doesn't contradict itself.",
+                    accentColor: Color(red: 0.70, green: 0.48, blue: 0.22)
+                )
+                MethodCard(
+                    emblem: "☽",
+                    civilization: "Maya — The Calendar Wheels",
+                    mechanic: "Rotating wheel alignment",
+                    description: "Three interlocking calendar rings. Each ring holds a sequence of symbols. Rotate the rings until the symbols align correctly in the reading window — the Long Count does not forgive partial answers.",
+                    accentColor: Color(red: 0.40, green: 0.65, blue: 0.42)
+                )
+                MethodCard(
+                    emblem: "ᚅ",
+                    civilization: "Celtic — The Ogham Stones",
+                    mechanic: "Sequence ordering",
+                    description: "Sacred Ogham marks must be placed in the correct ceremonial order. The inscriptions on each stone hold the clue — read them carefully. The grove remembers the right arrangement.",
+                    accentColor: Color(red: 0.35, green: 0.52, blue: 0.28)
+                )
+                MethodCard(
+                    emblem: "木",
+                    civilization: "China — The Wooden Tray",
+                    mechanic: "Tangram / fitting puzzle",
+                    description: "Carved wooden pieces must fill the lacquered tray exactly — no gaps, no overlaps. Each piece can be rotated. Drag from the palette onto the board. Two pieces carry marks from other lands.",
+                    accentColor: Color(red: 0.72, green: 0.24, blue: 0.14)
+                )
+            }
+        }
+    }
+}
+
+private struct MethodCard: View {
+    let emblem: String
+    let civilization: String
+    let mechanic: String
+    let description: String
+    let accentColor: Color
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            // Emblem column
+            VStack(spacing: 4) {
+                Text(emblem)
+                    .font(.system(size: 26))
+                    .foregroundStyle(accentColor)
+                    .frame(width: 38, height: 38)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(accentColor.opacity(0.12))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(accentColor.opacity(0.35), lineWidth: 1)
+                            )
+                    )
+                Text(mechanic)
+                    .font(handFont(8))
+                    .foregroundStyle(accentColor.opacity(0.70))
+                    .multilineTextAlignment(.center)
+                    .frame(width: 52)
+            }
+
+            // Text column
+            VStack(alignment: .leading, spacing: 3) {
+                Text(civilization)
+                    .font(handFont(13, bold: true))
+                    .foregroundStyle(Color.inkBlue)
+                Text(description)
+                    .font(handFont(12))
+                    .foregroundStyle(Color.inkSepia.opacity(0.85))
+                    .lineSpacing(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(10)
+        .background(
+            RoundedRectangle(cornerRadius: 10)
+                .fill(Color.paperDark.opacity(0.55))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10)
+                        .stroke(accentColor.opacity(0.25), lineWidth: 0.8)
+                )
+        )
     }
 }
 
