@@ -34,6 +34,9 @@ struct ChineseGameView: View {
     @State private var ghostAnchor: (row: Int, col: Int)? = nil
     @State private var cellGridOrigin: CGPoint            = .zero
 
+    // Gate mark reveal glow — briefly highlights the two adjacent marked cells on L1 solve
+    @State private var glowGateCells: Bool = false
+
     private var level: ChineseBoxLevel { gameState.chineseCurrentLevel }
 
     // MARK: - Colors
@@ -64,10 +67,6 @@ struct ChineseGameView: View {
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 14) {
                         levelHeader
-                        if gameState.chineseCurrentLevelIndex == 0
-                            && gameState.needsKeyGate(for: .chinese) {
-                            chineseMysteryMarkSlots
-                        }
                         boardSection(cellSize: computedCellSize)
                         piecesPalette
                         actionRow
@@ -98,6 +97,14 @@ struct ChineseGameView: View {
         }
         .onChange(of: gameState.chinesePendingComplete) { _, newVal in
             if newVal {
+                // On Level 1, briefly pulse the two gate-mark cells before the card appears
+                if gameState.chineseCurrentLevelIndex == 0 {
+                    withAnimation(.easeInOut(duration: 0.35)) { glowGateCells = true }
+                    Task {
+                        try? await Task.sleep(nanoseconds: 900_000_000)
+                        withAnimation(.easeOut(duration: 0.4)) { glowGateCells = false }
+                    }
+                }
                 withAnimation(.spring(response: 0.5, dampingFraction: 0.72)) {
                     showComplete = true
                 }
@@ -106,6 +113,7 @@ struct ChineseGameView: View {
                     withAnimation(.easeOut(duration: 0.6)) { messageRevealed = true }
                 }
             } else {
+                glowGateCells = false
                 withAnimation(.easeOut(duration: 0.25)) {
                     showComplete = false
                     messageRevealed = false
@@ -195,98 +203,6 @@ struct ChineseGameView: View {
         )
     }
 
-    // MARK: - Mystery Mark Slots (Chinese Level 1 key gate — two marks required)
-
-    private var chineseMysteryMarkSlots: some View {
-        let symbol1 = gameState.mysteryMarkCurrent(for: .chinese)
-        let symbol2 = gameState.chinaMysteryMarkCurrent2
-        let isWrong = gameState.mysteryMarkWrongFlash
-
-        return HStack(alignment: .center, spacing: 16) {
-            // Slot 1: From Maya ruins
-            VStack(spacing: 6) {
-                Text("From Maya ruins")
-                    .font(EgyptFont.bodyItalic(11))
-                    .foregroundStyle(vermillion.opacity(0.75))
-                Button { gameState.cycleMysteryMark(for: .chinese) } label: {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill(isWrong
-                                ? Color(red: 0.55, green: 0.10, blue: 0.08)
-                                : Color.stoneDark.opacity(0.88))
-                            .overlay(RoundedRectangle(cornerRadius: 8)
-                                .stroke(isWrong ? Color.red.opacity(0.75) : vermillion.opacity(0.80), lineWidth: 2))
-                        VStack(spacing: 2) {
-                            Text(symbol1)
-                                .font(.system(size: 30))
-                                .foregroundStyle(isWrong ? Color(red: 1.0, green: 0.55, blue: 0.45) : Color.goldBright)
-                                .contentTransition(.numericText())
-                            Image(systemName: "arrow.2.circlepath")
-                                .font(.system(size: 10, weight: .semibold))
-                                .foregroundStyle(Color.goldBright.opacity(0.60))
-                        }
-                    }
-                    .frame(width: 62, height: 62)
-                }
-                .buttonStyle(.plain)
-            }
-
-            Text("&")
-                .font(EgyptFont.titleBold(22))
-                .foregroundStyle(vermillion.opacity(0.55))
-
-            // Slot 2: From Celtic grove
-            VStack(spacing: 6) {
-                Text("From Celtic grove")
-                    .font(EgyptFont.bodyItalic(11))
-                    .foregroundStyle(vermillion.opacity(0.75))
-                Button { gameState.cycleChinaMysteryMark2() } label: {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill(isWrong
-                                ? Color(red: 0.55, green: 0.10, blue: 0.08)
-                                : Color.stoneDark.opacity(0.88))
-                            .overlay(RoundedRectangle(cornerRadius: 8)
-                                .stroke(isWrong ? Color.red.opacity(0.75) : vermillion.opacity(0.80), lineWidth: 2))
-                        VStack(spacing: 2) {
-                            Text(symbol2)
-                                .font(.system(size: 30))
-                                .foregroundStyle(isWrong ? Color(red: 1.0, green: 0.55, blue: 0.45) : Color.goldBright)
-                                .contentTransition(.numericText())
-                            Image(systemName: "arrow.2.circlepath")
-                                .font(.system(size: 10, weight: .semibold))
-                                .foregroundStyle(Color.goldBright.opacity(0.60))
-                        }
-                    }
-                    .frame(width: 62, height: 62)
-                }
-                .buttonStyle(.plain)
-            }
-
-            Spacer()
-
-            // Instruction text
-            VStack(alignment: .leading, spacing: 4) {
-                Text(isWrong ? "Check your\nField Diary" : "Identify the\nforeign marks")
-                    .font(EgyptFont.bodyItalic(12))
-                    .foregroundStyle(isWrong ? Color(red: 0.90, green: 0.40, blue: 0.35) : vermillion.opacity(0.85))
-                    .multilineTextAlignment(.leading)
-                    .animation(.easeInOut(duration: 0.2), value: isWrong)
-                Text("Tap each to cycle")
-                    .font(EgyptFont.body(10))
-                    .foregroundStyle(vermillion.opacity(0.50))
-            }
-        }
-        .padding(14)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color.stoneDark.opacity(0.90))
-                .overlay(RoundedRectangle(cornerRadius: 12)
-                    .stroke(vermillion.opacity(0.50), lineWidth: 1.5))
-        )
-        .animation(.easeInOut(duration: 0.25), value: isWrong)
-    }
-
     // MARK: - Board Section
 
     private func boardSection(cellSize cs: CGFloat) -> some View {
@@ -345,19 +261,36 @@ struct ChineseGameView: View {
             if let pieceId = occupantId,
                let piece = level.pieces.first(where: { $0.id == pieceId }) {
                 // Occupied cell — piece color
+                let placement = gameState.chinesePlacedPieces[pieceId]
+                let gateMark  = placement.flatMap { piece.gateMarkBoardCell(at: $0) }
+                let isMarkCell = gateMark.map { $0.row == row && $0.col == col } ?? false
+                let glowing   = isMarkCell && glowGateCells
+
                 RoundedRectangle(cornerRadius: 6)
                     .fill(Color(hex: piece.colorHex) ?? warmGold)
                     .overlay(
                         RoundedRectangle(cornerRadius: 6)
                             .stroke(Color.black.opacity(0.20), lineWidth: 0.5)
                     )
-                    .shadow(color: .black.opacity(0.25), radius: 2, x: 0, y: 1)
+                    .shadow(color: glowing
+                            ? Color.white.opacity(0.90)
+                            : Color.black.opacity(0.25),
+                            radius: glowing ? 10 : 2, x: 0, y: 1)
                     .padding(1)
 
-                // Piece name character (small, centered)
-                Text(piece.name)
-                    .font(.system(size: cs * 0.28, weight: .semibold))
-                    .foregroundStyle(Color.black.opacity(0.35))
+                if isMarkCell, let symbol = gateMark?.symbol {
+                    // Gate mark carved into the wood — larger than piece name
+                    Text(symbol)
+                        .font(.system(size: cs * 0.46))
+                        .foregroundStyle(Color.black.opacity(glowing ? 0.90 : 0.55))
+                        .shadow(color: glowing ? Color.white.opacity(0.80) : .clear,
+                                radius: 6, x: 0, y: 0)
+                } else {
+                    // Piece name character (small, centered)
+                    Text(piece.name)
+                        .font(.system(size: cs * 0.28, weight: .semibold))
+                        .foregroundStyle(Color.black.opacity(0.35))
+                }
             } else {
                 // Empty cell — also highlight red on verify error
                 let emptyIsError = isError || showVerifyError
@@ -629,6 +562,8 @@ struct ChineseGameView: View {
         let maxRow = (cells.map { $0.0 }.max() ?? 0) + 1
         let maxCol = (cells.map { $0.1 }.max() ?? 0) + 1
         let pieceColor = Color(hex: piece.colorHex) ?? warmGold
+        // Which local cell index carries the gate mark at this rotation?
+        let markLocalCell: (Int, Int)? = piece.gateMarkCellIndex.map { cells[$0] }
 
         ZStack(alignment: .topLeading) {
             // Invisible bounding box to anchor the ZStack
@@ -636,16 +571,25 @@ struct ChineseGameView: View {
                 .frame(width: CGFloat(maxCol) * cs,
                        height: CGFloat(maxRow) * cs)
 
-            ForEach(Array(cells.enumerated()), id: \.offset) { _, cell in
-                RoundedRectangle(cornerRadius: 2)
-                    .fill(pieceColor)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 2)
-                            .stroke(Color.black.opacity(0.25), lineWidth: 0.5)
-                    )
-                    .frame(width: cs - 1, height: cs - 1)
-                    .offset(x: CGFloat(cell.1) * cs + 0.5,
-                            y: CGFloat(cell.0) * cs + 0.5)
+            ForEach(Array(cells.enumerated()), id: \.offset) { idx, cell in
+                let isMarkCell = markLocalCell.map { $0.0 == cell.0 && $0.1 == cell.1 } ?? false
+                ZStack {
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(pieceColor)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 2)
+                                .stroke(Color.black.opacity(0.25), lineWidth: 0.5)
+                        )
+                        .frame(width: cs - 1, height: cs - 1)
+
+                    if isMarkCell, let symbol = piece.gateMarkSymbol {
+                        Text(symbol)
+                            .font(.system(size: cs * 0.55))
+                            .foregroundStyle(Color.black.opacity(0.60))
+                    }
+                }
+                .offset(x: CGFloat(cell.1) * cs + 0.5,
+                        y: CGFloat(cell.0) * cs + 0.5)
             }
         }
         .frame(width: CGFloat(maxCol) * cs, height: CGFloat(maxRow) * cs)
@@ -807,7 +751,7 @@ struct ChineseGameView: View {
             .padding(.bottom, 14)
 
             chineseHelpRow(number: "1", title: "Select a piece from the tray",
-                           body: "Tap any wooden piece at the bottom to select it. The selected piece is highlighted. Tap it again to deselect.")
+                           body: "Tap any wooden piece at the bottom to select it. The selected piece is highlighted. Some pieces carry a foreign mark carved into the wood — pay attention to where they land.")
             chineseHelpRow(number: "2", title: "Rotate before placing",
                            body: "Tap the Rotate button to turn the selected piece 90° clockwise. Pieces can be rotated up to three times.")
             chineseHelpRow(number: "3", title: "Drag the piece onto the board",

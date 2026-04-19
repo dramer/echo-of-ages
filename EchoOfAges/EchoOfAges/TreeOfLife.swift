@@ -11,8 +11,8 @@
 //   Egypt ──► Sumerian (needs Egypt's Neter 𓊹)
 //   Norse ──► Maya     (needs Norse's Laguz ᛚ)
 //   Sumerian ──► Celtic (needs Sumerian's AN 𒀭)
-//   Maya ──► China slot 1 (needs Maya's Nion ᚅ)
-//   Celtic ──► China slot 2 (needs Celtic's Nion ᚅ)
+//   Maya ──► China L1 gate mark (ᛚ carved into Hook piece C)
+//   Celtic ──► China L1 gate mark (ᚅ carved into Hook piece B)
 //   China ──► Mandu Tablet mastermind
 //
 // MANDU TABLET MASTERMIND (7 symbols, 6 slots):
@@ -48,10 +48,11 @@ enum TreeOfLifeKeys {
     /// AN cuneiform mark — what was above before the flood, the divine anchor.
     static let sumerian = "𒀭"
 
-    /// Nion/Ash, value 5 — the water was always reaching upward toward the ash.
-    static let maya     = "ᚅ"
+    /// Laguz rune — the same water mark Maya received from Norse, passed on to China.
+    /// Found carved beside a Maya calendar wheel; not a Maya glyph.
+    static let maya     = "ᛚ"
 
-    /// Nion/Ash, value 5 — the same symbol from a second source. The player's aha moment.
+    /// Nion/Ash, value 5 — the Ogham ash-tree mark found at the end of a Celtic stone.
     static let celtic   = "ᚅ"
 
     /// Qian trigram — three unbroken lines, heaven, the light that reveals all form.
@@ -148,9 +149,9 @@ enum TreeOfLifeKeys {
         }
     }
 
-    /// The two keys China requires — one from Maya, one from Celtic.
-    /// Both happen to be "ᚅ" but they arrive from different civilizations.
-    static let chinaRequiredKeys: [String] = [maya, celtic]
+    /// The two gate marks embedded in China's Level 1 wooden blocks.
+    /// ᛚ (Maya) on Hook C, ᚅ (Celtic) on Hook B — appear adjacent when solved.
+    static let chinaRequiredKeys: [String] = [maya, celtic]   // [ᛚ, ᚅ]
 
     // MARK: Choice Picker
 
@@ -167,11 +168,10 @@ enum TreeOfLifeKeys {
         }
     }
 
-    /// China's first slot choices — player must pick Maya's ᚅ.
-    static let chinaSlot1Choices: [String] = ["ᚅ", "ᚁ", "ᚂ", "ᚃ", "ᚄ", "ᛚ"]
-
-    /// China's second slot choices — player must pick Celtic's ᚅ.
-    static let chinaSlot2Choices: [String] = ["ᚅ", "𒀭", "𓊽", "ᛚ", "𓇳", "𒆷"]
+    // China's gate marks are physically embedded in the Level 1 wooden blocks
+    // (ᛚ on Hook C, ᚅ on Hook B). No cycling picker is shown — solving the
+    // puzzle reveals the marks side by side. These arrays kept for reference only.
+    static let chinaGateMarks: [String] = [maya, celtic]   // [ᛚ, ᚅ]
 
     // MARK: - Key Gate UI
 

@@ -1265,9 +1265,7 @@ final class GameState: ObservableObject {
     @Published var civKeyGateAnswered: Set<CivilizationID> = []
 
     // Mystery mark cycling — one index per civ (which candidate is currently shown)
-    // China needs a second slot (it requires keys from both Maya and Celtic)
     @Published var mysteryMarkIndex: [CivilizationID: Int] = [:]
-    @Published var chinaMysteryMarkIndex2: Int = 0
 
     // Set briefly when the player tries to complete Level 1 with the wrong mark
     @Published var mysteryMarkWrongFlash: Bool = false
@@ -1285,19 +1283,14 @@ final class GameState: ObservableObject {
     // MARK: Mystery Mark Helpers
 
     func mysteryMarkCurrent(for civ: CivilizationID) -> String {
-        let choices = civ == .chinese ? TreeOfLifeKeys.chinaSlot1Choices : TreeOfLifeKeys.choices(for: civ)
+        let choices = TreeOfLifeKeys.choices(for: civ)
         guard !choices.isEmpty else { return "" }
         guard let idx = mysteryMarkIndex[civ] else { return "" }   // nil = not yet selected
         return choices[idx % choices.count]
     }
 
-    var chinaMysteryMarkCurrent2: String {
-        let c = TreeOfLifeKeys.chinaSlot2Choices
-        return c[chinaMysteryMarkIndex2 % c.count]
-    }
-
     func cycleMysteryMark(for civ: CivilizationID) {
-        let choices = civ == .chinese ? TreeOfLifeKeys.chinaSlot1Choices : TreeOfLifeKeys.choices(for: civ)
+        let choices = TreeOfLifeKeys.choices(for: civ)
         let count = choices.count
         guard count > 0 else { return }
         if let current = mysteryMarkIndex[civ] {
@@ -1308,16 +1301,7 @@ final class GameState: ObservableObject {
         HapticFeedback.tap()
     }
 
-    func cycleChinaMysteryMark2() {
-        chinaMysteryMarkIndex2 = (chinaMysteryMarkIndex2 + 1) % TreeOfLifeKeys.chinaSlot2Choices.count
-        HapticFeedback.tap()
-    }
-
     func mysteryMarkIsCorrect(for civ: CivilizationID) -> Bool {
-        if civ == .chinese {
-            return mysteryMarkCurrent(for: .chinese) == TreeOfLifeKeys.maya
-                && chinaMysteryMarkCurrent2 == TreeOfLifeKeys.celtic
-        }
         guard let required = TreeOfLifeKeys.required(by: civ) else { return true }
         return mysteryMarkCurrent(for: civ) == required
     }
@@ -1704,7 +1688,6 @@ final class GameState: ObservableObject {
         civKeyGateAnswered.remove(civId)
         discoveredKeys.removeValue(forKey: civId)
         mysteryMarkIndex.removeValue(forKey: civId)
-        if civId == .chinese { chinaMysteryMarkIndex2 = 0 }
 
         // Reset decipher-error tracking so player can attempt perfect achievements again
         civsWithDecipherErrors.remove(civId)
@@ -1946,16 +1929,10 @@ final class GameState: ObservableObject {
         HapticFeedback.tap()
         soundManager?.playEffect(.place)
         if level.isSolved(chinesePlacedPieces) {
-            if chineseCurrentLevelIndex == 0 && needsKeyGate(for: .chinese) {
-                if mysteryMarkIsCorrect(for: .chinese) {
-                    passKeyGate(for: .chinese)
-                    completeChineseLevel()
-                } else {
-                    flashMysteryMarkWrong()
-                }
-            } else {
-                completeChineseLevel()
-            }
+            // Level 1 gate: the two marks (ᛚ on Hook C, ᚅ on Hook B) appear
+            // adjacent automatically when the puzzle is solved — no picker needed.
+            if chineseCurrentLevelIndex == 0 { passKeyGate(for: .chinese) }
+            completeChineseLevel()
         }
     }
 
@@ -2013,15 +1990,9 @@ final class GameState: ObservableObject {
     func debugSolveChineseLevel(_ level: ChineseBoxLevel) {
         guard let idx = ChineseBoxLevel.allLevels.firstIndex(where: { $0.id == level.id }) else { return }
         loadChineseLevel(idx)
-        // Auto-pass the two-slot key gate on Level 1 so the solve isn't blocked
-        if idx == 0 && needsKeyGate(for: .chinese) {
-            mysteryMarkIndex[.chinese] = TreeOfLifeKeys.chinaSlot1Choices
-                .firstIndex(of: TreeOfLifeKeys.maya) ?? 0
-            chinaMysteryMarkIndex2 = TreeOfLifeKeys.chinaSlot2Choices
-                .firstIndex(of: TreeOfLifeKeys.celtic) ?? 0
-            passKeyGate(for: .chinese)
-        }
         chinesePlacedPieces = ChineseBoxLevel.allLevels[idx].solutionPlacements
+        // Level 1 gate passes automatically when the puzzle is solved
+        if idx == 0 { passKeyGate(for: .chinese) }
         completeChineseLevel()
     }
 
@@ -2387,7 +2358,6 @@ final class GameState: ObservableObject {
         discoveredKeys = [:]
         civKeyGateAnswered = []
         mysteryMarkIndex = [:]
-        chinaMysteryMarkIndex2 = 0
         mysteryMarkWrongFlash = false
         resetMasterMind()
 

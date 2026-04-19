@@ -36,6 +36,33 @@ struct ChineseBoxPiece: Identifiable {
     let colorHex: String    // warm wood tone
     /// Cell offsets from top-left anchor at rotation 0, as (row, col).
     let baseCells: [(Int, Int)]
+    /// Index into baseCells whose cell carries a gate mark (nil = no mark).
+    /// The mark is physically carved into the wood — it moves with the piece as it rotates.
+    let gateMarkCellIndex: Int?
+    /// The Unicode symbol carved on the gate-marked cell (nil = no mark).
+    let gateMarkSymbol: String?
+
+    init(id: String, name: String, meaning: String, colorHex: String,
+         baseCells: [(Int, Int)],
+         gateMarkCellIndex: Int? = nil, gateMarkSymbol: String? = nil) {
+        self.id = id
+        self.name = name
+        self.meaning = meaning
+        self.colorHex = colorHex
+        self.baseCells = baseCells
+        self.gateMarkCellIndex = gateMarkCellIndex
+        self.gateMarkSymbol = gateMarkSymbol
+    }
+
+    /// Returns the gate mark's absolute board position (and symbol) given a current placement,
+    /// or nil if this piece has no gate mark.
+    func gateMarkBoardCell(at placement: ChinesePiecePlacement) -> (row: Int, col: Int, symbol: String)? {
+        guard let idx = gateMarkCellIndex, let symbol = gateMarkSymbol else { return nil }
+        let rotated = cells(rotation: placement.rotation)
+        guard idx < rotated.count else { return nil }
+        let (dr, dc) = rotated[idx]
+        return (row: dr + placement.row, col: dc + placement.col, symbol: symbol)
+    }
 
     /// Returns the piece's cells after `rotation` 90°-CW turns,
     /// normalized so the minimum row and column are both 0.
@@ -192,12 +219,16 @@ extension ChineseBoxLevel {
             ChineseBoxPiece(id: "A", name: "條", meaning: "Strip",
                             colorHex: "B5813A",
                             baseCells: [(0,0),(0,1),(0,2),(0,3)]),
+            // Gate mark: baseCells[0]=(0,0) → rot1=(0,2) → board(1,2). Celtic ᚅ carved here.
             ChineseBoxPiece(id: "B", name: "鉤", meaning: "Hook",
                             colorHex: "9A6B2E",
-                            baseCells: [(0,0),(1,0),(2,0),(2,1)]),
+                            baseCells: [(0,0),(1,0),(2,0),(2,1)],
+                            gateMarkCellIndex: 0, gateMarkSymbol: "ᚅ"),
+            // Gate mark: baseCells[3]=(2,1) → rot3=(0,2) → board(1,3). Maya ᛚ carved here.
             ChineseBoxPiece(id: "C", name: "鉤", meaning: "Hook",
                             colorHex: "C4924A",
-                            baseCells: [(0,0),(1,0),(2,0),(2,1)])
+                            baseCells: [(0,0),(1,0),(2,0),(2,1)],
+                            gateMarkCellIndex: 3, gateMarkSymbol: "ᛚ")
         ],
         // A@(0,0)rot0 → (0,0)(0,1)(0,2)(0,3)
         // B@(1,0)rot1 → (1,0)(1,1)(1,2)(2,0)
