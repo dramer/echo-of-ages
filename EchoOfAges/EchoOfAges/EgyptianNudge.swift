@@ -72,10 +72,11 @@ struct EgyptianNudge: View {
             let screen = geo.size
 
             ZStack {
-                // 1 — Dimming overlay with cutout
+                // 1 — Subtle vignette (no hard dim — puzzle stays fully readable)
                 SpotlightOverlay(rect: spotlight)
                     .animation(.easeInOut(duration: 0.4), value: step)
                     .ignoresSafeArea()
+                    .allowsHitTesting(false)
 
                 // 2 — Pulsing ripple inside the spotlight
                 rippleView
@@ -115,6 +116,7 @@ struct EgyptianNudge: View {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) { startRipple() }
         }
         .onChange(of: gameState.selectedGlyph) { _, glyph in
+            // Palette selection arms a glyph → move to grid step
             if step == .palette, glyph != nil {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
                     withAnimation(.easeInOut(duration: 0.35)) { step = .grid }
@@ -122,13 +124,19 @@ struct EgyptianNudge: View {
             }
         }
         .onChange(of: gameState.playerGrid) { _, _ in
-            if step == .grid {
-                let h = gridHash()
-                if h != observedGridHash {
-                    observedGridHash = h
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-                        withAnimation(.easeInOut(duration: 0.35)) { step = .decipher }
-                    }
+            let h = gridHash()
+            guard h != observedGridHash else { return }
+            observedGridHash = h
+
+            if step == .palette {
+                // Player tapped a cell directly (no palette pick) — skip grid step
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                    withAnimation(.easeInOut(duration: 0.35)) { step = .decipher }
+                }
+            } else if step == .grid {
+                // Player placed via palette → advance to decipher step
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                    withAnimation(.easeInOut(duration: 0.35)) { step = .decipher }
                 }
             }
         }
@@ -347,8 +355,10 @@ private struct SpotlightOverlay: View {
 
     var body: some View {
         Canvas { ctx, size in
+            // Light vignette — dim everything outside the spotlight just enough
+            // to draw the eye, without blackening the puzzle scene.
             ctx.fill(Path(CGRect(origin: .zero, size: size)),
-                     with: .color(.black.opacity(0.65)))
+                     with: .color(.black.opacity(0.28)))
             var hole = Path()
             hole.addRoundedRect(
                 in: rect,
