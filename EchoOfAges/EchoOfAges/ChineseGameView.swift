@@ -68,8 +68,18 @@ struct ChineseGameView: View {
                     VStack(spacing: 14) {
                         levelHeader
                         boardSection(cellSize: computedCellSize)
-                        piecesPalette
-                        actionRow
+                        // Palette + action buttons in a shared card
+                        VStack(spacing: 12) {
+                            piecesPalette
+                            actionRow
+                        }
+                        .padding(14)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(Color.stoneMid.opacity(0.20))
+                                .overlay(RoundedRectangle(cornerRadius: 12)
+                                    .stroke(vermillion.opacity(0.30), lineWidth: 1))
+                        )
                         inscriptionsSection
                     }
                     .padding(.horizontal, 18)

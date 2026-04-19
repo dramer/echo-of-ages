@@ -66,8 +66,18 @@ struct SumerianGameView: View {
                     VStack(spacing: 16) {
                         levelHeader
                         tabletSection
-                        palette
-                        actionRow
+                        // Palette + action buttons in a shared card
+                        VStack(spacing: 12) {
+                            palette
+                            actionRow
+                        }
+                        .padding(14)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(Color(red: 0.72, green: 0.54, blue: 0.34).opacity(0.18))
+                                .overlay(RoundedRectangle(cornerRadius: 12)
+                                    .stroke(clayDark.opacity(0.30), lineWidth: 1))
+                        )
                         if !level.scribes.isEmpty {
                             testimonySection
                         }

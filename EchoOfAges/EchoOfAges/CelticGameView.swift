@@ -51,8 +51,19 @@ struct CelticGameView: View {
                             gridView(p)
                         }
                         inscriptionsSection
-                        paletteView
-                        actionButtons
+                        // Palette + action buttons in a shared card
+                        VStack(spacing: 12) {
+                            paletteView
+                            actionButtons
+                        }
+                        .padding(14)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(Color.celticStone.opacity(0.20))
+                                .overlay(RoundedRectangle(cornerRadius: 12)
+                                    .stroke(Color.celticGold.opacity(0.28), lineWidth: 1))
+                        )
+                        .padding(.horizontal, 4)
                         Spacer(minLength: 40)
                     }
                     .padding(.top, 16)

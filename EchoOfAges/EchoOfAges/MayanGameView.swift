@@ -93,8 +93,7 @@ struct MayanGameView: View {
             VStack(spacing: 14) {
                 levelHeader
                 wheelView(geo: geo, isLandscape: false)
-                palette
-                actionRow
+                mayanPaletteBox
                 inscriptionsSection
             }
             .padding(.horizontal, 18)
@@ -113,8 +112,7 @@ struct MayanGameView: View {
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 14) {
                     levelHeader
-                    palette
-                    actionRow
+                    mayanPaletteBox
                     inscriptionsSection
                 }
                 .padding(.horizontal, 16)
@@ -122,6 +120,21 @@ struct MayanGameView: View {
             }
             .frame(maxWidth: .infinity)
         }
+    }
+
+    /// Palette + action buttons wrapped in a shared styled card.
+    private var mayanPaletteBox: some View {
+        VStack(spacing: 12) {
+            palette
+            actionRow
+        }
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(jadeColor.opacity(0.07))
+                .overlay(RoundedRectangle(cornerRadius: 12)
+                    .stroke(jadeColor.opacity(0.28), lineWidth: 1))
+        )
     }
 
     // MARK: - Header Bar

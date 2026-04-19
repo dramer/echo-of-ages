@@ -52,24 +52,31 @@ struct GameView: View {
                                     }
                                 })
 
-                            palette
-                                .padding(.horizontal, 16)
-                                .background(GeometryReader { g in
-                                    Color.clear.onAppear {
-                                        paletteFrame = g.frame(in: .global)
-                                    }
-                                })
-
-                            actionRow
-                                .padding(.horizontal, 16)
-                                .background(GeometryReader { g in
-                                    Color.clear.onAppear {
-                                        let f = g.frame(in: .global)
-                                        // Spotlight just the Decipher button (right half)
-                                        decipherFrame = CGRect(x: f.midX, y: f.minY,
-                                                               width: f.width / 2, height: f.height)
-                                    }
-                                })
+                            // Palette + action buttons in a shared card
+                            VStack(spacing: 12) {
+                                palette
+                                    .background(GeometryReader { g in
+                                        Color.clear.onAppear {
+                                            paletteFrame = g.frame(in: .global)
+                                        }
+                                    })
+                                actionRow
+                                    .background(GeometryReader { g in
+                                        Color.clear.onAppear {
+                                            let f = g.frame(in: .global)
+                                            decipherFrame = CGRect(x: f.midX, y: f.minY,
+                                                                   width: f.width / 2, height: f.height)
+                                        }
+                                    })
+                            }
+                            .padding(14)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(Color.stoneMid.opacity(0.35))
+                                    .overlay(RoundedRectangle(cornerRadius: 12)
+                                        .stroke(Color.goldDark.opacity(0.35), lineWidth: 1))
+                            )
+                            .padding(.horizontal, 16)
 
                             secondaryRow
                                 .padding(.horizontal, 16)

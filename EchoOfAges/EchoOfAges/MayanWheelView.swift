@@ -141,8 +141,7 @@ struct MayanWheelView: View {
             VStack(spacing: 14) {
                 levelHeader
                 wheelCanvas(cSize)
-                paletteRow
-                actionRow
+                mayanWheelPaletteBox
             }
             .padding(.horizontal, 18)
             .padding(.top, 8)
@@ -161,14 +160,28 @@ struct MayanWheelView: View {
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 14) {
                     levelHeader
-                    paletteRow
-                    actionRow
+                    mayanWheelPaletteBox
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
             }
             .frame(maxWidth: .infinity)
         }
+    }
+
+    /// Palette (ring symbol selector) + action buttons in a shared styled card.
+    private var mayanWheelPaletteBox: some View {
+        VStack(spacing: 12) {
+            paletteRow
+            actionRow
+        }
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(jadeColor.opacity(0.07))
+                .overlay(RoundedRectangle(cornerRadius: 12)
+                    .stroke(jadeColor.opacity(0.28), lineWidth: 1))
+        )
     }
 
     private func wheelCanvasSize(geo: GeometryProxy, isLandscape: Bool) -> CGFloat {

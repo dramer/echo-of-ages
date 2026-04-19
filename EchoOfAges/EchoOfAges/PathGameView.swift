@@ -107,9 +107,7 @@ struct PathGameView: View {
                 .padding(.horizontal, 16)
 
             Spacer(minLength: 10)
-            waypointBar.padding(.horizontal, 16)
-            Spacer(minLength: 8)
-            norseActionRow.padding(.horizontal, 16)
+            norseBottomCard.padding(.horizontal, 16)
             Spacer(minLength: safeBottom)
         }
     }
@@ -144,9 +142,7 @@ struct PathGameView: View {
                 VStack(spacing: 0) {
                     levelTitle
                     Spacer(minLength: 10)
-                    waypointBar
-                    Spacer(minLength: 8)
-                    norseActionRow
+                    norseBottomCard
                     Spacer(minLength: 0)
                 }
                 .padding(.horizontal, 14)
@@ -208,6 +204,23 @@ struct PathGameView: View {
                         .frame(height: 0.8),
                     alignment: .bottom
                 )
+        )
+    }
+
+    // MARK: Norse Bottom Card — waypoints + action row in one box
+
+    private var norseBottomCard: some View {
+        let norsBlue = Color(red: 0.45, green: 0.75, blue: 1.0)
+        return VStack(spacing: 12) {
+            waypointBar
+            norseActionRow
+        }
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color(red: 0.08, green: 0.12, blue: 0.20).opacity(0.60))
+                .overlay(RoundedRectangle(cornerRadius: 12)
+                    .stroke(norsBlue.opacity(0.28), lineWidth: 1))
         )
     }
 
