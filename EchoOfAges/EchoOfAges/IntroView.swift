@@ -22,12 +22,22 @@ private enum IntroPhase {
     case tabletReveal // Mandu tablet centred on screen after crawl
 }
 
-// MARK: - Crawl height preference key
+// MARK: - Preference keys
 
+// Measures total content height so we know how far to scroll
 private struct CrawlHeightKey: PreferenceKey {
     static var defaultValue: CGFloat = 0
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
         value = max(value, nextValue())
+    }
+}
+
+// Tracks the global Y of the sentinel placed at the END of the crawl text.
+// When this goes below the top fade mask (≤ 110 pt), all text has cleared.
+private struct TextEndYKey: PreferenceKey {
+    static var defaultValue: CGFloat = CGFloat.greatestFiniteMagnitude
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = min(value, nextValue())
     }
 }
 
@@ -51,6 +61,7 @@ struct IntroView: View {
 
     // Tablet overlay (shown after text clears)
     @State private var tabletOpacity:   Double = 0
+    @State private var tabletRevealed:  Bool   = false
 
     // Fade-to-black overlay (used for final transition)
     @State private var blackOpacity:    Double = 0
@@ -190,6 +201,12 @@ struct IntroView: View {
                 contentHeight = height
                 beginCrawl()
             }
+            // Sentinel fires on every animation frame — reveal tablet the instant
+            // the last text line exits through the top fade mask (y ≤ 110).
+            .onPreferenceChange(TextEndYKey.self) { y in
+                guard phase == .crawl, !tabletRevealed, y <= 110 else { return }
+                revealTablet()
+            }
     }
 
     // MARK: Crawl text content (tablet NOT included — shown separately after crawl)
@@ -270,6 +287,20 @@ struct IntroView: View {
                 .tracking(10)
                 .padding(.top, 80)
                 .padding(.bottom, 60)
+
+            // Sentinel — zero height, placed after the last text.
+            // Its global maxY is reported each animation frame so we know
+            // precisely when the last line exits through the top fade mask.
+            Color.clear
+                .frame(height: 1)
+                .background(
+                    GeometryReader { g in
+                        Color.clear.preference(
+                            key: TextEndYKey.self,
+                            value: g.frame(in: .global).maxY
+                        )
+                    }
+                )
         }
         .multilineTextAlignment(.center)
         .padding(.horizontal, 16)
@@ -367,13 +398,11 @@ struct IntroView: View {
         guard !crawlStarted else { return }
         crawlStarted = true
 
-        let startOffset = screenH
-
-        // Scroll just far enough for the last line to clear the top fade mask (110 pt).
-        // This is when the bottom of the content reaches y = 110.
-        // crawlOffset at that moment = -(contentHeight - 110)
-        let endOffset     = -(contentHeight - 110)
-        let totalDistance = startOffset - endOffset            // screenH + contentHeight - 110
+        // Scroll generously past the content — the sentinel preference key triggers
+        // the tablet reveal the instant the last line exits the top fade mask,
+        // independent of this animation duration.
+        let endOffset     = -(contentHeight + screenH)
+        let totalDistance = screenH - endOffset
         let scrollDuration = Double(totalDistance) / Double(crawlSpeed)
 
         // Wait for the fade-in to finish before the crawl begins.
@@ -381,18 +410,16 @@ struct IntroView: View {
             withAnimation(.linear(duration: scrollDuration)) {
                 crawlOffset = endOffset
             }
+        }
+    }
 
-            // The tablet reveal is tied directly to when the last text visually clears —
-            // i.e. exactly when the scroll animation ends — no extra overshoot wait.
-            DispatchQueue.main.asyncAfter(deadline: .now() + scrollDuration) {
-                phase = .tabletReveal
-                withAnimation(.easeIn(duration: 0.3)) { tabletOpacity = 1 }
-
-                // Hold the tablet for 3.5 s then fade to black → title
-                DispatchQueue.main.asyncAfter(deadline: .now() + 3.5) {
-                    endIntro()
-                }
-            }
+    private func revealTablet() {
+        tabletRevealed = true
+        phase = .tabletReveal
+        withAnimation(.easeIn(duration: 0.3)) { tabletOpacity = 1 }
+        // Hold the tablet for 3.5 s then fade to black → title
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.5) {
+            endIntro()
         }
     }
 
