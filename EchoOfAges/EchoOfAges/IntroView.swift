@@ -5,6 +5,9 @@
 //   Phase 1 — Discovery reveal: map image fades in on a dark background,
 //              held for a few seconds so the player can study it.
 //   Phase 2 — Star Wars crawl: map fades out, gold text scrolls slowly upward.
+//              Text starts centred on screen. The Mandu tablet is revealed as a
+//              separate centred overlay AFTER the text has cleared — guaranteeing
+//              it is always fully visible before the fade-to-black transition.
 //
 // egypt_sound.mp3 plays throughout and fades out when the intro ends.
 
@@ -15,7 +18,8 @@ import AVFoundation
 
 private enum IntroPhase {
     case mapReveal    // map is showing
-    case crawl        // text scrolling (tablet image included at bottom)
+    case crawl        // text scrolling
+    case tabletReveal // Mandu tablet centred on screen after crawl
 }
 
 // MARK: - Crawl height preference key
@@ -41,9 +45,12 @@ struct IntroView: View {
 
     // Crawl layer
     @State private var crawlOpacity:    Double = 0
-    @State private var crawlOffset:     CGFloat = 9999  // large value keeps content off-screen until beginCrawl runs
+    @State private var crawlOffset:     CGFloat = 0   // set properly in beginCrawl
     @State private var contentHeight:   CGFloat = 0
     @State private var crawlStarted:    Bool    = false
+
+    // Tablet overlay (shown after text clears)
+    @State private var tabletOpacity:   Double = 0
 
     // Fade-to-black overlay (used for final transition)
     @State private var blackOpacity:    Double = 0
@@ -55,6 +62,9 @@ struct IntroView: View {
     @State private var audioPlayer: AVAudioPlayer?
 
     private let crawlSpeed: CGFloat = 38   // points per second
+    private let fadeInDuration: Double = 0.8
+
+    private var screenH: CGFloat { UIScreen.main.bounds.height }
 
     // MARK: Body
 
@@ -74,9 +84,16 @@ struct IntroView: View {
                 mapRevealLayer
             }
 
-            // ── Phase 2: Text crawl (tablet image included at bottom) ─────────
-            if phase == .crawl {
+            // ── Phase 2: Text crawl (no tablet — tablet is separate below) ───
+            if phase == .crawl || phase == .tabletReveal {
                 crawlLayer
+            }
+
+            // ── Tablet of Mandu — centred reveal after text clears ────────────
+            if phase == .tabletReveal {
+                tabletOverlay
+                    .opacity(tabletOpacity)
+                    .transition(.opacity)
             }
 
             // ── Fade-to-black overlay (final transition) ──────────────────────
@@ -103,9 +120,7 @@ struct IntroView: View {
                 Spacer()
                 HStack {
                     Spacer()
-                    Button(action: {
-                        endIntro()
-                    }) {
+                    Button(action: { endIntro() }) {
                         HStack(spacing: 6) {
                             Text("Skip")
                                 .font(EgyptFont.body(18))
@@ -137,16 +152,12 @@ struct IntroView: View {
     private var mapRevealLayer: some View {
         VStack(spacing: 20) {
             Spacer()
-
-            // Map image — large, centred
             Image("map")
                 .resizable()
                 .scaledToFit()
                 .frame(maxWidth: 480)
                 .shadow(color: Color.goldDark.opacity(0.5), radius: 28, x: 0, y: 10)
                 .opacity(mapOpacity)
-
-            // Location label
             VStack(spacing: 6) {
                 Text("· DISCOVERY SITE ·")
                     .font(EgyptFont.title(14))
@@ -157,7 +168,6 @@ struct IntroView: View {
                     .foregroundStyle(Color.papyrus.opacity(0.65))
             }
             .opacity(mapLabelOpacity)
-
             Spacer()
         }
         .frame(maxWidth: .infinity)
@@ -182,7 +192,7 @@ struct IntroView: View {
             }
     }
 
-    // MARK: Crawl text content
+    // MARK: Crawl text content (tablet NOT included — shown separately after crawl)
 
     private var crawlContent: some View {
         let name = gameState.playerName.trimmingCharacters(in: .whitespaces)
@@ -259,36 +269,40 @@ struct IntroView: View {
                 .foregroundStyle(Color.goldMid.opacity(0.4))
                 .tracking(10)
                 .padding(.top, 80)
-
-            // Large spacer pushes the tablet down so it arrives on screen
-            // after the text has cleared — giving it a clear, unhurried reveal
-            Spacer().frame(height: 320)
-
-            // Tablet of Mandu scrolls in as the final reveal
-            VStack(spacing: 20) {
-                Text("· · · · ·")
-                    .font(EgyptFont.title(16))
-                    .foregroundStyle(Color.goldDark.opacity(0.5))
-                    .tracking(8)
-                    .padding(.bottom, 16)
-
-                Image("tree_tablet")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(maxWidth: 360)
-                    .shadow(color: Color.goldBright.opacity(0.45), radius: 40, x: 0, y: 0)
-
-                Text("THE TABLET OF MANDU")
-                    .font(EgyptFont.titleBold(20))
-                    .foregroundStyle(Color.goldBright)
-                    .tracking(5)
-            }
-            .padding(.top, 40)
-            .padding(.bottom, 400)
+                .padding(.bottom, 60)
         }
         .multilineTextAlignment(.center)
         .padding(.horizontal, 16)
         .frame(maxWidth: 640)
+        .frame(maxWidth: .infinity)
+    }
+
+    // MARK: Tablet overlay (centred, shown after text clears)
+
+    private var tabletOverlay: some View {
+        VStack(spacing: 20) {
+            Spacer()
+
+            Text("· · · · ·")
+                .font(EgyptFont.title(16))
+                .foregroundStyle(Color.goldDark.opacity(0.5))
+                .tracking(8)
+                .padding(.bottom, 8)
+
+            Image("tree_tablet")
+                .resizable()
+                .scaledToFit()
+                .frame(maxWidth: 320)
+                .shadow(color: Color.goldBright.opacity(0.45), radius: 40, x: 0, y: 0)
+
+            Text("THE TABLET OF MANDU")
+                .font(EgyptFont.titleBold(20))
+                .foregroundStyle(Color.goldBright)
+                .tracking(5)
+                .padding(.top, 8)
+
+            Spacer()
+        }
         .frame(maxWidth: .infinity)
     }
 
@@ -340,8 +354,11 @@ struct IntroView: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 5.5) {
             withAnimation(.easeOut(duration: 1.2)) { mapOpacity = 0; mapLabelOpacity = 0 }
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                // Position content at screen mid-point BEFORE making it visible,
+                // using withAnimation(.none) so the jump is instant with no inherited transaction
+                withAnimation(.none) { crawlOffset = screenH * 0.5 }
                 phase = .crawl
-                withAnimation(.easeIn(duration: 0.8)) { crawlOpacity = 1 }
+                withAnimation(.easeIn(duration: fadeInDuration)) { crawlOpacity = 1 }
             }
         }
     }
@@ -350,33 +367,39 @@ struct IntroView: View {
         guard !crawlStarted else { return }
         crawlStarted = true
 
-        let screenH = UIScreen.main.bounds.height
-        // Start with the first text at the middle of the screen (Star Wars style)
-        crawlOffset = screenH * 0.5
+        // Content top starts at screen centre. Scrolls until the last line clears the top.
+        let startOffset  = screenH * 0.5
+        let endOffset    = -(contentHeight + 80)
+        let totalDistance = startOffset - endOffset
+        let scrollDuration = Double(totalDistance) / Double(crawlSpeed)
 
-        let totalDistance = (screenH * 0.5) + contentHeight + 100
-        let duration = Double(totalDistance) / Double(crawlSpeed)
-
-        DispatchQueue.main.async {
-            withAnimation(.linear(duration: duration)) {
-                self.crawlOffset = -(self.contentHeight + 100)
+        // Wait for the fade-in to finish before the crawl begins, so the
+        // opening title card is clearly readable at the centre of the screen.
+        DispatchQueue.main.asyncAfter(deadline: .now() + fadeInDuration) {
+            withAnimation(.linear(duration: scrollDuration)) {
+                crawlOffset = endOffset
             }
-        }
 
-        // Fade to black after everything has scrolled off
-        DispatchQueue.main.asyncAfter(deadline: .now() + duration) {
-            endIntro()
+            // After all text has cleared, reveal the Mandu tablet centred on screen
+            DispatchQueue.main.asyncAfter(deadline: .now() + scrollDuration) {
+                phase = .tabletReveal
+                withAnimation(.easeIn(duration: 1.2)) { tabletOpacity = 1 }
+
+                // Hold the tablet for 3.5 s then fade to black → title
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3.5) {
+                    endIntro()
+                }
+            }
         }
     }
 
     private func endIntro() {
         fadeOutAudio(duration: 2.0)
-        // Fade skip button and then bring in the black overlay
         withAnimation(.easeIn(duration: 0.4)) { skipOpacity = 0 }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
             withAnimation(.easeIn(duration: 2.0)) { blackOpacity = 1.0 }
         }
-        // Once fully black, transition to title
+        // Once fully black, transition to title screen
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.4) {
             gameState.finishIntro()
         }
@@ -390,10 +413,9 @@ struct IntroView: View {
         }
         do {
             audioPlayer = try AVAudioPlayer(contentsOf: url)
-            audioPlayer?.numberOfLoops = -1   // loop until intro ends
+            audioPlayer?.numberOfLoops = -1
             audioPlayer?.volume = 0.0
             audioPlayer?.play()
-            // Fade in over 2 seconds
             fadeAudioIn()
         } catch { }
     }
