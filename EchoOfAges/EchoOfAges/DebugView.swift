@@ -19,7 +19,10 @@ struct DebugView: View {
     @EnvironmentObject var gameState: GameState
     @State private var filter: DebugFilter = .all
     @State private var confirmingSolve: Level? = nil
-    @State private var collapsedSections: Set<String> = []
+    @State private var collapsedSections: Set<String> = {
+        let saved = UserDefaults.standard.string(forKey: "EOA_debugCollapsedSections") ?? ""
+        return saved.isEmpty ? [] : Set(saved.split(separator: ",").map(String.init))
+    }()
 
     enum DebugFilter: String, CaseIterable {
         case all      = "All"
@@ -68,25 +71,6 @@ struct DebugView: View {
 
                         // Mandu Tablet mastermind
                         manduMastermindSection
-
-                        // Nudge reset
-                        Button {
-                            UserDefaults.standard.removeObject(forKey: "EOA_hasSeenEgyptNudge")
-                            HapticFeedback.tap()
-                        } label: {
-                            Label("Reset Egypt Nudge (shows on next L1 open)", systemImage: "arrow.counterclockwise")
-                                .font(.system(size: 13, weight: .medium))
-                                .foregroundStyle(Color.yellow.opacity(0.80))
-                                .padding(.vertical, 10)
-                                .frame(maxWidth: .infinity)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .fill(Color.yellow.opacity(0.08))
-                                        .overlay(RoundedRectangle(cornerRadius: 8)
-                                            .stroke(Color.yellow.opacity(0.25), lineWidth: 1))
-                                )
-                        }
-                        .buttonStyle(.plain)
 
                         Spacer(minLength: 40)
                     }
@@ -711,6 +695,10 @@ struct DebugView: View {
                 collapsedSections.insert(key)
             }
         }
+        UserDefaults.standard.set(
+            collapsedSections.joined(separator: ","),
+            forKey: "EOA_debugCollapsedSections"
+        )
     }
 
     // MARK: Lock Badge
