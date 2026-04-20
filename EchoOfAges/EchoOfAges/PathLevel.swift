@@ -87,7 +87,23 @@ struct PathLevel: Identifiable {
     }
 
     func isSolved(_ path: [GridPosition]) -> Bool {
-        path == solution
+        // Must cover every valid cell exactly once.
+        guard path.count == totalCells else { return false }
+
+        // Must visit every waypoint in ascending pathIndex order.
+        // We accept ANY Hamiltonian path that threads the waypoints correctly —
+        // the exact cells between waypoints may differ from the generated solution,
+        // since a 4×4 grid (for example) has many valid Hamiltonian paths.
+        // Requiring exact solution equality caused players to be marked wrong when
+        // they found a legitimate alternative route.
+        let ordered = waypoints.sorted { $0.pathIndex < $1.pathIndex }
+        var wi = 0
+        for pos in path {
+            if wi < ordered.count && pos == ordered[wi].position {
+                wi += 1
+            }
+        }
+        return wi == ordered.count
     }
 
     /// Returns a copy of this level with a newly generated path and waypoints,
