@@ -24,7 +24,7 @@
 //
 // Correct placement order (left to right):
 //   BOUGH  · WATER · TRUNK · ROOTS · FROND · SOLAR
-//   𒀭 AN  · ᛚ Lag · 𓊹 Net · 𓊽 Djd · ᚅ Nion · ☰ Qian
+//   𒀭 AN  · ≋ Wav · 𓊽 Djd · ᛉ Alg · ᚅ Nion · ☰ Qian
 //   Sumer  · Maya  · Egypt · Norse · Celtic · China
 
 import Foundation
@@ -75,13 +75,13 @@ enum TreeOfLifeKeys {
     /// Distinct from the gate-key symbols used in the tier-progression unlock chain —
     /// those are the foreign marks found hidden inside each civilization's final ruins.
 
-    static let treeTrunk = "𓊹"  // Egypt   — Neter, the divine mark Egypt kept · TRUNK
-    //                              Egypt gave the Djed away to Norse; it kept the Neter.
-    static let treeRoots = "𓊽"  // Norse   — Djed pillar, received from Egypt · ROOTS
-    //                              What Egypt passed down, Norse carries into the ground.
-    static let treeBough = "𒀭"  // Sumerian — AN, the heavenward reach · BOUGH
-    static let treeWater = "ᛚ"  // Maya    — Laguz rune, received from Norse · WATER
-    //                              The water rune travelled from Norse into Maya's rivers.
+    static let treeTrunk = "𓊽"  // Egypt   — Djed pillar · TRUNK
+    //                              The Djed is the World Pillar, the vertical axis of all things.
+    static let treeRoots = "ᛉ"  // Norse   — Algiz rune · ROOTS
+    //                              Arms reaching down into the earth — Yggdrasil's deep roots.
+    static let treeBough = "𒀭"  // Sumerian — AN, the great bough reaching toward heaven · BOUGH
+    static let treeWater = "≋"  // Maya    — triple waves · WATER
+    //                              The tree grows from the primordial sea.
     static let treeFrond = "ᚅ"  // Celtic  — Nion/Ash, frond of the sacred grove · FROND
     static let treeSolar = "☰"  // Chinese — Qian trigram, heaven and light · SOLAR
 
