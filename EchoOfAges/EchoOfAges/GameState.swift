@@ -1392,9 +1392,10 @@ final class GameState: ObservableObject {
 
     /// True when all 6 slots match the correct solution exactly.
     var masterMindIsComplete: Bool {
-        let solution = TreeOfLifeKeys.masterMindSolution
-        guard masterMindPlayerSlots.count == solution.count else { return false }
-        return masterMindPlayerSlots.enumerated().allSatisfy { i, placed in placed == solution[i] }
+        // Only true once the player has SUBMITTED a guess with all 6 exact matches.
+        // Checking live slots caused the Check button to vanish the moment the correct
+        // arrangement was placed — before the player could ever press it.
+        masterMindGuessHistory.contains { $0.exactMatches == 6 }
     }
 
     /// Number of slots where the placed symbol exactly matches the solution.
