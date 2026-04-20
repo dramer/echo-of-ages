@@ -372,7 +372,7 @@ struct PathGameView: View {
 
             HStack(spacing: 6) {
                 ForEach(level.waypoints.sorted(by: { $0.pathIndex < $1.pathIndex })) { wp in
-                    let reached = path.count > wp.pathIndex && path[wp.pathIndex] == wp.position
+                    let reached = path.contains(wp.position)
                     // Use the live mystery mark for the start waypoint while the key gate is open
                     let rawRune = (wp.isStart && keyGateActive)
                         ? gameState.mysteryMarkCurrent(for: .norse)
