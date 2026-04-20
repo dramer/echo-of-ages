@@ -812,13 +812,9 @@ final class GameState: ObservableObject {
 
         let pathEnd = norsePath.last!
 
-        // Tapping the current end backtracks one step
-        if position == pathEnd {
-            norsePath.removeLast()
-            HapticFeedback.tap()
-            soundManager?.playEffect(.clear)
-            return
-        }
+        // Backtracking removed — tapping the last cell does nothing.
+        // Use the Reset button to start over.
+        if position == pathEnd { return }
 
         // Must be adjacent to the current path end
         guard norseIsAdjacent(position, pathEnd) else {

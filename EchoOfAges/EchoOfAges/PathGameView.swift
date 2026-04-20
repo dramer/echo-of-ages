@@ -3,7 +3,7 @@
 //
 // Norse pathfinding puzzle screen.
 // The player traces a Hamiltonian path through a runestone grid guided by
-// visible rune waypoints. Tap to extend the path; tap the last cell to backtrack.
+// visible rune waypoints. Tap to extend the path. Use Reset to start over — no backtracking.
 // The path auto-verifies when every cell has been visited.
 
 import SwiftUI
@@ -729,8 +729,8 @@ struct PathGameView: View {
                          body: "Tap the highlighted starting stone to begin your path. You cannot start from any other cell.")
             norseHelpRow(number: "2", title: "Visit every stone exactly once",
                          body: "Tap any stone adjacent (up, down, left, right) to the current end of your path to extend it. Every valid stone must be visited — no stone can be skipped or revisited.")
-            norseHelpRow(number: "3", title: "Backtrack by tapping the last stone",
-                         body: "Tapping the stone at the tip of your path removes it, letting you try a different route. Tap Clear to start over.")
+            norseHelpRow(number: "3", title: "No backtracking",
+                         body: "Once a stone is placed it cannot be removed. If you reach a dead end, use the Reset button to clear your path and start over.")
             norseHelpRow(number: "4", title: "Blocked stones",
                          body: "Dark stones marked with an X are impassable — route around them. They don't need to be visited.")
 

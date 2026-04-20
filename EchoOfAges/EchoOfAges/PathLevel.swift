@@ -14,7 +14,7 @@
 //   3. Every VALID stone on the tablet must be visited exactly once.
 //   4. Cracked/dark stones are impassable — route around them.
 //   5. Visible rune waypoints mark fixed landmarks — reach them in order.
-//   6. Tap the last placed cell to backtrack one step.
+//   6. No backtracking — use the Reset button to start over if you reach a dead end.
 //
 // Difficulty design principles:
 //   • Irregular (non-serpentine) paths with dead-end traps
