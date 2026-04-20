@@ -32,6 +32,13 @@ struct SumerianGameView: View {
 
     private var level: SumerianLevel { gameState.sumerianCurrentLevel }
 
+    /// True when every non-anchor position has a glyph placed.
+    private var allPositionsFilled: Bool {
+        gameState.playerSumerianDecoded.indices.allSatisfy { i in
+            gameState.playerSumerianDecoded[i] != nil
+        }
+    }
+
     // Sumerian cuneiform direction is determined by the opening sign.
     // KI (earth) and GAL (great) descend toward the underworld — right to left.
     // AN (heaven), A (water), UD (sun) rise and flow — left to right.
@@ -762,17 +769,20 @@ struct SumerianGameView: View {
             } label: {
                 Label("Decipher", systemImage: "checkmark.seal")
                     .font(EgyptFont.titleBold(15))
-                    .foregroundStyle(Color(red: 0.95, green: 0.88, blue: 0.70))
+                    .foregroundStyle(Color(red: 0.95, green: 0.88, blue: 0.70)
+                        .opacity(allPositionsFilled ? 1.0 : 0.4))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 11)
                     .background(
                         RoundedRectangle(cornerRadius: 9)
-                            .fill(Color(red: 0.55, green: 0.38, blue: 0.22))
+                            .fill(Color(red: 0.55, green: 0.38, blue: 0.22)
+                                .opacity(allPositionsFilled ? 1.0 : 0.45))
                             .overlay(RoundedRectangle(cornerRadius: 9)
-                                .stroke(clayDark.opacity(0.5), lineWidth: 1))
+                                .stroke(clayDark.opacity(allPositionsFilled ? 0.5 : 0.2), lineWidth: 1))
                     )
             }
             .buttonStyle(.plain)
+            .disabled(!allPositionsFilled)
         }
     }
 
