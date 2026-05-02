@@ -34,6 +34,7 @@ private enum DiaryPage: Equatable {
     case fieldMethods     // one illustrated card per civilization explaining its puzzle mechanic
     case howToSolve
     case inspirationPage        // Why Echo of Ages was created — tribute to Cliff Johnson
+    case otherAppsPage          // Other iOS apps by the same developer
     case settingsPage
     #if DEBUG
     case gameDesignNotes        // Full gameplay design reference — DEBUG only
@@ -88,6 +89,7 @@ struct JournalView: View {
         list.append(.champollionMethod)
         list.append(.howToSolve)
         list.append(.inspirationPage)
+        list.append(.otherAppsPage)
         list.append(.settingsPage)
         #if DEBUG
         list.append(.gameDesignNotes)
@@ -372,6 +374,7 @@ private struct BookPage: View {
         case .fieldMethods:        FieldMethodsContent()
         case .howToSolve:          HowToSolveContent()
         case .inspirationPage:     InspirationPageContent()
+        case .otherAppsPage:       OtherAppsPageContent()
         case .settingsPage:        SettingsJournalContent()
         #if DEBUG
         case .gameDesignNotes:     GameDesignNotesContent()
@@ -512,6 +515,7 @@ private struct TableOfContentsContent: View {
             TOCEntry(label: "Champollion's Method",   icon: "text.magnifyingglass", page: .champollionMethod),
             TOCEntry(label: "How to Solve",           icon: "lightbulb.fill",       page: .howToSolve),
             TOCEntry(label: "Why Echo of Ages",       icon: "heart.text.square.fill", page: .inspirationPage),
+            TOCEntry(label: "More Apps",              icon: "square.grid.2x2.fill",  page: .otherAppsPage),
             TOCEntry(label: "Settings",               icon: "gearshape.fill",       page: .settingsPage),
         ]
     }
@@ -1268,8 +1272,8 @@ private struct FieldMethodsContent: View {
                 MethodCard(
                     emblem: "ᚅ",
                     civilization: "Celtic — The Ogham Stones",
-                    mechanic: "Sequence ordering",
-                    description: "Sacred Ogham marks must be placed in the correct ceremonial order. The inscriptions on each stone hold the clue — read them carefully. The grove remembers the right arrangement.",
+                    mechanic: "Five stones, five different rules",
+                    description: "Each Ogham stone carries a different law carved by the Druids: climbing numbers, sinking numbers, braided odd and even, scattered so no neighbors match, or reflected so each row reads the same forwards and back. The title of the stone names the rule.",
                     accentColor: Color(red: 0.35, green: 0.52, blue: 0.28)
                 )
                 MethodCard(
@@ -1413,6 +1417,139 @@ private struct InspirationPageContent: View {
 
             Spacer(minLength: 20)
         }
+    }
+}
+
+// MARK: - Other Apps Page
+
+private struct OtherAppsPageContent: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+
+            HandTitle(text: "From the Same Workshop")
+                .frame(maxWidth: .infinity, alignment: .center)
+            Spacer(minLength: 4)
+            HandNote(text: "Other iOS apps by the same developer — available now on the App Store.",
+                     size: 12, color: Color.inkSepia.opacity(0.55))
+                .frame(maxWidth: .infinity, alignment: .center)
+
+            SectionRule()
+
+            // Two-column app grid
+            let apps: [(asset: String, name: String, blurb: String)] = [
+                ("kings_Corner",    "Kings in the Corner",
+                 "Classic card game. Kings go in the corners, Queens top & bottom, Jokers on the sides. Remove pairs summing to 10 until all face cards are placed."),
+                ("osmosis",         "Osmosis Solitaire",
+                 "A calm, contemplative solitaire variant. Cards flow across four foundation rows — each suit must follow the lead of the first. Patience rewarded."),
+                ("sevens",          "Sevens",
+                 "The classic 7s card game, playable solo or with friends on the same local network. Build out from the sevens in all four suits."),
+                ("fog_rune",        "Fog of Rune",
+                 "Three puzzle types in one app: Mahjong tile matching, a Minecraft-style block builder, and a block-pusher challenge. Hours of variety."),
+                ("baby_hcc",        "Baby HCC",
+                 "High-contrast black and white image presentations designed for newborns. Add your own family photos to build recognition with your baby."),
+                ("jigsaw_journey",  "Jigsaw Journey",
+                 "Jigsaw puzzles of America's national parks. Solve each park's image, then browse live park conditions pulled directly from the National Park Service API."),
+            ]
+
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 14) {
+                ForEach(apps, id: \.asset) { app in
+                    AppCard(asset: app.asset, name: app.name, blurb: app.blurb)
+                }
+            }
+
+            SectionRule()
+
+            // Coming Soon — Fool's Trial
+            HStack(alignment: .top, spacing: 12) {
+                VStack(spacing: 4) {
+                    Image("fools_trial")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 58)
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                        .overlay(RoundedRectangle(cornerRadius: 10)
+                            .stroke(Color.inkSepia.opacity(0.4), lineWidth: 1))
+                        .shadow(color: .black.opacity(0.18), radius: 3, x: 1, y: 2)
+                    Text("Coming Soon")
+                        .font(handFont(9))
+                        .foregroundStyle(Color.inkRed.opacity(0.75))
+                        .multilineTextAlignment(.center)
+                        .frame(width: 58)
+                }
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Fool's Trial")
+                        .font(handFont(16, bold: true))
+                        .foregroundStyle(Color.inkBlue)
+                    Text("A new puzzle expedition — same spirit as Echo of Ages, entirely different challenge types. Cryptograms, logic deductions, pattern breaks, and more. The trial awaits.")
+                        .font(handFont(12))
+                        .foregroundStyle(Color.inkSepia.opacity(0.80))
+                        .lineSpacing(3)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .padding(10)
+            .background(
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color.paperDark.opacity(0.45))
+                    .overlay(RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color.inkRed.opacity(0.25), lineWidth: 1))
+            )
+
+            Spacer(minLength: 14)
+
+            HStack {
+                Spacer()
+                Text("Search 'Gringogolf' on the App Store to find them all.")
+                    .font(handFont(11))
+                    .foregroundStyle(Color.inkSepia.opacity(0.50))
+                    .multilineTextAlignment(.center)
+                Spacer()
+            }
+
+            Spacer(minLength: 10)
+        }
+    }
+}
+
+// Small card used by OtherAppsPageContent
+private struct AppCard: View {
+    let asset: String
+    let name: String
+    let blurb: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(asset)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 44)
+                .clipShape(RoundedRectangle(cornerRadius: 9))
+                .overlay(RoundedRectangle(cornerRadius: 9)
+                    .stroke(Color.inkSepia.opacity(0.30), lineWidth: 0.8))
+                .shadow(color: .black.opacity(0.15), radius: 2, x: 1, y: 1)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(name)
+                    .font(handFont(12, bold: true))
+                    .foregroundStyle(Color.inkBlue)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text(blurb)
+                    .font(handFont(10))
+                    .foregroundStyle(Color.inkSepia.opacity(0.75))
+                    .lineSpacing(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(8)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color.paperDark.opacity(0.40))
+                .overlay(RoundedRectangle(cornerRadius: 8)
+                    .stroke(Color.ruledLine.opacity(0.35), lineWidth: 0.7))
+        )
     }
 }
 
@@ -2021,13 +2158,15 @@ private struct GreecePuzzleContent: View {
             SectionRule()
             HandBody(text: "The Celtic Ogham stones bear inscriptions carved as notches along a central stem line. Each mark is a letter named for a sacred tree. The Druids encoded their knowledge in wood and stone, in groves that no Roman army dared enter.")
             Spacer(minLength: 10)
-            HandBody(text: "The tablet's puzzle emerges from the structure of the inscription itself. The Ogham alphabet is ordered — each letter has a fixed position in a sequence that the Druids memorized before they were allowed to carve. Find the order and the blanks fill themselves.")
+            HandBody(text: "The five stones do not share a single law. Each was carved by a different hand in a different season, and each carries its own rule. The title of each stone is the Druid's clue — read it before you carve a single mark.")
+            Spacer(minLength: 6)
+            HandBody(text: "The Climbing Stone: every row and every column rises without falling.\nThe Sinking Stone: every row and every column falls without rising.\nThe Braided Branches: checkerboard law — odd values on one color, even values on the other.\nThe Scattered Grove: no two touching cells may share the same mark — neither edge nor corner.\nThe Reflected Stone: each row is a palindrome — the right half mirrors the left.")
             SectionRule()
             HandTitle(text: "Dr. Mandu's Notes", size: 16, color: .inkBlue)
                 .padding(.bottom, 4)
-            HandNote(text: "Ogham was carved vertically — bottom to top, along the edge of a standing stone. The Druids spent twenty years memorizing sacred knowledge before writing a single letter. Their puzzle is not about cleverness. It is about patience and sequence.", color: Color.inkSepia.opacity(0.75))
+            HandNote(text: "Ogham was carved vertically — bottom to top, along the edge of a standing stone. The Druids spent twenty years memorizing sacred knowledge before writing a single letter. These five stones were tests of initiation. Each law was given only after the previous one was mastered.", color: Color.inkSepia.opacity(0.75))
             Spacer(minLength: 8)
-            HandNote(text: "Every tree has its place in the grove. Every letter has its place in the alphabet. Trust the order.", color: Color.inkRed.opacity(0.75))
+            HandNote(text: "The title is not decoration. The Druids named every stone for a reason. If you are lost, look at what the stone is called.", color: Color.inkRed.opacity(0.75))
             SectionRule()
             HandNote(text: "Coming in the next phase of the Mandu Expedition.", color: Color.inkSepia.opacity(0.45))
         }

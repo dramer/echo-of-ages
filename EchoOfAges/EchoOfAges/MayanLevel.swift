@@ -249,7 +249,7 @@ extension MayanLevel {
         usesSynchronizedRotation: false,
         title: "The Two Wheels Turn",
         subtitle: "Independent Rhythms",
-        lore: "Two cycles now run simultaneously — the Solar Wheel above and the Earth Wheel below. Each turns independently. What happens in one row has no effect on the other. Solve each wheel on its own.",
+        lore: "Above: the three hearthstones of creation turn without rest. Below: the two Hero Twins walk their endless descent. Neither wheel answers to the other. Find each rhythm alone.",
         inscriptions: [
             "Above and below: two wheels, two independent rhythms. The Solar Wheel in the top row turns every three steps. The Earth Wheel below turns every two. They share the same sequence of positions but follow entirely separate cycles — solve each row alone.",
             "Solve the top row first. Ignore the bottom row completely. Three symbols repeat. You have two anchors — from them you can reconstruct the full cycle.",
@@ -304,7 +304,7 @@ extension MayanLevel {
         usesSynchronizedRotation: false,
         title: "The Calendar Round",
         subtitle: "Three Wheels, One Machine",
-        lore: "Three cycles turning simultaneously — period 3, period 4, period 5. Together they will not repeat for sixty steps. This inscription shows nine. Each row is independent. Solve each on its own terms. When all three wheels are filled, the inscription of the Calendar Round is complete.",
+        lore: "Three wheels, each bound to its own ancient count. The Sun Wheel turns by the three hearthstones the gods set at the first dawn. The Year Wheel turns by the four Bacabs who stand at the corners of the sky, holding the world upright. The Long Wheel turns by the five Wayeb' — the nameless days when time holds its breath and the world waits. Solve each wheel alone.",
         inscriptions: [
             "Running at once: three wheels with independent periods of three, four, and five. Together they do not repeat for sixty positions — you see nine. Solve each row entirely on its own terms: find the period, locate the revealed anchors within it, and fill the blanks.",
             "The Sun Wheel is period 3: KIN, IMIX, IK repeating. Five positions are revealed — more than enough to confirm the rhythm. The two blanks in the middle and the two near the end follow directly from the pattern.",
@@ -394,7 +394,7 @@ extension MayanLevel {
             usesSynchronizedRotation: false,
             title: "Wheels That Answer Each Other",
             subtitle: "The Binding Rule",
-            lore: "Two wheels, both still. But they are not independent. At every position, the outer mark and the inner mark are bound by a fixed pairing — and the pairing works both ways. The same symbol always finds the same partner, no matter which wheel it is on.",
+            lore: "KIN has always called to HAAB — and HAAB has always called back. IMIX calls to IK; IK calls to IMIX. These are not rules carved by priests. They are the first marriages of creation, older than the calendar. Find where the pairing reveals itself, then follow the bond to every blank.",
             inscriptions: [
                 "These two wheels do not turn separately. At each position, the outer mark and the inner mark belong together — a fixed pairing, always the same. The key: the rule is symmetric. If A pairs with B, then B pairs with A. The same symbol always finds the same partner.",
                 "Find the positions where both wheels carry a mark. Those positions show you the pairings directly. Now look for a position where the same pair appears in the opposite order — outer becomes inner, inner becomes outer. That is not a coincidence. That is symmetry.",
@@ -447,7 +447,7 @@ extension MayanLevel {
             usesSynchronizedRotation: true,
             title: "The Pairing in Motion",
             subtitle: "Bound Wheels, Turning",
-            lore: "The symmetric pairing rule holds even as the wheels rotate. You know the pairs from the previous tablet. Now the outer ring arrived mid-cycle. Watch what passes through 12 o'clock, identify where in the cycle you entered, then apply the binding rule to fill each blank.",
+            lore: "The wheels did not wait for you. KIN still calls to HAAB; IMIX still calls to IK — the ancient bonds hold whether the rings are still or spinning. But the outer wheel began its count before you arrived. Watch the first marks that pass at 12 o'clock and find where you entered the cycle. Your footing found, the rest follows.",
             inscriptions: [
                 "The binding rule from the previous tablet still applies — and it is still symmetric. Each symbol always pairs with the same partner, no matter which ring it appears on. The new challenge is that the outer ring did not start at its first symbol.",
                 "Watch the outer ring's first two anchor marks as they pass 12 o'clock. They tell you which two consecutive positions in the cycle you entered at. Once you know the entry point, every outer position is determined.",

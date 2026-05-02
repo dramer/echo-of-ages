@@ -742,7 +742,14 @@ final class GameState: ObservableObject {
 
     /// Generates a randomised variant of the level at `index`.
     /// Keeps the same grid dimensions, blocked cells, title and lore — only
-    /// the Hamiltonian path and rune assignments change.
+    /// the Hamiltonian path, rune assignments, and directional constraints change.
+    ///
+    /// Waypoint progression:
+    ///   L1 (0): 3 rune waypoints, 0 directional
+    ///   L2 (1): 3 rune waypoints, 0 directional
+    ///   L3 (2): 3 rune waypoints, 1 directional stone
+    ///   L4 (3): 2 rune waypoints (start+end), 2 directional stones
+    ///   L5 (4): 2 rune waypoints (start+end), 3 directional stones
     private func generateNorseVariant(at index: Int) -> PathLevel {
         let template = PathLevel.allLevels[index]
         guard let path = PathGenerator.generatePath(
@@ -752,9 +759,19 @@ final class GameState: ObservableObject {
         ) else {
             return template  // Fallback: use the static hand-crafted path
         }
+        let (runeCount, directionalCount): (Int, Int) = {
+            switch index {
+            case 0:  return (3, 0)
+            case 1:  return (3, 0)
+            case 2:  return (3, 1)
+            case 3:  return (2, 2)
+            default: return (2, 3)
+            }
+        }()
         let waypoints = PathGenerator.placeWaypoints(
             on: path,
-            count: template.waypoints.count
+            runeCount: runeCount,
+            directionalCount: directionalCount
         )
         return template.withGeneratedPath(solution: path, waypoints: waypoints)
     }
@@ -2285,6 +2302,7 @@ final class GameState: ObservableObject {
         }
         let reconstructed = CelticPuzzle(
             rows: save.rows, cols: save.cols,
+            mechanic: CelticDifficulty.all[celticCurrentLevelIndex].mechanic,
             rowSums: save.rowSums, colSums: save.colSums,
             fixedCells: fixedCellSet, fixedValues: fixedValues,
             solution: save.solution
@@ -2461,6 +2479,19 @@ final class GameState: ObservableObject {
         }
 
         celticErrorCells.remove(coord)
+
+        // For reflected mechanic: auto-fill the mirror cell
+        if puzzle.mechanic == .reflected {
+            let mirrorCol = puzzle.cols - 1 - col
+            if mirrorCol != col {
+                let mirrorCoord = CelticCellCoord(row: row, col: mirrorCol)
+                if !puzzle.fixedCells.contains(mirrorCoord) {
+                    celticPlayerGrid[row][mirrorCol] = celticPlayerGrid[row][col]
+                    celticErrorCells.remove(mirrorCoord)
+                }
+            }
+        }
+
         HapticFeedback.tap()
 
         if puzzle.isSolved(celticPlayerGrid) {
@@ -2495,6 +2526,17 @@ final class GameState: ObservableObject {
               celticPlayerGrid[row].indices.contains(col) else { return }
         celticPlayerGrid[row][col] = nil
         celticErrorCells.remove(coord)
+        // For reflected mechanic: also clear the mirror cell
+        if let puzzle = celticCurrentPuzzle, puzzle.mechanic == .reflected {
+            let mirrorCol = puzzle.cols - 1 - col
+            if mirrorCol != col {
+                let mirrorCoord = CelticCellCoord(row: row, col: mirrorCol)
+                if !puzzle.fixedCells.contains(mirrorCoord) {
+                    celticPlayerGrid[row][mirrorCol] = nil
+                    celticErrorCells.remove(mirrorCoord)
+                }
+            }
+        }
         HapticFeedback.tap()
         soundManager?.playEffect(.clear)
     }

@@ -2,8 +2,9 @@
 // EchoOfAges
 //
 // Game view for the Celtic / Druidic civilization.
-// Puzzle: fill a grid of Ogham letters so every row and column is
-// non-decreasing, AND every row/column sum matches the carved targets.
+// Each level uses a different mechanic hinted at by the puzzle title.
+// All levels: fill a grid of Ogham letters so the carved row/column sums match,
+// subject to the level's unique ordering or pattern rule.
 
 import SwiftUI
 
@@ -43,6 +44,7 @@ struct CelticGameView: View {
                 ScrollView {
                     VStack(spacing: 20) {
                         subtitleText
+                        mechanicRuleBanner
                         if gameState.celticCurrentLevelIndex == 0
                             && gameState.needsKeyGate(for: .celtic) {
                             celticMysteryMarkSlot
@@ -188,6 +190,25 @@ struct CelticGameView: View {
         )
     }
 
+    // MARK: - Mechanic Rule Banner
+
+    private var mechanicRuleBanner: some View {
+        let mechanic = puzzle?.mechanic ?? difficulty.mechanic
+        return Text(mechanic.ruleLabel)
+            .font(.custom("Cinzel-Regular", size: 12 * uiScale))
+            .foregroundStyle(Color.celticGold.opacity(0.80))
+            .multilineTextAlignment(.center)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 7)
+            .background(
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color.celticStone.opacity(0.18))
+                    .overlay(RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color.celticGold.opacity(0.22), lineWidth: 1))
+            )
+            .padding(.horizontal, 20)
+    }
+
     // MARK: - Subtitle
 
     private var subtitleText: some View {
@@ -302,18 +323,28 @@ struct CelticGameView: View {
 
     @ViewBuilder
     private func celticCell(row: Int, col: Int, puzzle p: CelticPuzzle) -> some View {
-        let coord   = CelticCellCoord(row: row, col: col)
-        let isFixed = p.fixedCells.contains(coord)
-        let isError = gameState.celticErrorCells.contains(coord)
-        let glyph   = gameState.celticPlayerGrid.indices.contains(row)
-                   && gameState.celticPlayerGrid[row].indices.contains(col)
-                    ? gameState.celticPlayerGrid[row][col] : nil
+        let coord      = CelticCellCoord(row: row, col: col)
+        let isFixed    = p.fixedCells.contains(coord)
+        let isError    = gameState.celticErrorCells.contains(coord)
+        let isMirror   = p.mechanic == .reflected && col > p.cols / 2
+        // Mirror cells tap to their canonical counterpart
+        let tapCol     = isMirror ? (p.cols - 1 - col) : col
+        let glyph      = gameState.celticPlayerGrid.indices.contains(row)
+                      && gameState.celticPlayerGrid[row].indices.contains(col)
+                       ? gameState.celticPlayerGrid[row][col] : nil
 
         let bg: Color = {
             if isError  { return Color.celticRed }
             if isFixed  { return Color.celticStone.opacity(0.55) }
+            if isMirror { return Color.celticStone.opacity(0.22) }
             if glyph != nil { return Color.celticStone.opacity(0.80) }
             return Color.celticStone.opacity(0.30)
+        }()
+
+        let borderColor: Color = {
+            if isFixed  { return Color.celticGold.opacity(0.45) }
+            if isMirror { return Color.celticGold.opacity(0.20) }
+            return Color.celticStone.opacity(0.6)
         }()
 
         ZStack {
@@ -321,19 +352,23 @@ struct CelticGameView: View {
                 .fill(bg)
                 .overlay(
                     RoundedRectangle(cornerRadius: 6)
-                        .stroke(isFixed ? Color.celticGold.opacity(0.45)
-                                        : Color.celticStone.opacity(0.6),
-                                lineWidth: isFixed ? 1.5 : 1)
+                        .stroke(borderColor, lineWidth: isFixed ? 1.5 : 1)
                 )
 
             VStack(spacing: 2) {
                 if let g = glyph {
                     Text(g.rawValue)
                         .font(.system(size: cellSize * 0.44, weight: .medium))
-                        .foregroundStyle(isFixed ? Color.celticInk : Color.celticInk.opacity(0.85))
+                        .foregroundStyle(isMirror
+                            ? Color.celticInk.opacity(0.45)
+                            : (isFixed ? Color.celticInk : Color.celticInk.opacity(0.85)))
                     Text(g.treeName)
                         .font(.system(size: cellSize * 0.15))
-                        .foregroundStyle(Color.celticInk.opacity(0.55))
+                        .foregroundStyle(Color.celticInk.opacity(isMirror ? 0.30 : 0.55))
+                } else if isMirror {
+                    Image(systemName: "arrow.left.and.right")
+                        .font(.system(size: cellSize * 0.18))
+                        .foregroundStyle(Color.celticGold.opacity(0.18))
                 } else {
                     Text("·")
                         .font(.system(size: cellSize * 0.3))
@@ -342,8 +377,8 @@ struct CelticGameView: View {
             }
         }
         .frame(width: cellSize, height: cellSize)
-        .onTapGesture { gameState.tapCelticCell(row: row, col: col) }
-        .onLongPressGesture { if !isFixed { gameState.clearCelticCell(row: row, col: col) } }
+        .onTapGesture { gameState.tapCelticCell(row: row, col: tapCol) }
+        .onLongPressGesture { if !isFixed { gameState.clearCelticCell(row: row, col: tapCol) } }
         .animation(.easeInOut(duration: 0.12), value: glyph)
         .animation(.easeInOut(duration: 0.12), value: isError)
     }
@@ -473,14 +508,14 @@ struct CelticGameView: View {
             }
             .padding(.bottom, 14)
 
-            celticHelpRow(number: "1", title: "Fill every cell with an Ogham value",
+            celticHelpRow(number: "1", title: "Fill every cell with an Ogham mark",
                           body: "Each cell holds a value from 1 (ᚁ Beith) to 5 (ᚅ Nion). Every cell must be filled — no cell can be left blank.")
-            celticHelpRow(number: "2", title: "No value repeats in any row or column",
-                          body: "Each number 1–5 appears exactly once per row and exactly once per column, like a Latin square.")
+            celticHelpRow(number: "2", title: difficulty.title,
+                          body: difficulty.mechanic.ruleLabel)
             celticHelpRow(number: "3", title: "Match the carved totals",
-                          body: "The sum shown at the end of each row and column is the target total. Your filled values must add up to those numbers.")
+                          body: "The number beside each row and below each column is the target sum. Your marks must add up to those numbers.")
             celticHelpRow(number: "4", title: "Arm and place",
-                          body: "Tap a symbol in the palette to arm it, then tap any empty cell to place it. Tap Decipher to check your work.")
+                          body: "Tap a mark in the palette to arm it, then tap any blank cell to place it. Tap Decipher to check your work.")
 
             Button { withAnimation { showHelp = false } } label: {
                 Text("Got it")

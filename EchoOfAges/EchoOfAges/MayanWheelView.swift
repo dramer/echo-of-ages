@@ -650,10 +650,15 @@ struct MayanWheelView: View {
                 .stroke(Color.goldBright.opacity(0.55), lineWidth: 1.2)
                 .frame(width: radius * 2, height: radius * 2)
 
-            if centerGlyphVisible {
-                Image(systemName: centerGlyph.sfSymbol)
+            if let armed = gameState.mayanArmedGlyph {
+                Image(systemName: armed.sfSymbol)
                     .font(.system(size: radius * 0.80))
                     .foregroundStyle(Color.goldBright)
+                    .transition(.scale(scale: 0.6).combined(with: .opacity))
+            } else if centerGlyphVisible {
+                Image(systemName: centerGlyph.sfSymbol)
+                    .font(.system(size: radius * 0.80))
+                    .foregroundStyle(jadeColor.opacity(0.35))
                     .transition(.scale(scale: 0.6).combined(with: .opacity))
             }
         }
@@ -671,8 +676,7 @@ struct MayanWheelView: View {
 
             HStack(spacing: 8) {
                 ForEach(MayanGlyph.allCases) { glyph in
-                    let isActive  = level.usesSynchronizedRotation ? true : glyph == centerGlyph
-                    let isArmed   = gameState.mayanArmedGlyph == glyph
+                    let isArmed = gameState.mayanArmedGlyph == glyph
 
                     Button(action: {
                         HapticFeedback.tap()
@@ -681,15 +685,11 @@ struct MayanWheelView: View {
                         VStack(spacing: 4) {
                             Image(systemName: glyph.sfSymbol)
                                 .font(.system(size: 20))
-                                .foregroundStyle(isActive
-                                    ? (isArmed ? Color.goldBright : Color.white)
-                                    : Color.white.opacity(0.22))
+                                .foregroundStyle(isArmed ? Color.goldBright : Color.white)
 
                             Text(glyph.displayName)
                                 .font(EgyptFont.body(9))
-                                .foregroundStyle(isActive
-                                    ? jadeColor.opacity(0.85)
-                                    : jadeColor.opacity(0.22))
+                                .foregroundStyle(jadeColor.opacity(0.85))
                         }
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 10)
@@ -697,38 +697,24 @@ struct MayanWheelView: View {
                             RoundedRectangle(cornerRadius: 8)
                                 .fill(isArmed
                                     ? jadeColor.opacity(0.30)
-                                    : isActive
-                                        ? Color.white.opacity(0.08)
-                                        : Color.white.opacity(0.03))
+                                    : Color.white.opacity(0.08))
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 8)
                                         .stroke(isArmed
                                             ? Color.goldBright.opacity(0.85)
-                                            : isActive
-                                                ? jadeColor.opacity(0.45)
-                                                : jadeColor.opacity(0.12),
+                                            : jadeColor.opacity(0.45),
                                                 lineWidth: isArmed ? 1.6 : 0.7)
                                 )
                         )
-                        .opacity(isActive ? 1.0 : 0.45)
-                        .animation(.easeInOut(duration: 0.2), value: isActive)
                         .animation(.easeInOut(duration: 0.15), value: isArmed)
                     }
-                    .disabled(!isActive)
                 }
             }
 
-            if level.usesSynchronizedRotation {
-                Text("Select any symbol to place when the rings align at 12 o'clock.")
-                    .font(EgyptFont.bodyItalic(11))
-                    .foregroundStyle(jadeColor.opacity(0.38))
-                    .frame(maxWidth: .infinity, alignment: .center)
-            } else {
-                Text("Only the symbol matching the centre circle is available.")
-                    .font(EgyptFont.bodyItalic(11))
-                    .foregroundStyle(jadeColor.opacity(0.38))
-                    .frame(maxWidth: .infinity, alignment: .center)
-            }
+            Text("Select a symbol — it appears in the centre. Then tap the glowing cell to place it.")
+                .font(EgyptFont.bodyItalic(11))
+                .foregroundStyle(jadeColor.opacity(0.38))
+                .frame(maxWidth: .infinity, alignment: .center)
         }
         .padding(14)
         .background(
@@ -956,12 +942,12 @@ struct MayanWheelView: View {
             }
             .padding(.bottom, 14)
 
-            mayanHelpRow(number: "1", title: "Spin the outer wheel",
-                         body: "Tap any outer cell to cycle its glyph. Each glyph must appear once in the outer ring.")
-            mayanHelpRow(number: "2", title: "Spin the inner wheel",
-                         body: "Tap any inner cell to cycle its glyph. Each glyph must appear once in the inner ring.")
+            mayanHelpRow(number: "1", title: "Select a symbol from the palette",
+                         body: "Tap any symbol in the palette below. Your selection appears in the centre circle so you can see what you are about to place.")
+            mayanHelpRow(number: "2", title: "Place it at 12 o'clock",
+                         body: "The rings rotate and pause when a blank cell reaches 12 o'clock. Tap the glowing cell while your symbol is armed to fill it. Tap the cell again to replace it.")
             mayanHelpRow(number: "3", title: "Decipher when ready",
-                         body: "Tap Decipher when both rings are filled. Wrong cells flash red — use logic to find the correct positions.")
+                         body: "Tap Decipher when both rings are fully filled. Wrong cells flash red — use the pattern you have already revealed to correct them.")
 
             Button { withAnimation { showHelp = false } } label: {
                 Text("Got it")
