@@ -87,11 +87,11 @@ enum CelticMechanic: Equatable {
     /// One-line rule shown in the rule banner and help dialog.
     var ruleLabel: String {
         switch self {
-        case .ascending:  return "Values climb — each row and column rises left→right, top→bottom"
-        case .descending: return "Values sink — each row and column falls left→right, top→bottom"
-        case .braided:    return "Marks weave — cells alternate odd (ᚁᚃᚅ) and even (ᚂᚄ) like a braid"
-        case .scattered:  return "Marks scatter — no two touching cells may share the same value"
-        case .reflected:  return "Marks mirror — each row reads the same forwards and backwards"
+        case .ascending:  return "The stone rises — each mark must be greater than the one before it, in every row and every column"
+        case .descending: return "The stone sinks — each mark must be lesser than the one before it, in every row and every column"
+        case .braided:    return "The branches weave — odd marks (ᚁᚃᚅ) and even marks (ᚂᚄ) must alternate like a woven braid across the grove"
+        case .scattered:  return "The grove scatters — no two marks that touch, even at a corner, may share the same value"
+        case .reflected:  return "The stone mirrors — each row must read the same from left to right as from right to left"
         }
     }
 }
