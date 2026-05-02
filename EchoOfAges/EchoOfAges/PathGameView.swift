@@ -366,12 +366,12 @@ struct PathGameView: View {
                          && gameState.needsKeyGate(for: .norse)
 
         return VStack(spacing: 6) {
-            Text("Waypoints — visit in order")
+            Text("Rune Waypoints — visit in order")
                 .font(EgyptFont.body(12))
                 .foregroundStyle(Color(red: 0.55, green: 0.75, blue: 0.95).opacity(0.7))
 
             HStack(spacing: 6) {
-                ForEach(level.waypoints.sorted(by: { $0.pathIndex < $1.pathIndex })) { wp in
+                ForEach(level.waypoints.filter { !$0.isDirectional }.sorted(by: { $0.pathIndex < $1.pathIndex })) { wp in
                     let reached = path.contains(wp.position)
                     // Use the live mystery mark for the start waypoint while the key gate is open
                     let rawRune = (wp.isStart && keyGateActive)
@@ -733,6 +733,8 @@ struct PathGameView: View {
                          body: "Once a stone is placed it cannot be removed. If you reach a dead end, use the Reset button to clear your path and start over.")
             norseHelpRow(number: "4", title: "Blocked stones",
                          body: "Dark stones marked with an X are impassable — route around them. They don't need to be visited.")
+            norseHelpRow(number: "5", title: "Carved directional stones",
+                         body: "Some stones show a carved line — straight or bent — indicating which direction the path must pass through them. Your path must enter and exit that stone along the indicated axis. If the line bends, your path must turn at that stone.")
 
             Button { withAnimation { showHelp = false } } label: {
                 Text("Got it")
@@ -937,17 +939,25 @@ private struct PathCellView: View {
                 .overlay(RoundedRectangle(cornerRadius: 6)
                     .stroke(Color(red: 0.35, green: 0.65, blue: 0.90).opacity(0.5), lineWidth: 1))
         } else if let wp = waypoint {
-            RoundedRectangle(cornerRadius: 6)
-                .fill(wp.isStart
-                    ? Color(red: 0.10, green: 0.28, blue: 0.15)
-                    : wp.isEnd
-                        ? Color(red: 0.25, green: 0.15, blue: 0.06)
-                        : Color(red: 0.22, green: 0.18, blue: 0.06))
-                .overlay(RoundedRectangle(cornerRadius: 6)
-                    .stroke(wp.isStart
-                        ? Color(red: 0.35, green: 0.85, blue: 0.50).opacity(0.8)
-                        : Color(red: 0.80, green: 0.65, blue: 0.25).opacity(0.75),
-                            lineWidth: 1.5))
+            if wp.isDirectional {
+                // Directional stone — deep slate with a carved amber border
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(Color(red: 0.12, green: 0.16, blue: 0.28))
+                    .overlay(RoundedRectangle(cornerRadius: 6)
+                        .stroke(Color(red: 0.75, green: 0.55, blue: 0.25).opacity(0.70), lineWidth: 1.5))
+            } else {
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(wp.isStart
+                        ? Color(red: 0.10, green: 0.28, blue: 0.15)
+                        : wp.isEnd
+                            ? Color(red: 0.25, green: 0.15, blue: 0.06)
+                            : Color(red: 0.22, green: 0.18, blue: 0.06))
+                    .overlay(RoundedRectangle(cornerRadius: 6)
+                        .stroke(wp.isStart
+                            ? Color(red: 0.35, green: 0.85, blue: 0.50).opacity(0.8)
+                            : Color(red: 0.80, green: 0.65, blue: 0.25).opacity(0.75),
+                                lineWidth: 1.5))
+            }
         } else {
             RoundedRectangle(cornerRadius: 6)
                 .fill(Color(red: 0.10, green: 0.14, blue: 0.22))
@@ -1004,23 +1014,28 @@ private struct PathCellView: View {
                 .font(.system(size: size * 0.38, weight: .bold))
                 .foregroundStyle(Color.red.opacity(0.9))
         } else if let wp = waypoint {
-            // Waypoint — show rune symbol + small label
-            let reached = isInPath
-            // Keep showing the mystery mark symbol after the start cell is placed in the path
-            let displayRune = (mysteryMarkSymbol != nil && wp.isStart) ? (mysteryMarkSymbol ?? wp.rune) : wp.rune
-            VStack(spacing: 1) {
-                Text(displayRune)
-                    .font(.system(size: size * 0.42))
-                    .foregroundStyle(reached
-                        ? Color(red: 0.40, green: 0.95, blue: 0.65)
-                        : wp.isStart
-                            ? Color(red: 0.45, green: 0.95, blue: 0.60)
-                            : Color(red: 0.90, green: 0.75, blue: 0.30))
-                if size > 44 {
-                    Text(wp.runeName)
-                        .font(EgyptFont.body(size > 64 ? 9 : 8))
-                        .foregroundStyle(Color(red: 0.70, green: 0.80, blue: 0.95).opacity(0.65))
-                        .lineLimit(1)
+            if wp.isDirectional, let pt = wp.passThrough {
+                // Directional stone — draw the carved line indicator
+                let reached = isInPath
+                DirectionalStoneView(passThrough: pt, size: size, reached: reached)
+            } else {
+                // Rune waypoint — show rune symbol + small label
+                let reached = isInPath
+                let displayRune = (mysteryMarkSymbol != nil && wp.isStart) ? (mysteryMarkSymbol ?? wp.rune) : wp.rune
+                VStack(spacing: 1) {
+                    Text(displayRune)
+                        .font(.system(size: size * 0.42))
+                        .foregroundStyle(reached
+                            ? Color(red: 0.40, green: 0.95, blue: 0.65)
+                            : wp.isStart
+                                ? Color(red: 0.45, green: 0.95, blue: 0.60)
+                                : Color(red: 0.90, green: 0.75, blue: 0.30))
+                    if size > 44 {
+                        Text(wp.runeName)
+                            .font(EgyptFont.body(size > 64 ? 9 : 8))
+                            .foregroundStyle(Color(red: 0.70, green: 0.80, blue: 0.95).opacity(0.65))
+                            .lineLimit(1)
+                    }
                 }
             }
         } else if isInPath, let idx = pathIndex {
@@ -1036,6 +1051,70 @@ private struct PathCellView: View {
                 .fill(Color(red: 0.30, green: 0.45, blue: 0.65).opacity(0.25))
                 .frame(width: size * 0.18, height: size * 0.18)
         }
+    }
+}
+
+// MARK: - Directional Stone View
+
+/// Renders a carved directional indicator on a Norse runestone cell.
+/// Draws a glowing line from one edge of the cell to another, showing
+/// which direction the Hamiltonian path must pass through this stone.
+private struct DirectionalStoneView: View {
+    let passThrough: PassThroughType
+    let size: CGFloat
+    let reached: Bool
+
+    var body: some View {
+        Canvas { ctx, canvasSize in
+            let w = canvasSize.width
+            let h = canvasSize.height
+            let cx = w / 2
+            let cy = h / 2
+            let inset: CGFloat = size * 0.10   // how close the line gets to the cell edge
+
+            var linePath = Path()
+
+            switch passThrough {
+            case .straightH:
+                linePath.move(to: CGPoint(x: inset, y: cy))
+                linePath.addLine(to: CGPoint(x: w - inset, y: cy))
+
+            case .straightV:
+                linePath.move(to: CGPoint(x: cx, y: inset))
+                linePath.addLine(to: CGPoint(x: cx, y: h - inset))
+
+            case .bendNE:   // north edge → east edge (top → right)
+                linePath.move(to: CGPoint(x: cx, y: inset))
+                linePath.addLine(to: CGPoint(x: cx, y: cy))
+                linePath.addLine(to: CGPoint(x: w - inset, y: cy))
+
+            case .bendNW:   // north edge → west edge (top → left)
+                linePath.move(to: CGPoint(x: cx, y: inset))
+                linePath.addLine(to: CGPoint(x: cx, y: cy))
+                linePath.addLine(to: CGPoint(x: inset, y: cy))
+
+            case .bendSE:   // south edge → east edge (bottom → right)
+                linePath.move(to: CGPoint(x: cx, y: h - inset))
+                linePath.addLine(to: CGPoint(x: cx, y: cy))
+                linePath.addLine(to: CGPoint(x: w - inset, y: cy))
+
+            case .bendSW:   // south edge → west edge (bottom → left)
+                linePath.move(to: CGPoint(x: cx, y: h - inset))
+                linePath.addLine(to: CGPoint(x: cx, y: cy))
+                linePath.addLine(to: CGPoint(x: inset, y: cy))
+            }
+
+            let lineColor = reached
+                ? Color(red: 0.40, green: 0.95, blue: 0.65)     // green when visited
+                : Color(red: 0.90, green: 0.65, blue: 0.25)     // amber when unvisited
+
+            ctx.stroke(linePath,
+                       with: .color(lineColor),
+                       style: StrokeStyle(lineWidth: max(3, size * 0.09),
+                                          lineCap: .round,
+                                          lineJoin: .round))
+        }
+        .frame(width: size, height: size)
     }
 }
 

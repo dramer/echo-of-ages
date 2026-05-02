@@ -79,36 +79,68 @@ struct PathGenerator {
 
     // MARK: Waypoint Placement
 
-    /// Distributes `count` waypoints evenly along `path`, assigning randomly-
-    /// selected runes from the pool. Always marks the first as START and the
-    /// last as END. Produces a unique rune set on every call.
-    static func placeWaypoints(on path: [GridPosition], count: Int) -> [Waypoint] {
-        guard count >= 2, path.count >= count else { return [] }
+    /// Distributes waypoints along `path`.
+    /// `runeCount` rune-bearing waypoints (always includes start and end).
+    /// `directionalCount` additional direction-only stones (interior positions only).
+    /// Always marks the first rune waypoint as START and the last as END.
+    static func placeWaypoints(on path: [GridPosition], runeCount: Int, directionalCount: Int = 0) -> [Waypoint] {
+        let total = runeCount + directionalCount
+        guard total >= 2, path.count >= total else { return [] }
 
         // Evenly spaced indices including start (0) and end (last)
         var indices: [Int] = [0]
-        for i in 1..<(count - 1) {
-            let idx = Int(round(Double(i) * Double(path.count - 1) / Double(count - 1)))
-            // Avoid collision with previously chosen indices
+        for i in 1..<(total - 1) {
+            let idx = Int(round(Double(i) * Double(path.count - 1) / Double(total - 1)))
             indices.append(max(idx, (indices.last ?? 0) + 1))
         }
         indices.append(path.count - 1)
 
-        // Pick a random non-repeating subset of runes
-        let chosen = Array(runePool.shuffled().prefix(count))
+        // The last `directionalCount` interior waypoint positions are directional.
+        // Interior positions = wpIdx in 1...(total-2).
+        var directionalWpIndices: Set<Int> = []
+        if directionalCount > 0 {
+            let interiorCount = total - 2   // number of interior waypoints
+            for k in 0..<min(directionalCount, interiorCount) {
+                directionalWpIndices.insert(total - 2 - k)  // count back from last interior
+            }
+        }
+
+        // Pick runes for non-directional interior + start + end positions
+        let chosen = Array(runePool.shuffled().prefix(runeCount))
+        var runeIdx = 0
 
         return indices.enumerated().map { (wpIdx, pathIdx) in
-            let runeInfo = chosen[wpIdx]
-            return Waypoint(
-                id: wpIdx + 1,
-                pathIndex: pathIdx,
-                position: path[pathIdx],
-                rune: runeInfo.rune,
-                runeName: runeInfo.name,
-                meaning: runeInfo.meaning,
-                isStart: wpIdx == 0,
-                isEnd:   wpIdx == count - 1
-            )
+            let isStart = wpIdx == 0
+            let isEnd   = wpIdx == total - 1
+
+            if directionalWpIndices.contains(wpIdx) {
+                // Interior directional stone — compute direction from path context
+                let pt = (pathIdx > 0 && pathIdx < path.count - 1)
+                    ? PassThroughType.from(prev: path[pathIdx - 1], at: path[pathIdx], next: path[pathIdx + 1])
+                    : PassThroughType.straightH  // fallback (shouldn't occur)
+                return Waypoint(
+                    id: wpIdx + 1,
+                    pathIndex: pathIdx,
+                    position: path[pathIdx],
+                    rune: "",
+                    runeName: "Carved Stone",
+                    meaning: "Pass through in this direction",
+                    passThrough: pt
+                )
+            } else {
+                let runeInfo = chosen[runeIdx % chosen.count]
+                runeIdx += 1
+                return Waypoint(
+                    id: wpIdx + 1,
+                    pathIndex: pathIdx,
+                    position: path[pathIdx],
+                    rune: runeInfo.rune,
+                    runeName: runeInfo.name,
+                    meaning: runeInfo.meaning,
+                    isStart: isStart,
+                    isEnd: isEnd
+                )
+            }
         }
     }
 
