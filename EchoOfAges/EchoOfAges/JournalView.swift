@@ -1875,7 +1875,8 @@ private struct SettingsJournalContent: View {
             soundRow(icon: "🌿",  label: "Maya",        isOn: $sm.mayaEnabled,     sfSymbol: false)
             soundRow(icon: "ᚁ",   label: "Celtic",      isOn: $sm.celticEnabled,   sfSymbol: false)
             soundRow(icon: "☰",   label: "Chinese",     isOn: $sm.chineseEnabled,  sfSymbol: false)
-            soundRow(icon: "book.fill", label: "Field Diary", isOn: $sm.journalEnabled)
+            soundRow(icon: "book.fill",      label: "Field Diary",    isOn: $sm.journalEnabled)
+            soundRow(icon: "tree.fill",      label: "Tree of Life",   isOn: $sm.treeEnabled)
         }
         .disabled(!sm.masterEnabled)
         .opacity(sm.masterEnabled ? 1.0 : 0.38)

@@ -14,6 +14,7 @@
 //   celtic_sound.mp3   — Celtic puzzles
 //   chinese_sound.mp3  — Chinese puzzles
 //   journal_sound.mp3  — Field Diary
+//   tree_sound.mp3     — Tree of Life / Mandu Tablet finale
 //
 // Sound effect files expected in the app bundle:
 //   sfx_place.mp3  — glyph / path cell placed
@@ -41,6 +42,7 @@ final class SoundManager {
     var celticEnabled: Bool   = true { didSet { persist(); applySettingsChange() } }
     var chineseEnabled: Bool  = true { didSet { persist(); applySettingsChange() } }
     var journalEnabled: Bool  = true { didSet { persist(); applySettingsChange() } }
+    var treeEnabled: Bool     = true { didSet { persist(); applySettingsChange() } }
     var effectsEnabled: Bool  = true { didSet { persist() } }
     var hapticsEnabled: Bool  = true { didSet { persist(); HapticFeedback.isEnabled = hapticsEnabled } }
 
@@ -107,7 +109,7 @@ final class SoundManager {
         case .intro:
             immediateStop()
             return
-        case .levelComplete, .gameComplete, .manduTablet:
+        case .levelComplete, .gameComplete:
             return  // keep current track playing
         case .title, .debug:
             fadeOutAndStop()
@@ -139,6 +141,7 @@ final class SoundManager {
         case .celticGame:   return "celtic_sound"
         case .chineseGame:  return "chinese_sound"
         case .journal:      return "journal_sound"
+        case .manduTablet:  return "tree_sound"
         default:            return nil
         }
     }
@@ -152,6 +155,7 @@ final class SoundManager {
         case .celticGame:   return celticEnabled
         case .chineseGame:  return chineseEnabled
         case .journal:      return journalEnabled
+        case .manduTablet:  return treeEnabled
         default:            return false
         }
     }
@@ -240,6 +244,7 @@ final class SoundManager {
         static let celtic   = "EOA_soundCeltic"
         static let chinese  = "EOA_soundChinese"
         static let journal  = "EOA_soundJournal"
+        static let tree     = "EOA_soundTree"
         static let effects  = "EOA_soundEffects"
         static let haptics  = "EOA_hapticsEnabled"
     }
@@ -257,6 +262,7 @@ final class SoundManager {
         celticEnabled   = bool(UDKey.celtic)
         chineseEnabled  = bool(UDKey.chinese)
         journalEnabled  = bool(UDKey.journal)
+        treeEnabled     = bool(UDKey.tree)
         effectsEnabled  = bool(UDKey.effects)
         hapticsEnabled  = bool(UDKey.haptics)
         HapticFeedback.isEnabled = hapticsEnabled
@@ -272,6 +278,7 @@ final class SoundManager {
         d.set(celticEnabled,   forKey: UDKey.celtic)
         d.set(chineseEnabled,  forKey: UDKey.chinese)
         d.set(journalEnabled,  forKey: UDKey.journal)
+        d.set(treeEnabled,     forKey: UDKey.tree)
         d.set(effectsEnabled,  forKey: UDKey.effects)
         d.set(hapticsEnabled,  forKey: UDKey.haptics)
     }

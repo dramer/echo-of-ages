@@ -282,7 +282,7 @@ struct NameEntryView: View {
 
                     // Name input
                     VStack(spacing: 10) {
-                        Text("FIRST NAME")
+                        Text("YOUR NAME")
                             .font(EgyptFont.title(12))
                             .foregroundStyle(Color(red: 0.45, green: 0.30, blue: 0.10).opacity(0.65))
                             .tracking(3)
