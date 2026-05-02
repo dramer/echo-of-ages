@@ -150,9 +150,28 @@ struct TitleView: View {
                             .frame(maxWidth: .infinity)
                         }
 
-                        landingButton(asset: "begin_journey", fallback: "arrow.right.circle.fill") {
+                        Button {
                             HapticFeedback.heavy()
                             withAnimation(.easeInOut(duration: 0.4)) { gameState.startNewGame() }
+                        } label: {
+                            Text("Begin")
+                                .font(EgyptFont.titleBold(22))
+                                .foregroundStyle(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                                .background(
+                                    Capsule()
+                                        .fill(LinearGradient(
+                                            colors: [Color(red: 0.25, green: 0.78, blue: 0.35),
+                                                     Color(red: 0.15, green: 0.60, blue: 0.25)],
+                                            startPoint: .top, endPoint: .bottom))
+                                )
+                                .overlay(
+                                    Capsule()
+                                        .stroke(Color(red: 0.10, green: 0.45, blue: 0.18), lineWidth: 1.5)
+                                )
+                                .shadow(color: Color(red: 0.10, green: 0.45, blue: 0.18).opacity(0.5),
+                                        radius: 8, x: 0, y: 4)
                         }
                     }
                 }
