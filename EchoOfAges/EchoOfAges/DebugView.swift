@@ -1064,23 +1064,38 @@ struct DebugView: View {
                                 )
                         }
 
+                        // View the Ending (Tree of Life reveal — no solve required)
+                        Button {
+                            HapticFeedback.tap()
+                            withAnimation(.easeInOut(duration: 0.38)) { gameState.openManduTabletReveal() }
+                        } label: {
+                            Label("View the Ending", systemImage: "sparkles")
+                                .font(EgyptFont.body(14))
+                                .foregroundStyle(gold)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 11)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .fill(gold.opacity(0.10))
+                                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(gold.opacity(0.35), lineWidth: 1))
+                                )
+                        }
+
                         // Reset mastermind
-                        if !gameState.masterMindGuessHistory.isEmpty || gameState.masterMindPlayerSlots.contains(where: { $0 != nil }) {
-                            Button {
-                                HapticFeedback.heavy()
-                                gameState.resetMasterMind()
-                            } label: {
-                                Label("Reset Mastermind State", systemImage: "arrow.counterclockwise")
-                                    .font(EgyptFont.body(14))
-                                    .foregroundStyle(red.opacity(0.85))
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 11)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 8)
-                                            .fill(red.opacity(0.08))
-                                            .overlay(RoundedRectangle(cornerRadius: 8).stroke(red.opacity(0.28), lineWidth: 1))
-                                    )
-                            }
+                        Button {
+                            HapticFeedback.heavy()
+                            gameState.resetMasterMind()
+                        } label: {
+                            Label("Reset Mastermind State", systemImage: "arrow.counterclockwise")
+                                .font(EgyptFont.body(14))
+                                .foregroundStyle(red.opacity(0.85))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 11)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .fill(red.opacity(0.08))
+                                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(red.opacity(0.28), lineWidth: 1))
+                                )
                         }
                     }
                 }
