@@ -65,9 +65,9 @@ struct ManduTabletView: View {
             }
 
             if showReveal {
-                Color.black.opacity(0.90).ignoresSafeArea()
-                    .transition(.opacity).zIndex(9)
-                revealOverlay.zIndex(10)
+                revealOverlay
+                    .transition(.opacity)
+                    .zIndex(10)
             }
         }
         .animation(.spring(response: 0.4, dampingFraction: 0.80), value: gameState.masterMindArmedSymbol)
@@ -513,74 +513,94 @@ struct ManduTabletView: View {
     // MARK: - Reveal Overlay
 
     private var revealOverlay: some View {
-        ScrollView(showsIndicators: false) {
-            VStack(spacing: 24) {
-                Spacer(minLength: 40)
+        ZStack {
+            // ── Full-screen tree background ──────────────────────────
+            Image("tree_of_life_symbols")
+                .resizable()
+                .scaledToFill()
+                .ignoresSafeArea()
+                .opacity(Double(treeProgress))
+                .scaleEffect(0.94 + 0.06 * treeProgress)
 
-                Image("tree_of_life_symbols")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(maxWidth: 360)
-                    .opacity(Double(treeProgress))
-                    .scaleEffect(0.88 + 0.12 * treeProgress)
-                    .padding(.horizontal, 8)
+            // ── Gradient veil — dark at bottom so cards stay readable
+            LinearGradient(
+                colors: [
+                    Color.black.opacity(0.15),
+                    Color.black.opacity(0.55),
+                    Color.black.opacity(0.80)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea()
+            .opacity(Double(treeProgress))
 
-                if revealStep > 0 || showFullMsg {
-                    VStack(spacing: 8) {
-                        Text("THE WORD IS")
-                            .font(EgyptFont.titleBold(20))
-                            .tracking(6)
-                            .foregroundStyle(gold.opacity(0.70))
-                        Text("REMEMBER")
-                            .font(EgyptFont.titleBold(36))
-                            .tracking(8)
-                            .foregroundStyle(gold)
-                            .shadow(color: gold.opacity(0.60), radius: 14)
-                    }
-                    .transition(.opacity)
+            // ── Scrollable content ───────────────────────────────────
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 20) {
+                    // Top spacer — let the tree breathe at the top
+                    Spacer(minLength: UIScreen.main.bounds.height * 0.42)
 
-                    goldRule
-
-                    VStack(spacing: 12) {
-                        ForEach(Array(Civilization.all.enumerated()), id: \.offset) { i, civ in
-                            if revealStep > i {
-                                civRevealCard(civ)
-                                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                            }
-                        }
-                    }
-                    .animation(.easeOut(duration: 0.5), value: revealStep)
-
-                    if showFullMsg {
-                        VStack(spacing: 16) {
-                            goldRule
-                            Text(TabletSlot.fullMessage)
-                                .font(EgyptFont.bodyItalic(20))
-                                .foregroundStyle(paper)
-                                .multilineTextAlignment(.center)
-                                .lineSpacing(9)
-                                .padding(.horizontal, 8)
-                            goldRule
+                    if revealStep > 0 || showFullMsg {
+                        // "THE WORD IS / REMEMBER" header
+                        VStack(spacing: 6) {
+                            Text("THE WORD IS")
+                                .font(EgyptFont.titleBold(18))
+                                .tracking(6)
+                                .foregroundStyle(gold.opacity(0.75))
+                            Text("REMEMBER")
+                                .font(EgyptFont.titleBold(40))
+                                .tracking(8)
+                                .foregroundStyle(gold)
+                                .shadow(color: gold.opacity(0.80), radius: 18)
                         }
                         .transition(.opacity)
-                        .animation(.easeOut(duration: 0.8), value: showFullMsg)
+                        .padding(.bottom, 4)
+
+                        goldRule
+
+                        // Civilization cards
+                        VStack(spacing: 10) {
+                            ForEach(Array(Civilization.all.enumerated()), id: \.offset) { i, civ in
+                                if revealStep > i {
+                                    civRevealCard(civ)
+                                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                                }
+                            }
+                        }
+                        .animation(.easeOut(duration: 0.5), value: revealStep)
+
+                        if showFullMsg {
+                            VStack(spacing: 16) {
+                                goldRule
+                                Text(TabletSlot.fullMessage)
+                                    .font(EgyptFont.bodyItalic(19))
+                                    .foregroundStyle(paper)
+                                    .multilineTextAlignment(.center)
+                                    .lineSpacing(9)
+                                    .padding(.horizontal, 8)
+                                goldRule
+                            }
+                            .transition(.opacity)
+                            .animation(.easeOut(duration: 0.8), value: showFullMsg)
+                        }
                     }
+
+                    Spacer(minLength: 20)
+
+                    Button {
+                        voicePlayer?.stop()
+                        voicePlayer = nil
+                        withAnimation(.easeInOut(duration: 0.4)) { showReveal = false }
+                    } label: {
+                        StoneButton(title: "Close the Stone", icon: "xmark", style: .muted)
+                    }
+
+                    Spacer(minLength: 50)
                 }
-
-                Spacer(minLength: 20)
-
-                Button {
-                    voicePlayer?.stop()
-                    voicePlayer = nil
-                    withAnimation(.easeInOut(duration: 0.4)) { showReveal = false }
-                } label: {
-                    StoneButton(title: "Close the Stone", icon: "xmark", style: .muted)
-                }
-
-                Spacer(minLength: 50)
+                .padding(.horizontal, 20)
+                .animation(.easeOut(duration: 0.6), value: revealStep > 0)
             }
-            .padding(.horizontal, 22)
-            .animation(.easeOut(duration: 0.6), value: revealStep > 0)
         }
     }
 
@@ -593,25 +613,26 @@ struct ManduTabletView: View {
                 Text(civ.name.uppercased())
                     .font(EgyptFont.title(13))
                     .tracking(2)
-                    .foregroundStyle(civ.accentColor.opacity(0.80))
+                    .foregroundStyle(civ.accentColor)
                 Spacer()
                 Text(TreeOfLifeKeys.treePartSymbol(for: civ.id))
-                    .font(.system(size: 20))
-                    .foregroundStyle(civ.accentColor.opacity(0.70))
+                    .font(.system(size: 22))
+                    .foregroundStyle(civ.accentColor)
+                    .shadow(color: civ.accentColor.opacity(0.60), radius: 8)
             }
             Text(civ.tabletLine)
-                .font(EgyptFont.bodyItalic(17))
-                .foregroundStyle(paper.opacity(0.90))
+                .font(EgyptFont.bodyItalic(16))
+                .foregroundStyle(Color.white.opacity(0.88))
                 .lineSpacing(5)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(16)
         .background(
-            RoundedRectangle(cornerRadius: 10)
-                .fill(civ.accentColor.opacity(0.12))
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color.black.opacity(0.65))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 10)
-                        .stroke(civ.accentColor.opacity(0.30), lineWidth: 1)
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(civ.accentColor.opacity(0.50), lineWidth: 1.2)
                 )
         )
     }
