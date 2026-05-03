@@ -1860,6 +1860,7 @@ private struct SettingsJournalContent: View {
         .confirmationDialog("Reset all expedition progress?", isPresented: $confirmingResetAll, titleVisibility: .visible) {
             Button("Reset Everything", role: .destructive) {
                 for civ in Civilization.all where civ.isUnlocked { gameState.resetCivilization(civ.id) }
+                gameState.resetMasterMind()
                 UserDefaults.standard.removeObject(forKey: "EOA_hasSeenIntro")
                 HapticFeedback.heavy()
                 confirmingResetAll = false
