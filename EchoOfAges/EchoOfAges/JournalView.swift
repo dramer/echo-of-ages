@@ -1682,6 +1682,31 @@ private struct SettingsJournalContent: View {
                 )
             }
 
+            if gameState.masterMindIsComplete {
+                Spacer(minLength: 6)
+                Button {
+                    HapticFeedback.tap()
+                    gameState.closeJournal()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                        gameState.openManduTabletReveal()
+                    }
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "sparkles").font(.system(size: 16))
+                        Text("Watch the Ending Again").font(handFont(14, bold: true))
+                    }
+                    .foregroundStyle(Color(red: 0.55, green: 0.40, blue: 0.10))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background(
+                        RoundedRectangle(cornerRadius: 7)
+                            .fill(Color(red: 0.65, green: 0.50, blue: 0.20).opacity(0.15))
+                            .overlay(RoundedRectangle(cornerRadius: 7)
+                                .stroke(Color(red: 0.65, green: 0.50, blue: 0.20).opacity(0.45), lineWidth: 1))
+                    )
+                }
+            }
+
             SectionRule()
 
             // Gameplay
