@@ -510,6 +510,14 @@ struct ManduTabletView: View {
             .padding(.top, 4)
     }
 
+    // MARK: - Dismiss helper
+
+    private func dismissReveal() {
+        voicePlayer?.stop()
+        voicePlayer = nil
+        withAnimation(.easeInOut(duration: 0.6)) { showReveal = false }
+    }
+
     // MARK: - Reveal Overlay
 
     private var revealOverlay: some View {
@@ -586,22 +594,15 @@ struct ManduTabletView: View {
                         }
                     }
 
-                    Spacer(minLength: 20)
-
-                    Button {
-                        voicePlayer?.stop()
-                        voicePlayer = nil
-                        withAnimation(.easeInOut(duration: 0.4)) { showReveal = false }
-                    } label: {
-                        StoneButton(title: "Close the Stone", icon: "xmark", style: .muted)
-                    }
-
-                    Spacer(minLength: 50)
+                    Spacer(minLength: 60)
                 }
                 .padding(.horizontal, 20)
                 .animation(.easeOut(duration: 0.6), value: revealStep > 0)
             }
         }
+        // Tap anywhere to dismiss
+        .contentShape(Rectangle())
+        .onTapGesture { dismissReveal() }
     }
 
     private func civRevealCard(_ civ: Civilization) -> some View {
