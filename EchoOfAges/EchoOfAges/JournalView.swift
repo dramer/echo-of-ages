@@ -820,6 +820,30 @@ private struct TabletGridContent: View {
                     Spacer()
                 }
             }
+
+            Spacer(minLength: 6)
+
+            // View the Ending — always accessible, no solve required
+            Button {
+                HapticFeedback.tap()
+                gameState.openManduTabletReveal()
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 14))
+                    Text("View the Ending")
+                        .font(handFont(15, bold: false))
+                }
+                .foregroundStyle(Color(red: 0.55, green: 0.40, blue: 0.12))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 9)
+                .background(
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color(red: 0.65, green: 0.50, blue: 0.20).opacity(0.12))
+                        .overlay(RoundedRectangle(cornerRadius: 8)
+                            .stroke(Color(red: 0.65, green: 0.50, blue: 0.20).opacity(0.45), lineWidth: 1))
+                )
+            }
         }
     }
 }
@@ -1807,6 +1831,25 @@ private struct SettingsJournalContent: View {
                         .fill(Color(red: 0.10, green: 0.28, blue: 0.55).opacity(0.10))
                         .overlay(RoundedRectangle(cornerRadius: 7)
                             .stroke(Color(red: 0.10, green: 0.35, blue: 0.60).opacity(0.40), lineWidth: 1))
+                )
+            }
+            Spacer(minLength: 6)
+            Button {
+                HapticFeedback.tap()
+                gameState.resetMasterMind()
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "arrow.counterclockwise").font(.system(size: 16))
+                    Text("Reset Mandu Tablet").font(handFont(14, bold: true))
+                }
+                .foregroundStyle(Color(red: 0.65, green: 0.15, blue: 0.10))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .background(
+                    RoundedRectangle(cornerRadius: 7)
+                        .fill(Color(red: 0.65, green: 0.15, blue: 0.10).opacity(0.08))
+                        .overlay(RoundedRectangle(cornerRadius: 7)
+                            .stroke(Color(red: 0.65, green: 0.15, blue: 0.10).opacity(0.40), lineWidth: 1))
                 )
             }
             SectionRule()

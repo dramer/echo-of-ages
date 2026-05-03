@@ -13,6 +13,7 @@
 // symbol but in the wrong position (○). Six chances to solve it.
 // If the sixth row is submitted without a solution, the board resets.
 
+import AVFoundation
 import SwiftUI
 
 // MARK: - Peg state
@@ -23,12 +24,14 @@ private enum Peg { case exact, near, empty }
 
 struct ManduTabletView: View {
     @EnvironmentObject var gameState: GameState
+    @Environment(SoundManager.self) var soundManager
 
     @State private var showReveal   = false
     @State private var treeProgress: CGFloat = 0
     @State private var revealStep   = 0
     @State private var showFullMsg  = false
     @State private var isAnimating  = false
+    @State private var voicePlayer: AVAudioPlayer?
 
     private var currentRowIndex: Int { gameState.masterMindGuessHistory.count }
     private var allSlotsFilled: Bool { !gameState.masterMindPlayerSlots.contains(nil) }
@@ -70,6 +73,14 @@ struct ManduTabletView: View {
         .animation(.spring(response: 0.4, dampingFraction: 0.80), value: gameState.masterMindArmedSymbol)
         .animation(.spring(response: 0.4), value: allSlotsFilled)
         .animation(.easeInOut(duration: 0.3), value: currentRowIndex)
+        .onAppear {
+            if gameState.masterMindOpenRevealOnAppear {
+                gameState.masterMindOpenRevealOnAppear = false
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    startReveal()
+                }
+            }
+        }
     }
 
     // MARK: - Header
@@ -506,9 +517,12 @@ struct ManduTabletView: View {
             VStack(spacing: 24) {
                 Spacer(minLength: 40)
 
-                OakTreeView(progress: treeProgress)
+                Image("tree_of_life_symbols")
+                    .resizable()
+                    .scaledToFit()
                     .frame(maxWidth: 360)
-                    .frame(height: 290)
+                    .opacity(Double(treeProgress))
+                    .scaleEffect(0.88 + 0.12 * treeProgress)
                     .padding(.horizontal, 8)
 
                 if revealStep > 0 || showFullMsg {
@@ -556,6 +570,8 @@ struct ManduTabletView: View {
                 Spacer(minLength: 20)
 
                 Button {
+                    voicePlayer?.stop()
+                    voicePlayer = nil
                     withAnimation(.easeInOut(duration: 0.4)) { showReveal = false }
                 } label: {
                     StoneButton(title: "Close the Stone", icon: "xmark", style: .muted)
@@ -609,6 +625,18 @@ struct ManduTabletView: View {
         showFullMsg  = false
         treeProgress = 0
         withAnimation(.easeIn(duration: 0.55)) { showReveal = true }
+
+        // Fade out ambient tree_sound and play the voiced finale track once
+        soundManager.fadeOutAndStop()
+        if let url = Bundle.main.url(forResource: "tree_sound_with_voice", withExtension: "mp3"),
+           let player = try? AVAudioPlayer(contentsOf: url) {
+            player.numberOfLoops = 0
+            player.volume = 0.80
+            player.prepareToPlay()
+            player.play()
+            voicePlayer = player
+        }
+
         Task {
             try? await Task.sleep(nanoseconds: 550_000_000)
             await MainActor.run {

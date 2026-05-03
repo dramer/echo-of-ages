@@ -1384,6 +1384,10 @@ final class GameState: ObservableObject {
     /// Maximum number of attempts before the mastermind resets.
     let masterMindMaxAttempts = 6
 
+    /// When true, ManduTabletView will immediately open the reveal overlay on appear.
+    /// Set via openManduTabletReveal() — cleared by the view on first use.
+    @Published var masterMindOpenRevealOnAppear: Bool = false
+
     /// The 7 symbols available for the mastermind — one tree-part symbol per completed
     /// civilization plus the Ramer mark (ᚱ), which is always present from the start.
     var masterMindSymbolsEarned: [String] {
@@ -1605,6 +1609,13 @@ final class GameState: ObservableObject {
     func openManduTablet() {
         previousScreen = currentScreen
         currentScreen = .manduTablet
+    }
+
+    /// Navigates to the Mandu Tablet and immediately opens the Tree of Life reveal overlay,
+    /// without requiring the mastermind puzzle to be solved first.
+    func openManduTabletReveal() {
+        masterMindOpenRevealOnAppear = true
+        openManduTablet()
     }
 
     func closeManduTablet() {
