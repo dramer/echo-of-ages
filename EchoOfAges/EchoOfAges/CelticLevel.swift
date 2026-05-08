@@ -89,7 +89,7 @@ enum CelticMechanic: Equatable {
         switch self {
         case .ascending:  return "The stone rises — each mark must be greater than the one before it, in every row and every column"
         case .descending: return "The stone sinks — each mark must be lesser than the one before it, in every row and every column"
-        case .braided:    return "The branches weave — odd marks (ᚁᚃᚅ) and even marks (ᚂᚄ) must alternate like a woven braid across the grove"
+        case .braided:    return "The branches weave — two families of marks braid through the grove; each position in the stone belongs to one family alone"
         case .scattered:  return "The grove scatters — no two marks that touch, even at a corner, may share the same value"
         case .reflected:  return "The stone mirrors — each row must read the same from left to right as from right to left"
         }
@@ -348,13 +348,13 @@ extension CelticDifficulty {
         title: "The Braided Branches",
         subtitle: "Three rows, four columns",
         inscriptions: [
-            "The branches weave. At every position where the row number and column number add to an even number the mark must be odd — Beith (1), Fearn (3), or Nion (5). Where the sum is odd, the mark must be even — Luis (2) or Sail (4). This checkerboard holds across every cell.",
-            "Apply the odd/even rule first — it eliminates most of the stone immediately, leaving only a handful of choices per cell. The carved row and column sums then tell you which odd and which even values belong.",
-            "Parity and sums interlock. Once you see the weave, the stone reads itself."
+            "The marks do not all belong to the same family. Three stand apart in the grove's ancient count — and two grow in closer company. This stone was carved to honour that division. Not every mark may root in every cell; the position decides the family, and the family decides the mark.",
+            "Begin with what is already carved. Look at a fixed mark and the cell beside it — do they share a family, or does the braid cross between them? Follow that crossing through the whole stone. Once you see the thread, the empty cells will tell you which family they belong to before you place a single mark.",
+            "When the families are placed, the carved sums narrow the field to one answer. Seek the weave first — the sums will confirm it."
         ],
         decodedMessage: "The alder grows where wet meets dry. It weaves between two worlds, belonging to neither, at home in both.",
         rows: 3, cols: 4,
-        targetBlanks: 8,
+        targetBlanks: 10,
         mechanic: .braided
     )
 
@@ -372,7 +372,7 @@ extension CelticDifficulty {
         ],
         decodedMessage: "The willow does not crowd the oak. Each tree finds its ground and holds it. The grove is strong because none of them are alike.",
         rows: 4, cols: 4,
-        targetBlanks: 13,
+        targetBlanks: 14,
         mechanic: .scattered
     )
 
