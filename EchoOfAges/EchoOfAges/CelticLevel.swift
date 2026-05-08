@@ -479,10 +479,23 @@ enum CelticGenerator {
 
     private static func randomBraidedTableau(rows: Int, cols: Int) -> [[Int]] {
         var g = Array(repeating: Array(repeating: 0, count: cols), count: rows)
-        let odd = [1, 3, 5]; let even = [2, 4]
+        let oddPool = [1, 3, 5]; let evenPool = [2, 4]
         for r in 0..<rows {
+            // Shuffle each parity pool fresh per row so that no two odd (or even)
+            // positions in the same row get the same value.  For a 3×4 grid this
+            // means the two odd slots and the two even slots in each row are always
+            // a distinct pair — prevents "Fearn next to Fearn" in the fixed cells.
+            var oddAvail = oddPool.shuffled()
+            var evenAvail = evenPool.shuffled()
+            var oddIdx = 0; var evenIdx = 0
             for c in 0..<cols {
-                g[r][c] = (r + c) % 2 == 0 ? odd.randomElement()! : even.randomElement()!
+                if (r + c) % 2 == 0 {
+                    g[r][c] = oddAvail[oddIdx % oddAvail.count]
+                    oddIdx += 1
+                } else {
+                    g[r][c] = evenAvail[evenIdx % evenAvail.count]
+                    evenIdx += 1
+                }
             }
         }
         return g
