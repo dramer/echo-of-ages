@@ -90,7 +90,7 @@ enum CelticMechanic: Equatable {
         case .ascending:  return "The stone rises — each mark must be greater than the one before it, in every row and every column"
         case .descending: return "The stone sinks — each mark must be lesser than the one before it, in every row and every column"
         case .braided:    return "The branches weave — two families of marks braid through the grove; each position in the stone belongs to one family alone"
-        case .scattered:  return "The grove scatters — no two marks that touch, even at a corner, may share the same value"
+        case .scattered:  return "The grove scatters — no two marks that stand side by side, in any row or column, may share the same value"
         case .reflected:  return "The stone mirrors — each row must read the same from left to right as from right to left"
         }
     }
