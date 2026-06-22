@@ -410,7 +410,7 @@ struct MayanWheelView: View {
             }
         }
         .rotationEffect(.degrees(innerRing.rotationDeg))
-        .animation(.easeInOut(duration: 0.85), value: innerRing.rotationDeg)
+        .animation(.easeInOut(duration: 1.5), value: innerRing.rotationDeg)
     }
 
     // MARK: - Outer Cell
@@ -1150,7 +1150,7 @@ struct MayanWheelView: View {
         innerRing.isAnimating = true
         innerRing.rotationDeg += -1 * stepDeg   // same direction as outer
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.85) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
             innerRing.isAnimating = false
             innerRing.currentStep = (innerRing.currentStep + 1) % level.sequenceLength
             let innerStep = innerRing.currentStep
@@ -1190,8 +1190,8 @@ struct MayanWheelView: View {
         if synced {
             handleSyncPosition(at: innerStep)
         } else {
-            // Not aligned — spin through quickly.
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.10) {
+            // Not aligned — dwell briefly then advance.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3.5) {
                 guard !innerRing.isPaused else { return }
                 advanceInnerRingSynced()
             }
