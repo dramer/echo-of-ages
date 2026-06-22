@@ -51,7 +51,7 @@ struct CelticSaveCell: Codable {
 }
 
 struct CelticSave: Codable {
-    let v: Int
+    let v: Int                  // format version — always 2
     let levelIndex: Int
     // Enough to reconstruct CelticPuzzle (randomly generated — must persist)
     let rows: Int
@@ -143,13 +143,13 @@ enum PuzzleStateSaver {
     // MARK: Celtic
 
     static func saveCeltic(_ save: CelticSave) {
-        store(save, key: "EOA_pstate_celtic_v1_\(save.levelIndex)")
+        store(save, key: "EOA_pstate_celtic_v2_\(save.levelIndex)")
     }
     static func loadCeltic(levelIndex: Int) -> CelticSave? {
-        load(CelticSave.self, key: "EOA_pstate_celtic_v1_\(levelIndex)")
+        load(CelticSave.self, key: "EOA_pstate_celtic_v2_\(levelIndex)")
     }
     static func clearCeltic(levelIndex: Int) {
-        UserDefaults.standard.removeObject(forKey: "EOA_pstate_celtic_v1_\(levelIndex)")
+        UserDefaults.standard.removeObject(forKey: "EOA_pstate_celtic_v2_\(levelIndex)")
     }
 
     // MARK: Chinese
