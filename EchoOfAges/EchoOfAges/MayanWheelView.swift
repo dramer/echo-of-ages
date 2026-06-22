@@ -757,6 +757,31 @@ struct MayanWheelView: View {
                     )
             }
 
+            if level.usesSynchronizedRotation {
+                Button(action: {
+                    HapticFeedback.tap()
+                    // Cancel the current pause/dwell and advance to the next step.
+                    innerRing.isPaused = false
+                    innerRing.pauseID += 1
+                    isSynced = false
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        advanceInnerRingSynced()
+                    }
+                }) {
+                    Label("Advance", systemImage: "forward.fill")
+                        .font(EgyptFont.titleBold(15))
+                        .foregroundStyle(jadeColor.opacity(0.80))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(
+                            RoundedRectangle(cornerRadius: 9)
+                                .fill(Color.white.opacity(0.04))
+                                .overlay(RoundedRectangle(cornerRadius: 9)
+                                    .stroke(jadeColor.opacity(0.25), lineWidth: 1))
+                        )
+                }
+            }
+
             Button(action: {
                 HapticFeedback.tap()
                 gameState.verifyMayanPlacement()
@@ -1190,8 +1215,8 @@ struct MayanWheelView: View {
         if synced {
             handleSyncPosition(at: innerStep)
         } else {
-            // Not aligned — dwell briefly then advance.
-            DispatchQueue.main.asyncAfter(deadline: .now() + 3.5) {
+            // Not aligned — spin through quickly (blanks at non-sync positions are not fillable).
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.10) {
                 guard !innerRing.isPaused else { return }
                 advanceInnerRingSynced()
             }
