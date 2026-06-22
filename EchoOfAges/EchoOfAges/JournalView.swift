@@ -1485,7 +1485,7 @@ private struct OtherAppsPageContent: View {
                  "Five games in one: Rune Match (Mahjong tile pairing), Rune Sweep, Rune Pusher (Sokoban block puzzles), Rune Flow (lay pipe to connect the flow), and Rune Grid (Sudoku with rune images, three grid sizes).",
                  "", "Coming Soon"),
                 ("fools_trial",    "Fool's Trial",
-                 "The conclusion of the Fool's Errand trilogy by Cliff Johnson — following Fool's Errand and Fool and His Money. The Fool's journey finally comes to trial.",
+                 "The conclusion of the Fool's Errand trilogy by David Ramer — a tribute to Cliff Johnson. Following Fool's Errand and Fool and His Money, the Fool's journey finally comes to trial.",
                  "6762813545", "Coming Soon"),
                 ("reboundSwarm",  "Rebound Swarm",
                  "Coming soon from the same workshop. More details to follow.",
