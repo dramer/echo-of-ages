@@ -1452,9 +1452,6 @@ private struct OtherAppsPageContent: View {
                 ("jigsaw_journey", "Jigsaw Journey",
                  "Jigsaw puzzles of America's national parks. Solve each park's image, then browse live park conditions pulled directly from the National Park Service API.",
                  ""),
-                ("lexiconChallenge", "Lexicon Challenge",
-                 "A word puzzle that tests vocabulary and pattern recognition. Decode, deduce, and build — every round a new challenge.",
-                 "6767717317"),
             ]
 
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 14) {
@@ -1472,6 +1469,9 @@ private struct OtherAppsPageContent: View {
             Spacer(minLength: 8)
 
             let comingSoon: [(asset: String, name: String, blurb: String, appID: String, label: String)] = [
+                ("lexiconChallenge", "Lexicon Challenge",
+                 "A word puzzle that tests vocabulary and pattern recognition. Decode, deduce, and build — every round a new challenge.",
+                 "6767717317", "Coming Soon"),
                 ("theBlackCipher",   "The Black Cipher",
                  "A cryptographic puzzle game — decode encrypted messages using pattern recognition and logical deduction. The cipher is always solvable. The question is whether you are.",
                  "6764401127", "Releasing Soon"),
