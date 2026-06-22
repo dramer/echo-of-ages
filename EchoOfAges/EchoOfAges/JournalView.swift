@@ -1482,7 +1482,7 @@ private struct OtherAppsPageContent: View {
                  "The classic 7s card game, playable solo or with friends on the same local network. Build out from the sevens in all four suits.",
                  "6751762234", "Coming Soon"),
                 ("fog_rune",       "Fog of Rune",
-                 "Three puzzle types in one app: Mahjong tile matching, a Minecraft-style block builder, and a block-pusher challenge. Hours of variety.",
+                 "Five games in one: Rune Match (Mahjong tile pairing), Rune Sweep, Rune Pusher (Sokoban block puzzles), Rune Flow (lay pipe to connect the flow), and Rune Grid (Sudoku with rune images, three grid sizes).",
                  "", "Coming Soon"),
                 ("fools_trial",    "Fool's Trial",
                  "A new puzzle expedition — same spirit as Echo of Ages, entirely different challenge types. Cryptograms, logic deductions, pattern breaks, and more.",
