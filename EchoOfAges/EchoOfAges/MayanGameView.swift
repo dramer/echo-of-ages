@@ -202,7 +202,8 @@ struct MayanGameView: View {
             }
             .frame(minWidth: 80, alignment: .trailing)
         }
-        .padding(.horizontal, 16)
+        .padding(.leading, 16)
+        .padding(.trailing, 20)
         .padding(.vertical, 12)
         .background(
             Color(red: 0.06, green: 0.12, blue: 0.08)
