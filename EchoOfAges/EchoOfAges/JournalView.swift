@@ -899,6 +899,8 @@ private struct CivilizationsContent: View {
                     Rectangle().fill(Color.ruledLine.opacity(0.25)).frame(height: 0.5)
                 }
             }
+            // Extra space so the China play button doesn't snap off-screen when releasing scroll
+            Spacer(minLength: 80)
         }
     }
 }
