@@ -1432,72 +1432,72 @@ private struct OtherAppsPageContent: View {
             HandTitle(text: "From the Same Workshop")
                 .frame(maxWidth: .infinity, alignment: .center)
             Spacer(minLength: 4)
-            HandNote(text: "Other iOS apps by the same developer — available now on the App Store.",
+            HandNote(text: "Tap any icon to open it on the App Store.",
                      size: 12, color: Color.inkSepia.opacity(0.55))
                 .frame(maxWidth: .infinity, alignment: .center)
 
             SectionRule()
 
-            // Two-column app grid
-            let apps: [(asset: String, name: String, blurb: String)] = [
-                ("kings_Corner",    "Kings in the Corner",
-                 "Classic card game. Kings go in the corners, Queens top & bottom, Jokers on the sides. Remove pairs summing to 10 until all face cards are placed."),
-                ("osmosis",         "Osmosis Solitaire",
-                 "A calm, contemplative solitaire variant. Cards flow across four foundation rows — each suit must follow the lead of the first. Patience rewarded."),
-                ("sevens",          "Sevens",
-                 "The classic 7s card game, playable solo or with friends on the same local network. Build out from the sevens in all four suits."),
-                ("fog_rune",        "Fog of Rune",
-                 "Three puzzle types in one app: Mahjong tile matching, a Minecraft-style block builder, and a block-pusher challenge. Hours of variety."),
-                ("baby_hcc",        "Baby HCC",
-                 "High-contrast black and white image presentations designed for newborns. Add your own family photos to build recognition with your baby."),
-                ("jigsaw_journey",  "Jigsaw Journey",
-                 "Jigsaw puzzles of America's national parks. Solve each park's image, then browse live park conditions pulled directly from the National Park Service API."),
+            // Released apps — tap to open App Store
+            let released: [(asset: String, name: String, blurb: String, appID: String)] = [
+                ("kings_Corner",   "Kings in the Corner",
+                 "Classic card game. Kings go in the corners, Queens top & bottom, Jokers on the sides. Remove pairs summing to 10 until all face cards are placed.",
+                 "1508900421"),
+                ("osmosis",        "Osmosis Solitaire",
+                 "A calm, contemplative solitaire variant. Cards flow across four foundation rows — each suit must follow the lead of the first. Patience rewarded.",
+                 "1620160609"),
+                ("baby_hcc",       "Baby HCC",
+                 "High-contrast black and white image presentations designed for newborns. Add your own family photos to build recognition with your baby.",
+                 "1622989410"),
+                ("jigsaw_journey", "Jigsaw Journey",
+                 "Jigsaw puzzles of America's national parks. Solve each park's image, then browse live park conditions pulled directly from the National Park Service API.",
+                 ""),
+                ("lexicon_challenge", "Lexicon Challenge",
+                 "A word puzzle that tests vocabulary and pattern recognition. Decode, deduce, and build — every round a new challenge.",
+                 "6767717317"),
             ]
 
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 14) {
-                ForEach(apps, id: \.asset) { app in
-                    AppCard(asset: app.asset, name: app.name, blurb: app.blurb)
+                ForEach(released, id: \.asset) { app in
+                    AppCard(asset: app.asset, name: app.name, blurb: app.blurb, appStoreID: app.appID)
                 }
             }
 
             SectionRule()
 
-            // Coming Soon — Fool's Trial
-            HStack(alignment: .top, spacing: 12) {
-                VStack(spacing: 4) {
-                    Image("fools_trial")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 58)
-                        .clipShape(RoundedRectangle(cornerRadius: 10))
-                        .overlay(RoundedRectangle(cornerRadius: 10)
-                            .stroke(Color.inkSepia.opacity(0.4), lineWidth: 1))
-                        .shadow(color: .black.opacity(0.18), radius: 3, x: 1, y: 2)
-                    Text("Coming Soon")
-                        .font(handFont(9))
-                        .foregroundStyle(Color.inkRed.opacity(0.75))
-                        .multilineTextAlignment(.center)
-                        .frame(width: 58)
-                }
+            // Coming Soon / Releasing Soon
+            HandNote(text: "Coming from the same workshop —",
+                     size: 11, color: Color.inkSepia.opacity(0.55))
 
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Fool's Trial")
-                        .font(handFont(16, bold: true))
-                        .foregroundStyle(Color.inkBlue)
-                    Text("A new puzzle expedition — same spirit as Echo of Ages, entirely different challenge types. Cryptograms, logic deductions, pattern breaks, and more. The trial awaits.")
-                        .font(handFont(12))
-                        .foregroundStyle(Color.inkSepia.opacity(0.80))
-                        .lineSpacing(3)
-                        .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 8)
+
+            let comingSoon: [(asset: String, name: String, blurb: String, appID: String, label: String)] = [
+                ("black_cipher",   "The Black Cipher",
+                 "A cryptographic puzzle game — decode encrypted messages using pattern recognition and logical deduction. The cipher is always solvable. The question is whether you are.",
+                 "6764401127", "Releasing Soon"),
+                ("faint_signal",   "The Faint Signal",
+                 "Filter static to find the signal. A pattern-detection puzzle buried in noise — part intuition, part logic, part patience.",
+                 "6768418196", "Releasing Soon"),
+                ("family_sevens",  "Family Sevens",
+                 "The classic 7s card game, playable solo or with friends on the same local network. Build out from the sevens in all four suits.",
+                 "6751762234", "Coming Soon"),
+                ("fog_rune",       "Fog of Rune",
+                 "Three puzzle types in one app: Mahjong tile matching, a Minecraft-style block builder, and a block-pusher challenge. Hours of variety.",
+                 "", "Coming Soon"),
+                ("fools_trial",    "Fool's Trial",
+                 "A new puzzle expedition — same spirit as Echo of Ages, entirely different challenge types. Cryptograms, logic deductions, pattern breaks, and more.",
+                 "6762813545", "Coming Soon"),
+                ("rebound_swarm",  "Rebound Swarm",
+                 "Coming soon from the same workshop. More details to follow.",
+                 "", "Coming Soon"),
+            ]
+
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 14) {
+                ForEach(comingSoon, id: \.asset) { app in
+                    AppCard(asset: app.asset, name: app.name, blurb: app.blurb,
+                            appStoreID: app.appID, badge: app.label)
                 }
             }
-            .padding(10)
-            .background(
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(Color.paperDark.opacity(0.45))
-                    .overlay(RoundedRectangle(cornerRadius: 8)
-                        .stroke(Color.inkRed.opacity(0.25), lineWidth: 1))
-            )
 
             Spacer(minLength: 14)
 
@@ -1520,17 +1520,34 @@ private struct AppCard: View {
     let asset: String
     let name: String
     let blurb: String
+    var appStoreID: String = ""
+    var badge: String? = nil   // e.g. "Coming Soon", "Releasing Soon"
+
+    private var appStoreURL: URL? {
+        guard !appStoreID.isEmpty else { return nil }
+        return URL(string: "https://apps.apple.com/app/id\(appStoreID)")
+    }
 
     var body: some View {
-        HStack(alignment: .top, spacing: 8) {
-            Image(asset)
-                .resizable()
-                .scaledToFit()
-                .frame(width: 44)
-                .clipShape(RoundedRectangle(cornerRadius: 9))
-                .overlay(RoundedRectangle(cornerRadius: 9)
-                    .stroke(Color.inkSepia.opacity(0.30), lineWidth: 0.8))
-                .shadow(color: .black.opacity(0.15), radius: 2, x: 1, y: 1)
+        let card = HStack(alignment: .top, spacing: 8) {
+            VStack(spacing: 3) {
+                Image(asset)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 44)
+                    .clipShape(RoundedRectangle(cornerRadius: 9))
+                    .overlay(RoundedRectangle(cornerRadius: 9)
+                        .stroke(Color.inkSepia.opacity(0.30), lineWidth: 0.8))
+                    .shadow(color: .black.opacity(0.15), radius: 2, x: 1, y: 1)
+
+                if let badge {
+                    Text(badge)
+                        .font(handFont(8))
+                        .foregroundStyle(Color.inkRed.opacity(0.75))
+                        .multilineTextAlignment(.center)
+                        .frame(width: 44)
+                }
+            }
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(name)
@@ -1553,6 +1570,13 @@ private struct AppCard: View {
                 .overlay(RoundedRectangle(cornerRadius: 8)
                     .stroke(Color.ruledLine.opacity(0.35), lineWidth: 0.7))
         )
+
+        if let url = appStoreURL {
+            Link(destination: url) { card }
+                .buttonStyle(.plain)
+        } else {
+            card
+        }
     }
 }
 
