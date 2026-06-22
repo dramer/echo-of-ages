@@ -1452,7 +1452,7 @@ private struct OtherAppsPageContent: View {
                 ("jigsaw_journey", "Jigsaw Journey",
                  "Jigsaw puzzles of America's national parks. Solve each park's image, then browse live park conditions pulled directly from the National Park Service API.",
                  ""),
-                ("lexicon_challenge", "Lexicon Challenge",
+                ("lexiconChallenge", "Lexicon Challenge",
                  "A word puzzle that tests vocabulary and pattern recognition. Decode, deduce, and build — every round a new challenge.",
                  "6767717317"),
             ]
@@ -1472,13 +1472,13 @@ private struct OtherAppsPageContent: View {
             Spacer(minLength: 8)
 
             let comingSoon: [(asset: String, name: String, blurb: String, appID: String, label: String)] = [
-                ("black_cipher",   "The Black Cipher",
+                ("theBlackCipher",   "The Black Cipher",
                  "A cryptographic puzzle game — decode encrypted messages using pattern recognition and logical deduction. The cipher is always solvable. The question is whether you are.",
                  "6764401127", "Releasing Soon"),
-                ("faint_signal",   "The Faint Signal",
+                ("theFaintSignal",   "The Faint Signal",
                  "Filter static to find the signal. A pattern-detection puzzle buried in noise — part intuition, part logic, part patience.",
                  "6768418196", "Releasing Soon"),
-                ("family_sevens",  "Family Sevens",
+                ("sevens",  "Family Sevens",
                  "The classic 7s card game, playable solo or with friends on the same local network. Build out from the sevens in all four suits.",
                  "6751762234", "Coming Soon"),
                 ("fog_rune",       "Fog of Rune",
@@ -1487,7 +1487,7 @@ private struct OtherAppsPageContent: View {
                 ("fools_trial",    "Fool's Trial",
                  "A new puzzle expedition — same spirit as Echo of Ages, entirely different challenge types. Cryptograms, logic deductions, pattern breaks, and more.",
                  "6762813545", "Coming Soon"),
-                ("rebound_swarm",  "Rebound Swarm",
+                ("reboundSwarm",  "Rebound Swarm",
                  "Coming soon from the same workshop. More details to follow.",
                  "", "Coming Soon"),
             ]
