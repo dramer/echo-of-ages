@@ -1476,7 +1476,7 @@ private struct OtherAppsPageContent: View {
                  "A cryptographic puzzle game — decode encrypted messages using pattern recognition and logical deduction. The cipher is always solvable. The question is whether you are.",
                  "6764401127", "Releasing Soon"),
                 ("theFaintSignal",   "The Faint Signal",
-                 "Filter static to find the signal. A pattern-detection puzzle buried in noise — part intuition, part logic, part patience.",
+                 "A comic book in six chapters — the story of the first autonomous space launch. Part science, part myth, entirely human.",
                  "6768418196", "Releasing Soon"),
                 ("sevens",  "Family Sevens",
                  "The classic 7s card game, playable solo or with friends on the same local network. Build out from the sevens in all four suits.",
