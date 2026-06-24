@@ -108,20 +108,19 @@ struct JournalView: View {
             )
             .ignoresSafeArea()
 
-            // Book pages inset so they don't underrun the header or nav bar
-            GeometryReader { geo in
-                TabView(selection: $currentPageIndex) {
-                    ForEach(0..<pages.count, id: \.self) { index in
-                        BookPage(pageType: pages[index], pageNumber: index + 1, totalPages: pages.count, pages: pages)
-                            .tag(index)
-                            .environmentObject(gameState)
-                    }
+            // Book pages inset so they don't underrun the header or nav bar.
+            // Padding is applied BEFORE the frame is fixed so SwiftUI sizes the
+            // TabView to fit the space between the two bars rather than overflowing.
+            TabView(selection: $currentPageIndex) {
+                ForEach(0..<pages.count, id: \.self) { index in
+                    BookPage(pageType: pages[index], pageNumber: index + 1, totalPages: pages.count, pages: pages)
+                        .tag(index)
+                        .environmentObject(gameState)
                 }
-                .tabViewStyle(.page(indexDisplayMode: .never))
-                .frame(width: geo.size.width, height: geo.size.height)
-                .padding(.top, 64)
-                .padding(.bottom, 52)
             }
+            .tabViewStyle(.page(indexDisplayMode: .never))
+            .padding(.top, 64)
+            .padding(.bottom, 60)
 
             // Top bar sits in its own ZStack layer so PageView gestures can't swallow it
             VStack {
