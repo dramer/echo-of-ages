@@ -664,7 +664,9 @@ struct MayanGameView: View {
                          body: "Each glyph appears exactly once per ring. If a symbol is already placed in the same ring, it cannot appear again in that ring.")
             mayanHelpRow(number: "3", title: "Select and place",
                          body: "Tap a ring cell to select it, then tap a symbol in the palette below to place it. Tap Decipher to check your work — wrong cells flash red.")
-            mayanHelpRow(number: "4", title: "Level 4 — the rotating wheel",
+            mayanHelpRow(number: "4", title: "The centre mark",
+                         body: "On the first tablet, the centre circle holds a mystery mark from another chamber — not part of the Maya calendar. Tap the centre circle to cycle through marks until you find the one you have already seen in your journey. Set it correctly before you tap Decipher.")
+            mayanHelpRow(number: "5", title: "Level 4 — the rotating wheel",
                          body: "The rings rotate as you fill them. Watch what passes through the 12 o'clock position to find where in the cycle you entered, then apply the pairing rule you discovered in the previous tablet to fill each blank.")
 
             Button { withAnimation { showHelp = false } } label: {

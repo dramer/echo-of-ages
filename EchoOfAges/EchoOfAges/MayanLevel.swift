@@ -229,7 +229,8 @@ extension MayanLevel {
                 "The Maya thought of time as a wheel turning, not a river flowing. Five signs repeat in fixed order. The first full cycle is already shown. Continue it.",
                 "The sequence is already familiar by position five. Now the wheel turns again. What comes after the first symbol a second time? The same thing that came after it the first time.",
                 "Fill the two blank positions. Count from the beginning — what position are they? The cycle has five steps. A blank at position six is the same as position one.",
-                "I recognised the rhythm before I found the blanks. That is how the Maya intended it. Feel the pattern first. The blanks fill themselves."
+                "I recognised the rhythm before I found the blanks. That is how the Maya intended it. Feel the pattern first. The blanks fill themselves.",
+                "At the centre of the wheel, a mark waits — one that does not belong to the Maya calendar. It is a symbol carried forward from another chamber. Tap the centre circle to cycle through the marks until you find the one you have already seen in your journey. Set it correctly before you decipher — the tablet will not open otherwise."
             ],
             cycles: [
                 MayanCycle(label: "Day Wheel", symbols: symbols, startOffset: 0,
