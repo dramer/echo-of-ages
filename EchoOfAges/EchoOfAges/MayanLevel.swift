@@ -224,7 +224,7 @@ extension MayanLevel {
             usesSynchronizedRotation: false,
             title: "Tablet of the First Sunrise",
             subtitle: "The Wheel Begins",
-            lore: "The first Maya calendar tablet. Five sacred glyphs repeat in a fixed order without end. The first full cycle is shown to you. Continue it.",
+            lore: "The first Maya calendar tablet. Five sacred glyphs repeat in a fixed order without end. The first full cycle is shown to you — continue it. At the centre of the wheel sits a mark from another chamber. Tap it to cycle through symbols until you find the one you have already encountered in your journey. Both the pattern and the mark must be correct before the tablet will open.",
             inscriptions: [
                 "The Maya thought of time as a wheel turning, not a river flowing. Five signs repeat in fixed order. The first full cycle is already shown. Continue it.",
                 "The sequence is already familiar by position five. Now the wheel turns again. What comes after the first symbol a second time? The same thing that came after it the first time.",
