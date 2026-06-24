@@ -115,6 +115,24 @@ struct MayanWheelView: View {
                     }
                     .zIndex(15)
                 }
+
+                // New puzzle banner — shown after 3 failed decipher attempts
+                if gameState.mayanShowNewPuzzleBanner {
+                    VStack {
+                        Spacer()
+                        Text("Too many wrong answers — new puzzle")
+                            .font(EgyptFont.titleBold(14))
+                            .foregroundStyle(Color.papyrus)
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 10)
+                            .background(
+                                Capsule().fill(Color(red: 0.55, green: 0.10, blue: 0.10).opacity(0.92))
+                            )
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                            .padding(.bottom, 32)
+                    }
+                    .zIndex(20)
+                }
             }
         }
         .onAppear {
@@ -139,6 +157,19 @@ struct MayanWheelView: View {
                     withAnimation(.easeOut(duration: 0.6)) { messageRevealed = true }
                 }
             }
+        }
+        .onChange(of: gameState.mayanForcedRegenerationID) { _, _ in
+            // Puzzle regenerated after 3 failed deciphers — reset ring animation state.
+            outerRing.rotationDeg = 0
+            outerRing.currentStep = 0
+            outerRing.isPaused    = false
+            outerRing.isAnimating = false
+            innerRing.rotationDeg = 0
+            innerRing.currentStep = 0
+            innerRing.isPaused    = false
+            innerRing.isAnimating = false
+            isSynced = false
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { startBothRings() }
         }
         .onDisappear {
             gameState.saveMayanState()
@@ -730,6 +761,8 @@ struct MayanWheelView: View {
 
     private var actionRow: some View {
         let canDecipher = level.isFullyFilled(gameState.mayanPlayerGrid)
+        let attemptsLeft = max(0, 3 - gameState.mayanDecipherAttempts)
+        let decipherLabel = gameState.mayanDecipherAttempts == 0 ? "Decipher" : "Decipher · \(attemptsLeft) left"
         return HStack(spacing: 12) {
             Button(action: {
                 HapticFeedback.tap()
@@ -787,7 +820,7 @@ struct MayanWheelView: View {
                 HapticFeedback.tap()
                 gameState.verifyMayanPlacement()
             }) {
-                Label("Decipher", systemImage: "checkmark.seal")
+                Label(decipherLabel, systemImage: "checkmark.seal")
                     .font(EgyptFont.titleBold(15))
                     .foregroundStyle(canDecipher
                                      ? Color(red: 0.06, green: 0.12, blue: 0.08)

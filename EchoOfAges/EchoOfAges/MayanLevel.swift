@@ -191,178 +191,93 @@ struct MayanLevel: Identifiable {
 // MARK: - Level Definitions
 
 extension MayanLevel {
-    static let allLevels: [MayanLevel] = [level1, level2, level3, level4, level5]
-
-    // ─────────────────────────────────────────────────────────────────────
-    // LEVEL 1 · 1 cycle · period 5 · 2 blanks
-    //
-    // Cycle A: [KIN, IMIX, IK, TZʼ, HAAB]  offset=0
-    // Sequence (length 10):
-    //   0:KIN  1:IMIX  2:IK  3:TZʼ  4:HAAB  5:KIN  6:IMIX  7:IK  8:TZʼ  9:HAAB
-    // Revealed: {0,1,2,3,4,5,7,8}  Blanks: {6→IMIX, 9→HAAB}
-    // ─────────────────────────────────────────────────────────────────────
-    static let level1 = MayanLevel(
-        id: 1,
-        usesWheelMechanic: false,
-        usesSynchronizedRotation: false,
-        title: "Tablet of the First Sunrise",
-        subtitle: "The Wheel Begins",
-        lore: "The first Maya calendar tablet. A single cycle of five sacred glyphs — KIN the sun, IMIX the earth, IK the wind, TZʼ the sacred round, HAAB the year — repeating without end. The first full cycle is shown to you. Continue it.",
-        inscriptions: [
-            "Wheels, not rivers — the Maya did not think of time as a river flowing from past to future. They thought of it as a wheel turning. Five signs repeat in fixed order: KIN, IMIX, IK, TZʼ, HAAB. The first full cycle is already shown. Continue it.",
-            "The sequence is already familiar by position five. You have seen KIN, IMIX, IK, TZʼ, HAAB. Now the wheel turns again. What comes after KIN the second time? The same thing that came after KIN the first time.",
-            "Fill the two blank positions. Look at where each blank sits in the cycle. Count from the beginning — what position are they? The cycle has five steps. A blank at position six is the same as position one.",
-            "I recognised the rhythm before I found the blanks. That is how the Maya intended it. Feel the pattern first. The blanks fill themselves."
-        ],
-        cycles: [
-            MayanCycle(
-                label: "Day Wheel",
-                symbols: [.kin, .imix, .ik, .tzolk, .haab],
-                startOffset: 0,
-                revealedPositions: [0,1,2,3,4,5,7,8]
-            )
-        ],
-        sequenceLength: 10,
-        decodedMessage: "The World Tree — Wakah-Chan — rises from the turtle shell of creation. It has always been turning. The first root reaches toward the sun. This is the root of KIN, the root of the repeating day, the root that measures breath.",
-        newGlyphs: [.kin, .imix, .ik, .tzolk, .haab],
-        artifact: "sun.max.fill",
-        journalTitle: "The First Sunrise",
-        journalBody: "The tablet was pristine. Cleaner than anything we'd found in the Egyptian chamber — as if it had been sealed the same morning it was carved. The five glyphs ran in a perfect line, then repeated, with two positions left deliberately blank. A test, the priest's notes said. They gave students this tablet first. If you could not complete a single cycle, you were not ready to learn time."
-    )
-
-    // ─────────────────────────────────────────────────────────────────────
-    // LEVEL 2 · 2 cycles · periods 3+2 · 7 blanks  (rotating wheel mechanic)
-    //
-    // Cycle A: [KIN, HAAB, TZʼ]  offset=0  length=6
-    //   0:KIN  1:HAAB  2:TZʼ  3:KIN  4:HAAB  5:TZʼ
-    //   Revealed: {0,1,2}  — first full cycle is all anchors (teaching pass)
-    //   Blanks: {3→KIN, 4→HAAB, 5→TZʼ}
-    //
-    // Cycle B: [IMIX, IK]  offset=0  length=6
-    //   0:IMIX  1:IK  2:IMIX  3:IK  4:IMIX  5:IK
-    //   Revealed: {0,1}  — first full cycle is all anchors (teaching pass)
-    //   Blanks: {2→IMIX, 3→IK, 4→IMIX, 5→IK}
-    // ─────────────────────────────────────────────────────────────────────
-    static let level2 = MayanLevel(
-        id: 2,
-        usesWheelMechanic: true,
-        usesSynchronizedRotation: false,
-        title: "The Two Wheels Turn",
-        subtitle: "Independent Rhythms",
-        lore: "Above: the three hearthstones of creation turn without rest. Below: the two Hero Twins walk their endless descent. Neither wheel answers to the other. Find each rhythm alone.",
-        inscriptions: [
-            "Above and below: two wheels, two independent rhythms. The Solar Wheel in the top row turns every three steps. The Earth Wheel below turns every two. They share the same sequence of positions but follow entirely separate cycles — solve each row alone.",
-            "Solve the top row first. Ignore the bottom row completely. Three symbols repeat. You have two anchors — from them you can reconstruct the full cycle.",
-            "Now solve the bottom row. Ignore the top. Two symbols alternate. You have three anchors — the pattern is immediate.",
-            "The Maya tracked six separate calendar cycles running simultaneously. Some cycles were 260 days. Some were 365. Some were 584. Each turned on its own wheel. The priest's job was to know where every wheel was at any given moment."
-        ],
-        cycles: [
-            MayanCycle(
-                label: "Solar Wheel",
-                symbols: [.kin, .haab, .tzolk],
-                startOffset: 0,
-                revealedPositions: [0,1,2]
-            ),
-            MayanCycle(
-                label: "Earth Wheel",
-                symbols: [.imix, .ik],
-                startOffset: 0,
-                revealedPositions: [0,1]
-            )
-        ],
-        sequenceLength: 6,
-        decodedMessage: "Two roots grow from the same trunk. The root of KIN grows toward the sun and turns in a cycle of three. The root of IMIX grows into the dark water and turns in a cycle of two. They never align — and that is the point. The Tree breathes in both directions at once.",
-        newGlyphs: [],
-        artifact: "calendar.circle.fill",
-        journalTitle: "The Two Wheels",
-        journalBody: "The second tablet was mounted beside the first on the chamber wall, but carved by a different hand — lighter strokes, more confident. Two rows instead of one. I didn't understand at first. I kept trying to find a relationship between the rows, some hidden correspondence. There was none. They were simply two independent clocks, running at different speeds, recorded side by side because that is how you read time: all the wheels together, each one on its own terms."
-    )
-
-    // ─────────────────────────────────────────────────────────────────────
-    // LEVEL 5 · 3 cycles · periods 3+4+5 · 11 blanks
-    //
-    // Cycle A: [KIN, IMIX, IK]  offset=0  length=9
-    //   0:KIN  1:IMIX  2:IK  3:KIN  4:IMIX  5:IK  6:KIN  7:IMIX  8:IK
-    //   Revealed: {0,1,4,6,8}  Blanks: {2→IK, 3→KIN, 5→IK, 7→IMIX}
-    //
-    // Cycle B: [HAAB, TZʼ, KIN, IMIX]  offset=0  length=9
-    //   0:HAAB  1:TZʼ  2:KIN  3:IMIX  4:HAAB  5:TZʼ  6:KIN  7:IMIX  8:HAAB
-    //   Revealed: {0,1,4,5,8}  Blanks: {2→KIN, 3→IMIX, 6→KIN, 7→IMIX}
-    //
-    // Cycle C: [IK, KIN, HAAB, TZʼ, IMIX]  offset=0  length=9
-    //   0:IK  1:KIN  2:HAAB  3:TZʼ  4:IMIX  5:IK  6:KIN  7:HAAB  8:TZʼ
-    //   Revealed: {0,1,2,5,6,7}  Blanks: {3→TZʼ, 4→IMIX, 8→TZʼ}
-    // ─────────────────────────────────────────────────────────────────────
-    // Stubs used by allLevels for count/unlock tracking. GameState regenerates
-    // these fresh each time the player loads puzzle 3 or 4.
-    static let level3 = MayanLevel.generateLevel3()
-    static let level4 = MayanLevel.generateLevel4()
-
-    static let level5 = MayanLevel(
-        id: 5,
-        usesWheelMechanic: false,
-        usesSynchronizedRotation: false,
-        title: "The Calendar Round",
-        subtitle: "Three Wheels, One Machine",
-        lore: "Three wheels, each bound to its own ancient count. The Sun Wheel turns by the three hearthstones the gods set at the first dawn. The Year Wheel turns by the four Bacabs who stand at the corners of the sky, holding the world upright. The Long Wheel turns by the five Wayeb' — the nameless days when time holds its breath and the world waits. Solve each wheel alone.",
-        inscriptions: [
-            "Running at once: three wheels with independent periods of three, four, and five. Together they do not repeat for sixty positions — you see nine. Solve each row entirely on its own terms: find the period, locate the revealed anchors within it, and fill the blanks.",
-            "The Sun Wheel is period 3: KIN, IMIX, IK repeating. Five positions are revealed — more than enough to confirm the rhythm. The two blanks in the middle and the two near the end follow directly from the pattern.",
-            "The Year Wheel is period 4: HAAB, TZʼ, KIN, IMIX repeating. Five positions revealed. The four blanks all fall in positions not yet shown — use the period to locate each one in the cycle.",
-            "The Long Wheel is period 5, all five glyphs in order. Six positions revealed across nine total. The three blanks are at positions 3, 4, and 8 — all uniquely determined. When all three rows are filled, you have decoded the Calendar Round: the great machine that the Maya used to measure the breath of the world."
-        ],
-        cycles: [
-            MayanCycle(
-                label: "Sun Wheel",
-                symbols: [.kin, .imix, .ik],
-                startOffset: 0,
-                revealedPositions: [0,1,4,6,8]
-            ),
-            MayanCycle(
-                label: "Year Wheel",
-                symbols: [.haab, .tzolk, .kin, .imix],
-                startOffset: 0,
-                revealedPositions: [0,1,4,5,8]
-            ),
-            MayanCycle(
-                label: "Long Wheel",
-                symbols: [.ik, .kin, .haab, .tzolk, .imix],
-                startOffset: 0,
-                revealedPositions: [0,1,2,5,6,7]
-            )
-        ],
-        sequenceLength: 9,
-        decodedMessage: "Wakah-Chan does not grow — it turns. The World Tree is the axle of the world, and the world is the wheel. Every ending is the beginning of the same cycle wearing a different name. KIN returns. HAAB returns. The Calendar Round returns every fifty-two years. Wakah-Chan has been turning since before the first human opened their eyes. It will be turning after the last one closes theirs. Stand at the centre. Feel it turn.",
-        newGlyphs: [],
-        artifact: "globe.americas.fill",
-        journalTitle: "The Calendar Round",
-        journalBody: "The fifth tablet was the largest — three rows, nine positions across, with only eleven blanks among twenty-seven cells. By this point the rhythm was in my hands. I filled the Sun Wheel in under a minute. The Year Wheel took two. The Long Wheel required me to count carefully from the anchors, but the logic was identical. Three independent cycles, each solvable alone. What made it magnificent was not the difficulty but the completeness — three wheels, all at once, the full machine running. The Maya called this the Calendar Round: the moment all three great cycles realigned. It happened once every fifty-two years. When it did, they lit a new fire and began the world again."
-    )
+    // allLevels provides metadata stubs for unlock tracking and save/restore templates.
+    // Every level is freshly generated when loaded in GameState.loadMayanLevel().
+    static let allLevels: [MayanLevel] = [
+        generateLevel1(), generateLevel2(), generateLevel3(), generateLevel4(), generateLevel5()
+    ]
 }
 
-// MARK: - Random Level Generation (Levels 3 & 4)
+// MARK: - Random Level Generation (All Levels)
 
 extension MayanLevel {
 
     // ─────────────────────────────────────────────────────────────────────
-    // Pairing rule: KIN↔HAAB, IMIX↔IK (symmetric, both directions).
-    // TZʼ is not used in pairing puzzles.
+    // All five levels are generated fresh on each load so the player faces
+    // a different symbol arrangement every time the puzzle resets.
     //
-    // Period (2, 3, or 4) is chosen at random each generation.
-    // Outer symbols: random shuffle of `period` glyphs from the four.
-    // Inner symbols: outer.map { $0.pairingPartner }  — always symmetric.
-    // Sequence length: period × 2 (two full cycles visible).
-    //
-    // Reveal templates guarantee the pairing rule is discoverable:
-    //   • P=2: 3 outer + 3 inner anchors → 2 blanks total
-    //   • P=3: 4 outer + 4 inner anchors → 4 blanks total
-    //   • P=4: 4 outer + 4 inner anchors → 8 blanks total
-    //
-    // Level 4 adds a random startOffset so the player must locate their
-    // entry point in the cycle before applying the pairing rule.
+    // L1: period-5 single cycle, symbols shuffled. seqLen=10. 2 blanks.
+    // L2: period-3 + period-2 wheels, symbols split from shuffle. seqLen=6.
+    // L3/L4: pairing puzzles. KIN↔HAAB, IMIX↔IK. Period 2/3/4 random.
+    // L5: periods 3+4+5 three-cycle grid, symbols independently shuffled.
     // ─────────────────────────────────────────────────────────────────────
 
     private static let pairingGlyphs: [MayanGlyph] = [.kin, .haab, .imix, .ik]
+
+    // ── Level 1 ───────────────────────────────────────────────────────────
+    // 1 cycle, period 5, seqLen=10, 2 blanks at positions {6, 9}.
+    static func generateLevel1() -> MayanLevel {
+        let symbols = MayanGlyph.allCases.shuffled()
+        return MayanLevel(
+            id: 1,
+            usesWheelMechanic: false,
+            usesSynchronizedRotation: false,
+            title: "Tablet of the First Sunrise",
+            subtitle: "The Wheel Begins",
+            lore: "The first Maya calendar tablet. Five sacred glyphs repeat in a fixed order without end. The first full cycle is shown to you. Continue it.",
+            inscriptions: [
+                "The Maya thought of time as a wheel turning, not a river flowing. Five signs repeat in fixed order. The first full cycle is already shown. Continue it.",
+                "The sequence is already familiar by position five. Now the wheel turns again. What comes after the first symbol a second time? The same thing that came after it the first time.",
+                "Fill the two blank positions. Count from the beginning — what position are they? The cycle has five steps. A blank at position six is the same as position one.",
+                "I recognised the rhythm before I found the blanks. That is how the Maya intended it. Feel the pattern first. The blanks fill themselves."
+            ],
+            cycles: [
+                MayanCycle(label: "Day Wheel", symbols: symbols, startOffset: 0,
+                           revealedPositions: [0,1,2,3,4,5,7,8])
+            ],
+            sequenceLength: 10,
+            decodedMessage: "The World Tree — Wakah-Chan — rises from the turtle shell of creation. It has always been turning. The first root reaches toward the sun. This is the root of KIN, the root of the repeating day, the root that measures breath.",
+            newGlyphs: [.kin, .imix, .ik, .tzolk, .haab],
+            artifact: "sun.max.fill",
+            journalTitle: "The First Sunrise",
+            journalBody: "The tablet was pristine. Cleaner than anything we'd found in the Egyptian chamber — as if it had been sealed the same morning it was carved. The five glyphs ran in a perfect line, then repeated, with two positions left deliberately blank. A test, the priest's notes said. They gave students this tablet first. If you could not complete a single cycle, you were not ready to learn time."
+        )
+    }
+
+    // ── Level 2 ───────────────────────────────────────────────────────────
+    // 2 cycles, rotating wheel mechanic. Period-3 + period-2. seqLen=6.
+    // Glyphs split from a single shuffle so cycles never share a symbol.
+    static func generateLevel2() -> MayanLevel {
+        let shuffled = MayanGlyph.allCases.shuffled()
+        let cycleA = Array(shuffled.prefix(3))   // period 3
+        let cycleB = Array(shuffled.suffix(2))   // period 2
+        return MayanLevel(
+            id: 2,
+            usesWheelMechanic: true,
+            usesSynchronizedRotation: false,
+            title: "The Two Wheels Turn",
+            subtitle: "Independent Rhythms",
+            lore: "Two wheels turn independently. The upper wheel turns every three steps. The lower turns every two. Neither wheel answers to the other. Find each rhythm alone.",
+            inscriptions: [
+                "Two wheels, two independent rhythms. The Solar Wheel in the top row turns every three steps. The Earth Wheel below turns every two. Solve each row alone.",
+                "Solve the top row first. Ignore the bottom row completely. Three symbols repeat. You have all three anchors — from them you can reconstruct the full cycle.",
+                "Now solve the bottom row. Ignore the top. Two symbols alternate. You have both anchors — the pattern is immediate.",
+                "The Maya tracked six separate calendar cycles running simultaneously. Each turned on its own wheel. The priest's job was to know where every wheel was at any given moment."
+            ],
+            cycles: [
+                MayanCycle(label: "Solar Wheel", symbols: cycleA, startOffset: 0,
+                           revealedPositions: [0,1,2]),
+                MayanCycle(label: "Earth Wheel",  symbols: cycleB, startOffset: 0,
+                           revealedPositions: [0,1])
+            ],
+            sequenceLength: 6,
+            decodedMessage: "Two roots grow from the same trunk. The root of KIN grows toward the sun and turns in a cycle of three. The root of IMIX grows into the dark water and turns in a cycle of two. They never align — and that is the point. The Tree breathes in both directions at once.",
+            newGlyphs: [],
+            artifact: "calendar.circle.fill",
+            journalTitle: "The Two Wheels",
+            journalBody: "The second tablet was mounted beside the first on the chamber wall, but carved by a different hand — lighter strokes, more confident. Two rows instead of one. I didn't understand at first. I kept trying to find a relationship between the rows, some hidden correspondence. There was none. They were simply two independent clocks, running at different speeds, recorded side by side because that is how you read time: all the wheels together, each one on its own terms."
+        )
+    }
 
     /// Generates a random Level 3 (static grid, pairing discovery).
     static func generateLevel3() -> MayanLevel {
@@ -464,6 +379,46 @@ extension MayanLevel {
             artifact: "wind",
             journalTitle: "The Pairing in Motion",
             journalBody: "Applying the pairing rule while the rings rotated was harder than I expected — not because the rule had changed, but because I had to find my entry point in the cycle before I could use it. Once I found the offset, the outer sequence was determined. And every time I placed a symbol, the inner ring confirmed it through the pairing. The binding held. The rule was the same rule. I just had to find my footing before I could use it."
+        )
+    }
+
+    // ── Level 5 ───────────────────────────────────────────────────────────
+    // 3 cycles, periods 3+4+5, seqLen=9, 11 blanks.
+    // Each cycle's symbols are independently shuffled.
+    //   Sun Wheel  (period 3): blanks at {2,3,5,7}   revealed {0,1,4,6,8}
+    //   Year Wheel (period 4): blanks at {2,3,6,7}   revealed {0,1,4,5,8}
+    //   Long Wheel (period 5): blanks at {3,4,8}     revealed {0,1,2,5,6,7}
+    static func generateLevel5() -> MayanLevel {
+        let sunSymbols  = Array(MayanGlyph.allCases.shuffled().prefix(3))
+        let yearSymbols = Array(MayanGlyph.allCases.shuffled().prefix(4))
+        let longSymbols = MayanGlyph.allCases.shuffled()
+        return MayanLevel(
+            id: 5,
+            usesWheelMechanic: false,
+            usesSynchronizedRotation: false,
+            title: "The Calendar Round",
+            subtitle: "Three Wheels, One Machine",
+            lore: "Three wheels, each bound to its own ancient count. The Sun Wheel turns every three steps. The Year Wheel turns every four. The Long Wheel turns every five. Solve each wheel alone.",
+            inscriptions: [
+                "Running at once: three wheels with independent periods of three, four, and five. Solve each row entirely on its own terms: find the period, locate the revealed anchors within it, and fill the blanks.",
+                "The Sun Wheel is period 3: three symbols repeating. Five positions are revealed — more than enough to confirm the rhythm.",
+                "The Year Wheel is period 4: four symbols repeating. Five positions revealed. Use the period to locate each blank in the cycle.",
+                "The Long Wheel is period 5, all five glyphs in order. Six positions revealed across nine total. When all three rows are filled, you have decoded the Calendar Round: the great machine that the Maya used to measure the breath of the world."
+            ],
+            cycles: [
+                MayanCycle(label: "Sun Wheel",  symbols: sunSymbols,  startOffset: 0,
+                           revealedPositions: [0,1,4,6,8]),
+                MayanCycle(label: "Year Wheel", symbols: yearSymbols, startOffset: 0,
+                           revealedPositions: [0,1,4,5,8]),
+                MayanCycle(label: "Long Wheel", symbols: longSymbols, startOffset: 0,
+                           revealedPositions: [0,1,2,5,6,7])
+            ],
+            sequenceLength: 9,
+            decodedMessage: "Wakah-Chan does not grow — it turns. The World Tree is the axle of the world, and the world is the wheel. Every ending is the beginning of the same cycle wearing a different name. KIN returns. HAAB returns. The Calendar Round returns every fifty-two years. Wakah-Chan has been turning since before the first human opened their eyes. It will be turning after the last one closes theirs. Stand at the centre. Feel it turn.",
+            newGlyphs: [],
+            artifact: "globe.americas.fill",
+            journalTitle: "The Calendar Round",
+            journalBody: "The fifth tablet was the largest — three rows, nine positions across, with only eleven blanks among twenty-seven cells. By this point the rhythm was in my hands. I filled the Sun Wheel in under a minute. The Year Wheel took two. The Long Wheel required me to count carefully from the anchors, but the logic was identical. Three independent cycles, each solvable alone. What made it magnificent was not the difficulty but the completeness — three wheels, all at once, the full machine running. The Maya called this the Calendar Round: the moment all three great cycles realigned. It happened once every fifty-two years. When it did, they lit a new fire and began the world again."
         )
     }
 }

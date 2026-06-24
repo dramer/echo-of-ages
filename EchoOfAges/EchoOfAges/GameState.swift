@@ -162,7 +162,9 @@ final class GameState: ObservableObject {
         loadProgress()
         resetGrid(for: Level.allLevels[0])
         resetSumerianDecoded(for: SumerianLevel.allLevels[0])
-        resetMayanGrid(for: MayanLevel.allLevels[0])
+        let g1 = MayanLevel.generateLevel1()
+        mayanGeneratedLevel1 = g1
+        resetMayanGrid(for: g1)
         resetChinesePieces(for: ChineseBoxLevel.allLevels[0])
         // Celtic puzzle is generated lazily when startCelticGame() is called
     }
@@ -1006,14 +1008,25 @@ final class GameState: ObservableObject {
     @Published var mayanArmedGlyph: MayanGlyph? = nil
     @Published var mayanErrorCells: Set<MayanCellCoord> = []
     @Published var mayanPendingComplete: Bool = false
+    @Published var mayanDecipherAttempts: Int = 0
+    /// Incremented each time the puzzle regenerates mid-level (3 failed deciphers).
+    /// Views watch this to reset ring animation state.
+    @Published var mayanForcedRegenerationID: Int = 0
+    @Published var mayanShowNewPuzzleBanner: Bool = false
 
+    @Published var mayanGeneratedLevel1: MayanLevel? = nil
+    @Published var mayanGeneratedLevel2: MayanLevel? = nil
     @Published var mayanGeneratedLevel3: MayanLevel? = nil
     @Published var mayanGeneratedLevel4: MayanLevel? = nil
+    @Published var mayanGeneratedLevel5: MayanLevel? = nil
 
     var mayanCurrentLevel: MayanLevel {
         switch mayanCurrentLevelIndex {
+        case 0: return mayanGeneratedLevel1 ?? MayanLevel.allLevels[0]
+        case 1: return mayanGeneratedLevel2 ?? MayanLevel.allLevels[1]
         case 2: return mayanGeneratedLevel3 ?? MayanLevel.allLevels[2]
         case 3: return mayanGeneratedLevel4 ?? MayanLevel.allLevels[3]
+        case 4: return mayanGeneratedLevel5 ?? MayanLevel.allLevels[4]
         default: return MayanLevel.allLevels[mayanCurrentLevelIndex]
         }
     }
@@ -1698,9 +1711,14 @@ final class GameState: ObservableObject {
             mayanArmedGlyph = nil
             mayanErrorCells = []
             mayanPendingComplete = false
+            mayanGeneratedLevel1 = nil
+            mayanGeneratedLevel2 = nil
             mayanGeneratedLevel3 = nil
             mayanGeneratedLevel4 = nil
-            resetMayanGrid(for: MayanLevel.allLevels[0])
+            mayanGeneratedLevel5 = nil
+            let resetG = MayanLevel.generateLevel1()
+            mayanGeneratedLevel1 = resetG
+            resetMayanGrid(for: resetG)
             UserDefaults.standard.removeObject(forKey: "EOA_mayanUnlocked")
             clearMayanSave()
 
@@ -1758,17 +1776,19 @@ final class GameState: ObservableObject {
 
     func loadMayanLevel(_ index: Int) {
         mayanCurrentLevelIndex = index
-        // Levels 3 and 4 are randomised — generate fresh each load.
+        // All levels are randomised — generate fresh each load.
         let level: MayanLevel
         switch index {
+        case 0:
+            let g = MayanLevel.generateLevel1(); mayanGeneratedLevel1 = g; level = g
+        case 1:
+            let g = MayanLevel.generateLevel2(); mayanGeneratedLevel2 = g; level = g
         case 2:
-            let generated = MayanLevel.generateLevel3()
-            mayanGeneratedLevel3 = generated
-            level = generated
+            let g = MayanLevel.generateLevel3(); mayanGeneratedLevel3 = g; level = g
         case 3:
-            let generated = MayanLevel.generateLevel4()
-            mayanGeneratedLevel4 = generated
-            level = generated
+            let g = MayanLevel.generateLevel4(); mayanGeneratedLevel4 = g; level = g
+        case 4:
+            let g = MayanLevel.generateLevel5(); mayanGeneratedLevel5 = g; level = g
         default:
             level = MayanLevel.allLevels[index]
         }
@@ -1777,6 +1797,8 @@ final class GameState: ObservableObject {
         mayanArmedGlyph = nil
         mayanErrorCells = []
         mayanPendingComplete = false
+        mayanDecipherAttempts = 0
+        mayanShowNewPuzzleBanner = false
         currentPuzzleHadDecipherError = false
     }
 
@@ -1836,14 +1858,33 @@ final class GameState: ObservableObject {
         mayanErrorCells = wrong
         if !wrong.isEmpty {
             currentPuzzleHadDecipherError = true
+            mayanDecipherAttempts += 1
             HapticFeedback.heavy()
             soundManager?.playEffect(.error)
-            // Sync-rotation levels (Level 4): keep errors visible until the player corrects
-            // them — placeMayanGlyph already calls mayanErrorCells.remove(coord) on each fix.
-            // All other levels: flash red for 1.2 s then clear automatically.
+            let shouldRegenerate = mayanDecipherAttempts >= 3
             if !mayanCurrentLevel.usesSynchronizedRotation {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
                     self.mayanErrorCells = []
+                    if shouldRegenerate {
+                        self.loadMayanLevel(self.mayanCurrentLevelIndex)
+                        self.mayanForcedRegenerationID += 1
+                        self.mayanShowNewPuzzleBanner = true
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                            self.mayanShowNewPuzzleBanner = false
+                        }
+                    }
+                }
+            } else {
+                // Wheel level: regenerate after a short delay so the red flash is visible.
+                if shouldRegenerate {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                        self.loadMayanLevel(self.mayanCurrentLevelIndex)
+                        self.mayanForcedRegenerationID += 1
+                        self.mayanShowNewPuzzleBanner = true
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                            self.mayanShowNewPuzzleBanner = false
+                        }
+                    }
                 }
             }
         }
@@ -2213,46 +2254,44 @@ final class GameState: ObservableObject {
               save.v == 2,
               !save.cycles.isEmpty else { return nil }
 
-        // For randomly-generated levels (3 and 4), reconstruct the exact same MayanLevel
-        // from saved cycle data so the board layout matches what the player was solving.
+        // All levels are generated — reconstruct the exact same MayanLevel from saved
+        // cycle data so the board layout matches what the player was solving.
         let levelIndex = mayanCurrentLevelIndex
-        if levelIndex == 2 || levelIndex == 3 {
-            let reconstructedCycles: [MayanCycle] = save.cycles.map { sc in
-                MayanCycle(
-                    label: sc.symbols.count == 2 ? "Sacred Wheel" : "Day Wheel",
-                    symbols: sc.symbols.compactMap { MayanGlyph(rawValue: $0) },
-                    startOffset: sc.startOffset,
-                    revealedPositions: Set(sc.revealedPositions)
-                )
-            }
-            // Fix the labels based on position (Day Wheel is always first)
-            let labeledCycles: [MayanCycle] = reconstructedCycles.enumerated().map { i, c in
-                MayanCycle(label: i == 0 ? "Day Wheel" : "Sacred Wheel",
-                           symbols: c.symbols, startOffset: c.startOffset,
-                           revealedPositions: c.revealedPositions)
-            }
-            let template = MayanLevel.allLevels[levelIndex]
-            let restored = MayanLevel(
-                id: template.id,
-                usesWheelMechanic: template.usesWheelMechanic,
-                usesSynchronizedRotation: template.usesSynchronizedRotation,
-                title: template.title,
-                subtitle: template.subtitle,
-                lore: template.lore,
-                inscriptions: template.inscriptions,
-                cycles: labeledCycles,
-                sequenceLength: save.sequenceLength,
-                decodedMessage: template.decodedMessage,
-                newGlyphs: template.newGlyphs,
-                artifact: template.artifact,
-                journalTitle: template.journalTitle,
-                journalBody: template.journalBody
+        let template = MayanLevel.allLevels[levelIndex]
+        let templateLabels = template.cycles.map { $0.label }
+        let restoredCycles: [MayanCycle] = save.cycles.enumerated().map { i, sc in
+            MayanCycle(
+                label: i < templateLabels.count ? templateLabels[i] : "Wheel",
+                symbols: sc.symbols.compactMap { MayanGlyph(rawValue: $0) },
+                startOffset: sc.startOffset,
+                revealedPositions: Set(sc.revealedPositions)
             )
-            if levelIndex == 2 { mayanGeneratedLevel3 = restored }
-            else                { mayanGeneratedLevel4 = restored }
-            // Reinitialise the player grid to match the restored puzzle layout
-            resetMayanGrid(for: restored)
         }
+        let restored = MayanLevel(
+            id: template.id,
+            usesWheelMechanic: template.usesWheelMechanic,
+            usesSynchronizedRotation: template.usesSynchronizedRotation,
+            title: template.title,
+            subtitle: template.subtitle,
+            lore: template.lore,
+            inscriptions: template.inscriptions,
+            cycles: restoredCycles,
+            sequenceLength: save.sequenceLength,
+            decodedMessage: template.decodedMessage,
+            newGlyphs: template.newGlyphs,
+            artifact: template.artifact,
+            journalTitle: template.journalTitle,
+            journalBody: template.journalBody
+        )
+        switch levelIndex {
+        case 0: mayanGeneratedLevel1 = restored
+        case 1: mayanGeneratedLevel2 = restored
+        case 2: mayanGeneratedLevel3 = restored
+        case 3: mayanGeneratedLevel4 = restored
+        case 4: mayanGeneratedLevel5 = restored
+        default: break
+        }
+        resetMayanGrid(for: restored)
 
         // Overlay saved player moves onto the (now-correct) grid
         let level = mayanCurrentLevel

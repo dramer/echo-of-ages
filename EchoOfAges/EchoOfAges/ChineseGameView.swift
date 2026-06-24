@@ -69,24 +69,29 @@ struct ChineseGameView: View {
                     VStack(spacing: 14) {
                         levelHeader
                         boardSection(cellSize: computedCellSize)
-                        // Palette + action buttons in a shared card
-                        VStack(spacing: 12) {
-                            piecesPalette
-                            actionRow
-                        }
-                        .padding(14)
-                        .background(
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(Color.stoneMid.opacity(0.20))
-                                .overlay(RoundedRectangle(cornerRadius: 12)
-                                    .stroke(vermillion.opacity(0.30), lineWidth: 1))
-                        )
                         inscriptionsSection
                     }
                     .padding(.horizontal, 18)
                     .padding(.top, 8)
-                    .padding(.bottom, 32)
+                    .padding(.bottom, 16)
                 }
+
+                // Palette + action buttons fixed at bottom — outside ScrollView
+                // to prevent the scroll view intercepting piece drag gestures.
+                VStack(spacing: 12) {
+                    piecesPalette
+                    actionRow
+                }
+                .padding(14)
+                .padding(.horizontal, 4)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.stoneMid.opacity(0.20))
+                        .overlay(RoundedRectangle(cornerRadius: 12)
+                            .stroke(vermillion.opacity(0.30), lineWidth: 1))
+                )
+                .padding(.horizontal, 18)
+                .padding(.bottom, 8)
             }
 
             if showHelp {
@@ -470,15 +475,13 @@ struct ChineseGameView: View {
                 .foregroundStyle(Color.stoneLight)
                 .tracking(2)
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
-                    ForEach(level.pieces) { piece in
-                        palettePieceButton(piece: piece)
-                    }
+            HStack(spacing: 8) {
+                ForEach(level.pieces) { piece in
+                    palettePieceButton(piece: piece)
                 }
-                .padding(.vertical, 4)
-                .padding(.horizontal, 2)
             }
+            .padding(.vertical, 4)
+            .padding(.horizontal, 2)
 
             // Rotate button — only when a piece is selected
             if gameState.chineseSelectedPieceId != nil {
@@ -538,31 +541,31 @@ struct ChineseGameView: View {
         }) {
             VStack(spacing: 6) {
                 ZStack {
-                    pieceShape(piece: piece, rotation: rotation, cellSize: 14)
+                    pieceShape(piece: piece, rotation: rotation, cellSize: 12)
                         .opacity(isPlaced ? 0.35 : 1.0)
 
                     if isPlaced {
                         Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 18))
+                            .font(.system(size: 16))
                             .foregroundStyle(warmGold.opacity(0.80))
                     }
                 }
-                .frame(width: 60, height: 60, alignment: .center)
+                .frame(width: 50, height: 50, alignment: .center)
 
                 Text(piece.name)
-                    .font(.system(size: 16))
+                    .font(.system(size: 14))
                     .foregroundStyle(isPlaced
                                      ? inkGrey.opacity(0.50)
                                      : warmGold.opacity(0.85))
 
                 Text(piece.meaning)
-                    .font(EgyptFont.body(10))
+                    .font(EgyptFont.body(9))
                     .foregroundStyle(isPlaced
                                      ? inkGrey.opacity(0.40)
                                      : inkGrey.opacity(0.70))
             }
             .padding(.vertical, 10)
-            .padding(.horizontal, 8)
+            .padding(.horizontal, 4)
             .background(
                 RoundedRectangle(cornerRadius: 10)
                     .fill(isSelected
