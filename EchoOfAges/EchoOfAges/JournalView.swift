@@ -898,6 +898,37 @@ private struct CivilizationsContent: View {
                     Rectangle().fill(Color.ruledLine.opacity(0.25)).frame(height: 0.5)
                 }
             }
+            // When all six civilizations are complete, show a direct link to the final puzzle
+            if gameState.allSixCivsComplete {
+                VStack(spacing: 10) {
+                    SectionRule()
+                    HandNote(text: "All six civilizations deciphered. The Tablet of Mandu awaits.", color: Color.inkBlue.opacity(0.80))
+                    Button {
+                        HapticFeedback.heavy()
+                        withAnimation(.easeInOut(duration: 0.4)) {
+                            gameState.currentScreen = .manduTablet
+                        }
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "tablecells.fill")
+                                .font(.system(size: 13))
+                            Text("Open the Tablet of Mandu")
+                                .font(handFont(14, bold: true))
+                        }
+                        .foregroundStyle(Color.paperCream)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(Color.inkBlue.opacity(0.85))
+                                .overlay(RoundedRectangle(cornerRadius: 8)
+                                    .stroke(Color(red: 0.65, green: 0.50, blue: 0.20).opacity(0.6), lineWidth: 1))
+                        )
+                    }
+                }
+                .padding(.top, 6)
+            }
+
             // Extra space so the China play button doesn't snap off-screen when releasing scroll
             Spacer(minLength: 80)
         }

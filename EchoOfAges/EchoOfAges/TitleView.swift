@@ -100,14 +100,18 @@ struct TitleView: View {
                             .frame(maxWidth: .infinity)
                         }
 
-                        // Play — full width green pill, always goes to Six Civilizations
+                        // Play — full width green pill; routes to final puzzle when all civs done
                         Button {
                             HapticFeedback.heavy()
                             withAnimation(.easeInOut(duration: 0.4)) {
-                                gameState.openJournalToCivilizations()
+                                if gameState.allSixCivsComplete {
+                                    gameState.currentScreen = .manduTablet
+                                } else {
+                                    gameState.openJournalToCivilizations()
+                                }
                             }
                         } label: {
-                            Text("Play")
+                            Text(gameState.allSixCivsComplete ? "Tablet of Mandu" : "Play")
                                 .font(EgyptFont.titleBold(22))
                                 .foregroundStyle(.white)
                                 .frame(maxWidth: .infinity)

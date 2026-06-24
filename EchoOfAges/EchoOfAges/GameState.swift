@@ -2770,6 +2770,19 @@ final class GameState: ObservableObject {
         let rawErrors = UserDefaults.standard.array(forKey: "EOA_civsWithErrors") as? [String] ?? []
         civsWithDecipherErrors = Set(rawErrors.compactMap { CivilizationID(rawValue: $0) })
 
+        // Migration: backfill discoveredKeys for civs completed before the key-recording
+        // system was introduced (saves from older builds may have no entry for a civ even
+        // though all its levels are unlocked).
+        var backfilled = false
+        for civ in CivilizationID.allCases where civilizationsCompletedForMandu.contains(civ) && discoveredKeys[civ] == nil {
+            recordKey(for: civ)
+            backfilled = true
+        }
+        if backfilled {
+            let keysDict = discoveredKeys.reduce(into: [String: String]()) { $0[$1.key.rawValue] = $1.value }
+            UserDefaults.standard.set(keysDict, forKey: "EOA_discoveredKeys")
+        }
+
         loadMasterMindProgress()
     }
 
