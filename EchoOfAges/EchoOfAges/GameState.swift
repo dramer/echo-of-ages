@@ -2886,9 +2886,15 @@ final class GameState: ObservableObject {
             "EOA_discoveredKeys", "EOA_keyGateAnswered",
             "EOA_hasSeenIntro", "EOA_masterMindSlots", "EOA_masterMindHistory",
             "EOA_hasOpenedJournal", "EOA_civsWithErrors",
-            "EOA_hasSeenEgyptNudge"
+            "EOA_hasSeenEgyptNudge", "EOA_journalPage"
         ]
         keysToErase.forEach { UserDefaults.standard.removeObject(forKey: $0) }
+        // Also wipe all per-level puzzle state saves (EOA_pstate_*) — these are keyed
+        // by civ + version + level index and must all be cleared on full reset.
+        let ud = UserDefaults.standard
+        ud.dictionaryRepresentation().keys
+            .filter { $0.hasPrefix("EOA_pstate_") }
+            .forEach { ud.removeObject(forKey: $0) }
         // Keep showIntroOnLaunch and playerName — the player set those deliberately.
 
         HapticFeedback.heavy()
