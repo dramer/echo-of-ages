@@ -51,7 +51,8 @@ struct GameView: View {
                     let gridHeight = geo.size.height - 60   // minus header
                     ZStack {
                         GlyphGridView(availableWidth: leftWidth - 32,
-                                      availableHeight: gridHeight - 32)
+                                      availableHeight: gridHeight - 32,
+                                      maxCellSize: 120)
                             .background(GeometryReader { g in
                                 Color.clear.onAppear { gridFrame = g.frame(in: .global) }
                             })
@@ -575,6 +576,7 @@ struct GlyphGridView: View {
     @EnvironmentObject var gameState: GameState
     let availableWidth:  CGFloat
     let availableHeight: CGFloat
+    var maxCellSize: CGFloat = 80
 
     private var level: Level { gameState.currentLevel }
 
@@ -584,8 +586,7 @@ struct GlyphGridView: View {
         let pad: CGFloat = 20
         let byWidth  = (availableWidth  - hSpacing - pad) / CGFloat(level.cols)
         let byHeight = (availableHeight - vSpacing - pad) / CGFloat(level.rows)
-        let maxCell: CGFloat = UIDevice.current.userInterfaceIdiom == .pad ? 120 : 80
-        return min(byWidth, byHeight, maxCell)
+        return min(byWidth, byHeight, maxCellSize)
     }
 
     var body: some View {
