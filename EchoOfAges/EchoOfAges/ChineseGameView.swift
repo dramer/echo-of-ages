@@ -24,7 +24,7 @@ struct ChineseGameView: View {
 
     @State private var showComplete        = false
     @State private var messageRevealed     = false
-    @State private var inscriptionsExpanded = false
+    @State private var showFieldNotes = false
     @State private var errorCell: (Int, Int)? = nil
     @State private var showVerifyError: Bool  = false
     @State private var showHelp:          Bool = false
@@ -182,6 +182,20 @@ struct ChineseGameView: View {
         .onDisappear {
             showComplete = false
             messageRevealed = false
+        }
+        .sheet(isPresented: $showFieldNotes) {
+            FieldInscriptionsModal(
+                title: "Field Inscriptions",
+                levelName: level.title,
+                icon: "doc.text",
+                inscriptions: level.inscriptions,
+                acrosticChar: TreeOfLifeKeys.acrosticLetter(for: .chinese, levelIndex: gameState.chineseCurrentLevelIndex),
+                accentColor: Color.goldDark,
+                bulletChar: "龍",
+                backgroundColor: Color(red: 0.92, green: 0.85, blue: 0.72),
+                surfaceColor: Color(red: 0.80, green: 0.70, blue: 0.55),
+                textColor: Color(red: 0.18, green: 0.10, blue: 0.04)
+            )
         }
         } // end GeometryReader
     }
@@ -792,50 +806,24 @@ struct ChineseGameView: View {
     // MARK: - Collapsible Inscriptions
 
     private var inscriptionsSection: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Button(action: {
-                HapticFeedback.tap()
-                withAnimation(.easeInOut(duration: 0.25)) {
-                    inscriptionsExpanded.toggle()
-                }
-            }) {
-                HStack {
-                    Image(systemName: inscriptionsExpanded ? "chevron.up" : "chevron.down")
-                        .font(.system(size: 12))
-                    Text("Field Inscriptions")
-                        .font(EgyptFont.title(13))
-                        .tracking(1)
-                    Spacer()
-                    Text("\(level.inscriptions.count) entries")
-                        .font(EgyptFont.body(12))
-                        .foregroundStyle(warmGold.opacity(0.50))
-                }
-                .foregroundStyle(warmGold.opacity(0.70))
-                .padding(14)
+        Button(action: {
+            HapticFeedback.tap()
+            showFieldNotes = true
+        }) {
+            HStack {
+                Image(systemName: "doc.text")
+                    .font(.system(size: 12))
+                Text("Field Inscriptions")
+                    .font(EgyptFont.title(13))
+                    .tracking(1)
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 11))
             }
-            .buttonStyle(.plain)
-
-            if inscriptionsExpanded {
-                let acrostic = TreeOfLifeKeys.acrosticLetter(for: .chinese, levelIndex: gameState.chineseCurrentLevelIndex)
-                VStack(alignment: .leading, spacing: 12) {
-                    ForEach(Array(level.inscriptions.enumerated()), id: \.offset) { _, note in
-                        HStack(alignment: .top, spacing: 10) {
-                            Text("–")
-                                .font(EgyptFont.body(13))
-                                .foregroundStyle(warmGold.opacity(0.40))
-                            Text(acrosticUnderlined(note, letter: acrostic))
-                                .font(EgyptFont.bodyItalic(14))
-                                .foregroundStyle(Color.stoneDark.opacity(0.75))
-                                .lineSpacing(4)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                    }
-                }
-                .padding(.horizontal, 14)
-                .padding(.bottom, 14)
-                .transition(.opacity.combined(with: .move(edge: .top)))
-            }
+            .foregroundStyle(warmGold.opacity(0.70))
+            .padding(14)
         }
+        .buttonStyle(.plain)
         .background(
             RoundedRectangle(cornerRadius: 12)
                 .fill(Color.stoneMid.opacity(0.15))

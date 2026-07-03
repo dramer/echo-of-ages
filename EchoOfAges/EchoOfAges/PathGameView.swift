@@ -22,7 +22,7 @@ struct PathGameView: View {
     @State private var showHelp: Bool = false
 
     // Inscription panel
-    @State private var showRuneInscriptions: Bool = false
+    @State private var showFieldNotes: Bool = false
 
     // Restore banner
     @State private var restoredDate: Date? = nil
@@ -48,11 +48,6 @@ struct PathGameView: View {
                 }
 
                 // Inscription panel overlay
-                if showRuneInscriptions {
-                    runeInscriptionPanel
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                        .zIndex(7)
-                }
 
                 // Help overlay
                 if showHelp {
@@ -102,6 +97,21 @@ struct PathGameView: View {
         }
         .onDisappear {
             gameState.saveNorseState()
+        }
+        .sheet(isPresented: $showFieldNotes) {
+            let level = gameState.norseCurrentLevel
+            FieldInscriptionsModal(
+                title: "Runestone Inscription",
+                levelName: level.title,
+                icon: "scroll",
+                inscriptions: level.inscriptions,
+                acrosticChar: TreeOfLifeKeys.acrosticLetter(for: .norse, levelIndex: gameState.norseCurrentLevelIndex),
+                accentColor: Color(red: 0.45, green: 0.75, blue: 1.0),
+                bulletChar: "ᚱ",
+                backgroundColor: Color(red: 0.05, green: 0.10, blue: 0.18),
+                surfaceColor: Color(red: 0.12, green: 0.22, blue: 0.36),
+                textColor: Color(red: 0.85, green: 0.92, blue: 1.0)
+            )
         }
         .onChange(of: gameState.norsePenaltyMessage) { _, message in
             guard let message else { return }
@@ -287,23 +297,19 @@ struct PathGameView: View {
                 )
             }
 
-            // Runes toggle
+            // Runes — opens inscription modal
             Button {
                 HapticFeedback.tap()
-                withAnimation(.spring(response: 0.38, dampingFraction: 0.78)) {
-                    showRuneInscriptions.toggle()
-                }
+                showFieldNotes = true
             } label: {
-                Label("Runes", systemImage: showRuneInscriptions ? "scroll.fill" : "scroll")
+                Label("Runes", systemImage: "scroll")
                     .font(EgyptFont.titleBold(13))
-                    .foregroundStyle(showRuneInscriptions ? norsBlue : norsBlue.opacity(0.65))
+                    .foregroundStyle(norsBlue.opacity(0.65))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 9)
                     .background(
                         RoundedRectangle(cornerRadius: 8)
-                            .fill(showRuneInscriptions
-                                  ? norsBlue.opacity(0.12)
-                                  : Color.white.opacity(0.05))
+                            .fill(Color.white.opacity(0.05))
                             .overlay(RoundedRectangle(cornerRadius: 8)
                                 .stroke(norsBlue.opacity(0.25), lineWidth: 0.8))
                     )
@@ -779,81 +785,6 @@ struct PathGameView: View {
             }
         }
         .padding(.bottom, 12)
-    }
-
-    // MARK: Rune Inscription Panel
-
-    private var runeInscriptionPanel: some View {
-        let level    = gameState.norseCurrentLevel
-        let acrostic = TreeOfLifeKeys.acrosticLetter(for: .norse,
-                                                     levelIndex: gameState.norseCurrentLevelIndex)
-        return VStack(spacing: 0) {
-            Spacer()
-            VStack(spacing: 0) {
-                // Handle / title bar
-                HStack {
-                    Text("RUNESTONE INSCRIPTION")
-                        .font(EgyptFont.title(12))
-                        .tracking(2)
-                        .foregroundStyle(Color(red: 0.55, green: 0.85, blue: 1.0))
-                    Spacer()
-                    Button {
-                        withAnimation(.spring(response: 0.38, dampingFraction: 0.78)) {
-                            showRuneInscriptions = false
-                        }
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 20))
-                            .foregroundStyle(Color.white.opacity(0.38))
-                    }
-                }
-                .padding(.horizontal, 18)
-                .padding(.top, 14)
-                .padding(.bottom, 10)
-
-                Divider()
-                    .background(Color(red: 0.45, green: 0.75, blue: 1.0).opacity(0.20))
-
-                // Inscriptions with acrostic underline on the first note
-                ScrollView(showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: 14) {
-                        ForEach(Array(level.inscriptions.enumerated()), id: \.offset) { i, note in
-                            Group {
-                                if i == 0 {
-                                    Text(acrosticUnderlined(note, letter: acrostic))
-                                } else {
-                                    Text(note)
-                                }
-                            }
-                            .font(EgyptFont.bodyItalic(15))
-                            .foregroundStyle(Color(red: 0.85, green: 0.92, blue: 1.0).opacity(0.80))
-                            .lineSpacing(4)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-
-                            if i < level.inscriptions.count - 1 {
-                                Divider()
-                                    .background(Color.white.opacity(0.08))
-                            }
-                        }
-                    }
-                    .padding(.horizontal, 18)
-                    .padding(.vertical, 14)
-                }
-                .frame(maxHeight: 220)
-            }
-            .background(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(Color(red: 0.05, green: 0.10, blue: 0.18).opacity(0.97))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .stroke(Color(red: 0.45, green: 0.75, blue: 1.0).opacity(0.22), lineWidth: 1)
-                    )
-            )
-            .shadow(color: .black.opacity(0.55), radius: 14, x: 0, y: -5)
-            .padding(.horizontal, 8)
-            .padding(.bottom, 8)
-        }
-        .ignoresSafeArea(edges: .bottom)
     }
 
     // MARK: Background

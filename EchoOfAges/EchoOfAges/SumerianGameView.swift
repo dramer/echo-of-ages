@@ -22,7 +22,7 @@ struct SumerianGameView: View {
 
     @State private var showComplete          = false
     @State private var messageRevealed      = false
-    @State private var inscriptionsExpanded = false
+    @State private var showFieldNotes = false
     @State private var showTabletGateNote   = false
     @State private var showHelpDialog       = false
     @State private var restoredDate: Date?  = nil
@@ -171,6 +171,20 @@ struct SumerianGameView: View {
             gameState.saveSumerianState()
             showComplete = false
             messageRevealed = false
+        }
+        .sheet(isPresented: $showFieldNotes) {
+            FieldInscriptionsModal(
+                title: "Field Inscriptions",
+                levelName: level.title,
+                icon: "doc.text",
+                inscriptions: level.inscriptions,
+                acrosticChar: TreeOfLifeKeys.acrosticLetter(for: .sumerian, levelIndex: gameState.sumerianCurrentLevelIndex),
+                accentColor: Color(red: 0.55, green: 0.35, blue: 0.15),
+                bulletChar: "𒀭",
+                backgroundColor: Color(red: 0.46, green: 0.31, blue: 0.16),
+                surfaceColor: Color(red: 0.60, green: 0.42, blue: 0.22),
+                textColor: Color(red: 0.97, green: 0.90, blue: 0.76)
+            )
         }
         } // end GeometryReader
     }
@@ -849,50 +863,27 @@ struct SumerianGameView: View {
     // MARK: Inscriptions
 
     private var inscriptionsSection: some View {
-        VStack(spacing: 0) {
-            Button {
-                withAnimation(.easeInOut(duration: 0.25)) { inscriptionsExpanded.toggle() }
-            } label: {
-                HStack {
-                    Text("Field Inscriptions")
-                        .font(EgyptFont.title(13))
-                        .foregroundStyle(clayDark.opacity(0.75))
-                        .tracking(1)
-                    Spacer()
-                    Image(systemName: inscriptionsExpanded ? "chevron.up" : "chevron.down")
-                        .font(.system(size: 12))
-                        .foregroundStyle(clayDark.opacity(0.55))
-                }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 11)
-                .background(RoundedRectangle(cornerRadius: 9)
-                    .fill(Color(red: 0.80, green: 0.63, blue: 0.43).opacity(0.55)))
+        Button {
+            HapticFeedback.tap()
+            showFieldNotes = true
+        } label: {
+            HStack {
+                Image(systemName: "doc.text")
+                    .font(.system(size: 12))
+                Text("Field Inscriptions")
+                    .font(EgyptFont.title(13))
+                    .tracking(1)
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 11))
             }
-            .buttonStyle(.plain)
-
-            if inscriptionsExpanded {
-                let acrostic = TreeOfLifeKeys.acrosticLetter(for: .sumerian, levelIndex: gameState.sumerianCurrentLevelIndex)
-                VStack(alignment: .leading, spacing: 12) {
-                    ForEach(level.inscriptions.indices, id: \.self) { i in
-                        HStack(alignment: .top, spacing: 10) {
-                            Text("𒀭")
-                                .font(.system(size: 13))
-                                .foregroundStyle(clayDark.opacity(0.45))
-                            Text(acrosticUnderlined(level.inscriptions[i], letter: acrostic))
-                                .font(EgyptFont.bodyItalic(14))
-                                .foregroundStyle(clayDark.opacity(0.85))
-                                .lineSpacing(4)
-                        }
-                    }
-                }
-                .padding(14)
-                .background(
-                    RoundedRectangle(cornerRadius: 9)
-                        .fill(Color(red: 0.88, green: 0.72, blue: 0.52).opacity(0.4))
-                )
-                .transition(.move(edge: .top).combined(with: .opacity))
-            }
+            .foregroundStyle(clayDark.opacity(0.75))
+            .padding(.horizontal, 14)
+            .padding(.vertical, 11)
+            .background(RoundedRectangle(cornerRadius: 9)
+                .fill(Color(red: 0.80, green: 0.63, blue: 0.43).opacity(0.55)))
         }
+        .buttonStyle(.plain)
     }
 
     // MARK: Level Complete Card

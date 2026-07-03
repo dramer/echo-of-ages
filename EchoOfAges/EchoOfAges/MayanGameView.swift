@@ -19,7 +19,7 @@ struct MayanGameView: View {
 
     @State private var showComplete    = false
     @State private var messageRevealed = false
-    @State private var inscriptionsExpanded = false
+    @State private var showFieldNotes = false
     @State private var showHelp        = false
     @State private var restoredDate: Date? = nil
 
@@ -117,6 +117,20 @@ struct MayanGameView: View {
             gameState.saveMayanState()
             showComplete = false
             messageRevealed = false
+        }
+        .sheet(isPresented: $showFieldNotes) {
+            FieldInscriptionsModal(
+                title: "Field Inscriptions",
+                levelName: level.title,
+                icon: "doc.text",
+                inscriptions: level.inscriptions,
+                acrosticChar: TreeOfLifeKeys.acrosticLetter(for: .maya, levelIndex: gameState.mayanCurrentLevelIndex),
+                accentColor: Color(red: 0.18, green: 0.72, blue: 0.42),
+                bulletChar: "🌿",
+                backgroundColor: Color(red: 0.04, green: 0.09, blue: 0.06),
+                surfaceColor: Color(red: 0.08, green: 0.18, blue: 0.11),
+                textColor: Color.papyrus
+            )
         }
     }
 
@@ -595,48 +609,22 @@ struct MayanGameView: View {
     // MARK: - Inscriptions
 
     private var inscriptionsSection: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Button(action: {
-                HapticFeedback.tap()
-                withAnimation(.easeInOut(duration: 0.25)) {
-                    inscriptionsExpanded.toggle()
-                }
-            }) {
-                HStack {
-                    Image(systemName: inscriptionsExpanded ? "chevron.up" : "chevron.down")
-                        .font(.system(size: 12))
-                    Text("Field Inscriptions")
-                        .font(EgyptFont.title(13))
-                        .tracking(1)
-                    Spacer()
-                    Text("\(level.inscriptions.count) entries")
-                        .font(EgyptFont.body(12))
-                        .foregroundStyle(jadeColor.opacity(0.5))
-                }
-                .foregroundStyle(jadeColor.opacity(0.7))
-                .padding(14)
+        Button(action: {
+            HapticFeedback.tap()
+            showFieldNotes = true
+        }) {
+            HStack {
+                Image(systemName: "doc.text")
+                    .font(.system(size: 12))
+                Text("Field Inscriptions")
+                    .font(EgyptFont.title(13))
+                    .tracking(1)
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 11))
             }
-
-            if inscriptionsExpanded {
-                let acrostic = TreeOfLifeKeys.acrosticLetter(for: .maya, levelIndex: gameState.mayanCurrentLevelIndex)
-                VStack(alignment: .leading, spacing: 12) {
-                    ForEach(Array(level.inscriptions.enumerated()), id: \.offset) { _, note in
-                        HStack(alignment: .top, spacing: 10) {
-                            Text("–")
-                                .font(EgyptFont.body(13))
-                                .foregroundStyle(jadeColor.opacity(0.45))
-                            Text(acrosticUnderlined(note, letter: acrostic))
-                                .font(EgyptFont.bodyItalic(14))
-                                .foregroundStyle(Color.papyrus.opacity(0.75))
-                                .lineSpacing(4)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                    }
-                }
-                .padding(.horizontal, 14)
-                .padding(.bottom, 14)
-                .transition(.opacity.combined(with: .move(edge: .top)))
-            }
+            .foregroundStyle(jadeColor.opacity(0.7))
+            .padding(14)
         }
         .background(
             RoundedRectangle(cornerRadius: 12)

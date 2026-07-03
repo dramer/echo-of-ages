@@ -15,7 +15,7 @@ struct CelticGameView: View {
 
     @State private var showComplete    = false
     @State private var messageRevealed = false
-    @State private var showInscriptions = false
+    @State private var showFieldNotes = false
     @State private var showHelp        = false
     @State private var restoredDate: Date? = nil
     @State private var _gridWidth: CGFloat = UIScreen.main.bounds.width
@@ -126,6 +126,20 @@ struct CelticGameView: View {
             gameState.saveCelticState()
             showComplete = false
             messageRevealed = false
+        }
+        .sheet(isPresented: $showFieldNotes) {
+            FieldInscriptionsModal(
+                title: "Druid's Notes",
+                levelName: difficulty.title,
+                icon: "leaf.fill",
+                inscriptions: difficulty.inscriptions,
+                acrosticChar: TreeOfLifeKeys.acrosticLetter(for: .celtic, levelIndex: gameState.celticCurrentLevelIndex),
+                accentColor: Color.celticGold,
+                bulletChar: "ᚁ",
+                backgroundColor: Color.celticForest,
+                surfaceColor: Color.celticStone,
+                textColor: Color.celticParchment
+            )
         }
         .onChange(of: gameState.celticPendingComplete) { _, newVal in
             if newVal {
@@ -492,41 +506,25 @@ struct CelticGameView: View {
     // MARK: - Inscriptions
 
     private var inscriptionsSection: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Button {
-                withAnimation(.easeInOut(duration: 0.25)) { showInscriptions.toggle() }
-            } label: {
-                HStack {
-                    Text(showInscriptions ? "▾  Druid's Notes" : "▸  Druid's Notes")
-                        .font(.custom("Cinzel-Regular", size: 13 * uiScale))
-                        .foregroundStyle(Color.celticGold.opacity(0.8))
-                    Spacer()
-                }
-                .padding(.horizontal, 20)
-                .padding(.vertical, 8)
+        Button {
+            HapticFeedback.tap()
+            showFieldNotes = true
+        } label: {
+            HStack {
+                Image(systemName: "scroll")
+                    .font(.system(size: 13))
+                Text("Druid's Notes")
+                    .font(.custom("Cinzel-Regular", size: 13 * uiScale))
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 11))
             }
-
-            if showInscriptions {
-                let acrostic = TreeOfLifeKeys.acrosticLetter(for: .celtic, levelIndex: gameState.celticCurrentLevelIndex)
-                VStack(alignment: .leading, spacing: 10) {
-                    ForEach(difficulty.inscriptions.indices, id: \.self) { i in
-                        HStack(alignment: .top, spacing: 8) {
-                            Text("·")
-                                .foregroundStyle(Color.celticGold.opacity(0.6))
-                            Text(acrosticUnderlined(difficulty.inscriptions[i], letter: acrostic))
-                                .font(.system(size: 13 * uiScale, design: .serif))
-                                .foregroundStyle(Color.celticParchment.opacity(0.75))
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                    }
-                }
-                .padding(.horizontal, 24)
-                .padding(.bottom, 10)
-                .transition(.opacity.combined(with: .move(edge: .top)))
-            }
+            .foregroundStyle(Color.celticGold.opacity(0.8))
+            .padding(.horizontal, 20)
+            .padding(.vertical, 10)
+            .background(Color.celticStone.opacity(0.12))
+            .clipShape(RoundedRectangle(cornerRadius: 8))
         }
-        .background(Color.celticStone.opacity(0.12))
-        .clipShape(RoundedRectangle(cornerRadius: 8))
         .padding(.horizontal, 16)
     }
 
