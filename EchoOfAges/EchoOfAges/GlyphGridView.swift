@@ -46,13 +46,13 @@ struct GameView: View {
                 headerBar
 
                 HStack(spacing: 0) {
-                    // LEFT PANEL — puzzle grid fills the space
-                    let leftWidth  = geo.size.width * 0.62
+                    // LEFT PANEL — grid gets as much space as possible
+                    let leftWidth  = geo.size.width * 0.68
                     let gridHeight = geo.size.height - 60   // minus header
                     ZStack {
-                        GlyphGridView(availableWidth: leftWidth - 32,
-                                      availableHeight: gridHeight - 32,
-                                      maxCellSize: 120)
+                        GlyphGridView(availableWidth: leftWidth - 16,
+                                      availableHeight: gridHeight - 16,
+                                      maxCellSize: 140)
                             .background(GeometryReader { g in
                                 Color.clear.onAppear { gridFrame = g.frame(in: .global) }
                             })
@@ -66,8 +66,9 @@ struct GameView: View {
                         .frame(width: 1)
                         .frame(maxHeight: .infinity)
 
-                    // RIGHT PANEL — controls
-                    ScrollView(showsIndicators: false) {
+                    // RIGHT PANEL — controls, vertically centred
+                    VStack {
+                        Spacer()
                         VStack(spacing: 16) {
                             levelTitle
 
@@ -95,8 +96,8 @@ struct GameView: View {
 
                             secondaryRow
                         }
-                        .padding(16)
-                        .padding(.bottom, 16)
+                        .padding(.horizontal, 16)
+                        Spacer()
                     }
                     .frame(maxWidth: .infinity)
                 }
