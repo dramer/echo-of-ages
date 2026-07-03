@@ -31,10 +31,112 @@ struct GameView: View {
     @State private var gridFrame:    CGRect = .zero
     @State private var decipherFrame: CGRect = .zero
 
+    private var isPadLandscape: Bool {
+        UIDevice.current.userInterfaceIdiom == .pad
+    }
+
+    // MARK: iPad landscape — two-panel layout
+
+    @ViewBuilder
+    private func iPadLandscapeBody(geo: GeometryProxy) -> some View {
+        ZStack(alignment: .top) {
+            stoneBackground
+
+            VStack(spacing: 0) {
+                headerBar
+
+                HStack(spacing: 0) {
+                    // LEFT PANEL — puzzle grid fills the space
+                    let leftWidth  = geo.size.width * 0.62
+                    let gridHeight = geo.size.height - 60   // minus header
+                    ZStack {
+                        GlyphGridView(availableWidth: leftWidth - 32,
+                                      availableHeight: gridHeight - 32)
+                            .background(GeometryReader { g in
+                                Color.clear.onAppear { gridFrame = g.frame(in: .global) }
+                            })
+                    }
+                    .frame(width: leftWidth)
+                    .frame(maxHeight: .infinity)
+
+                    // Divider
+                    Rectangle()
+                        .fill(Color.goldDark.opacity(0.25))
+                        .frame(width: 1)
+                        .frame(maxHeight: .infinity)
+
+                    // RIGHT PANEL — controls
+                    ScrollView(showsIndicators: false) {
+                        VStack(spacing: 16) {
+                            levelTitle
+
+                            VStack(spacing: 12) {
+                                palette
+                                    .background(GeometryReader { g in
+                                        Color.clear.onAppear { paletteFrame = g.frame(in: .global) }
+                                    })
+                                actionRow
+                                    .background(GeometryReader { g in
+                                        Color.clear.onAppear {
+                                            let f = g.frame(in: .global)
+                                            decipherFrame = CGRect(x: f.midX, y: f.minY,
+                                                                   width: f.width / 2, height: f.height)
+                                        }
+                                    })
+                            }
+                            .padding(14)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(Color.stoneMid.opacity(0.35))
+                                    .overlay(RoundedRectangle(cornerRadius: 12)
+                                        .stroke(Color.goldDark.opacity(0.35), lineWidth: 1))
+                            )
+
+                            secondaryRow
+                        }
+                        .padding(16)
+                        .padding(.bottom, 16)
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+            }
+
+            // Overlays shared with portrait layout
+            if showHelp {
+                Color.black.opacity(0.55).ignoresSafeArea()
+                    .onTapGesture { withAnimation { showHelp = false } }
+                    .transition(.opacity).zIndex(9)
+                egyptHelpDialog
+                    .transition(.scale(scale: 0.93).combined(with: .opacity))
+                    .zIndex(10)
+            }
+            if let d = restoredDate {
+                VStack {
+                    Spacer()
+                    RestoreBanner(savedAt: d)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .padding(.bottom, 24)
+                }
+                .zIndex(15)
+            }
+            if toastVisible {
+                Color.black.opacity(0.45).ignoresSafeArea().transition(.opacity).zIndex(9)
+                ToastView(message: toastMessage)
+                    .transition(.asymmetric(
+                        insertion: .scale(scale: 0.88).combined(with: .opacity),
+                        removal:   .opacity))
+                    .zIndex(10)
+            }
+        }
+    }
+
     // MARK: Body
 
     var body: some View {
         GeometryReader { geo in
+            if isPadLandscape && geo.size.width > geo.size.height {
+                iPadLandscapeBody(geo: geo)
+            } else {
             ZStack(alignment: .top) {
                 stoneBackground
 
@@ -136,6 +238,7 @@ struct GameView: View {
                         .zIndex(10)
                 }
             }
+            } // end portrait/phone else
         }
         .background(stoneBackground)
         .sheet(isPresented: $showFieldNotes) {
@@ -481,7 +584,8 @@ struct GlyphGridView: View {
         let pad: CGFloat = 20
         let byWidth  = (availableWidth  - hSpacing - pad) / CGFloat(level.cols)
         let byHeight = (availableHeight - vSpacing - pad) / CGFloat(level.rows)
-        return min(byWidth, byHeight, 80)
+        let maxCell: CGFloat = UIDevice.current.userInterfaceIdiom == .pad ? 120 : 80
+        return min(byWidth, byHeight, maxCell)
     }
 
     var body: some View {

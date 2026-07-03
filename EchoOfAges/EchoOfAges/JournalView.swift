@@ -64,6 +64,13 @@ private func handFont(_ size: CGFloat, bold: Bool = false) -> Font {
 struct JournalView: View {
     @EnvironmentObject var gameState: GameState
     @State private var currentPageIndex: Int = 0
+    /// Active spread index for iPad landscape two-page view (1 spread = 2 pages).
+    @State private var spreadIndex: Int = 0
+
+    private var isPadLandscape: Bool {
+        UIDevice.current.userInterfaceIdiom == .pad &&
+        UIScreen.main.bounds.width > UIScreen.main.bounds.height
+    }
 
     private var pages: [DiaryPage] {
         var list: [DiaryPage] = [
@@ -108,19 +115,33 @@ struct JournalView: View {
             )
             .ignoresSafeArea()
 
-            // Book pages inset so they don't underrun the header or nav bar.
-            // Padding is applied BEFORE the frame is fixed so SwiftUI sizes the
-            // TabView to fit the space between the two bars rather than overflowing.
-            TabView(selection: $currentPageIndex) {
-                ForEach(0..<pages.count, id: \.self) { index in
-                    BookPage(pageType: pages[index], pageNumber: index + 1, totalPages: pages.count, pages: pages)
-                        .tag(index)
-                        .environmentObject(gameState)
+            // Book pages — single page on iPhone/portrait iPad, two-page spread on iPad landscape.
+            GeometryReader { geo in
+                let padLandscape = UIDevice.current.userInterfaceIdiom == .pad && geo.size.width > geo.size.height
+                if padLandscape {
+                    let spreadCount = (pages.count + 1) / 2
+                    TabView(selection: $spreadIndex) {
+                        ForEach(0..<spreadCount, id: \.self) { spread in
+                            twoPageSpread(spread: spread)
+                                .tag(spread)
+                        }
+                    }
+                    .tabViewStyle(.page(indexDisplayMode: .never))
+                    .padding(.top, 64)
+                    .padding(.bottom, 60)
+                } else {
+                    TabView(selection: $currentPageIndex) {
+                        ForEach(0..<pages.count, id: \.self) { index in
+                            BookPage(pageType: pages[index], pageNumber: index + 1, totalPages: pages.count, pages: pages)
+                                .tag(index)
+                                .environmentObject(gameState)
+                        }
+                    }
+                    .tabViewStyle(.page(indexDisplayMode: .never))
+                    .padding(.top, 64)
+                    .padding(.bottom, 60)
                 }
             }
-            .tabViewStyle(.page(indexDisplayMode: .never))
-            .padding(.top, 64)
-            .padding(.bottom, 60)
 
             // Top bar sits in its own ZStack layer so PageView gestures can't swallow it
             VStack {
@@ -156,9 +177,16 @@ struct JournalView: View {
                 let saved = UserDefaults.standard.integer(forKey: "EOA_journalPage")
                 currentPageIndex = min(saved, pages.count - 1)
             }
+            spreadIndex = currentPageIndex / 2
         }
         .onChange(of: currentPageIndex) { _, idx in
             UserDefaults.standard.set(idx, forKey: "EOA_journalPage")
+            let s = idx / 2
+            if spreadIndex != s { spreadIndex = s }
+        }
+        .onChange(of: spreadIndex) { _, s in
+            let p = s * 2
+            if currentPageIndex != p { currentPageIndex = p }
         }
         .onChange(of: gameState.journalTargetPage) { _, target in
             // Handles target page changes while the journal is already open
@@ -220,35 +248,47 @@ struct JournalView: View {
 
             // ── Prev / counter / next  ────────────────────────────
             HStack(spacing: 2) {
+                let step       = isPadLandscape ? 2 : 1
+                let canGoBack  = currentPageIndex >= step
+                let canGoFwd   = currentPageIndex + step <= pages.count - 1
+                let spreadTotal = (pages.count + 1) / 2
+                let spreadNum   = currentPageIndex / 2 + 1
+
                 Button(action: {
-                    if currentPageIndex > 0 {
-                        withAnimation(.easeInOut(duration: 0.25)) { currentPageIndex -= 1 }
+                    if canGoBack {
+                        withAnimation(.easeInOut(duration: 0.25)) { currentPageIndex -= step }
                         HapticFeedback.tap()
                     }
                 }) {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 17, weight: .medium))
-                        .foregroundStyle(currentPageIndex > 0
+                        .foregroundStyle(canGoBack
                                          ? Color(red: 0.75, green: 0.60, blue: 0.35)
                                          : Color(red: 0.35, green: 0.25, blue: 0.12))
                         .frame(width: 36, height: 36)
                 }
 
-                Text("\(currentPageIndex + 1) of \(pages.count)")
-                    .font(handFont(14))
-                    .foregroundStyle(Color(red: 0.65, green: 0.50, blue: 0.28))
-                    .monospacedDigit()
-                    .padding(.horizontal, 4)
+                Group {
+                    if isPadLandscape {
+                        Text("\(spreadNum) of \(spreadTotal)")
+                    } else {
+                        Text("\(currentPageIndex + 1) of \(pages.count)")
+                    }
+                }
+                .font(handFont(14))
+                .foregroundStyle(Color(red: 0.65, green: 0.50, blue: 0.28))
+                .monospacedDigit()
+                .padding(.horizontal, 4)
 
                 Button(action: {
-                    if currentPageIndex < pages.count - 1 {
-                        withAnimation(.easeInOut(duration: 0.25)) { currentPageIndex += 1 }
+                    if canGoFwd {
+                        withAnimation(.easeInOut(duration: 0.25)) { currentPageIndex += step }
                         HapticFeedback.tap()
                     }
                 }) {
                     Image(systemName: "chevron.right")
                         .font(.system(size: 17, weight: .medium))
-                        .foregroundStyle(currentPageIndex < pages.count - 1
+                        .foregroundStyle(canGoFwd
                                          ? Color(red: 0.75, green: 0.60, blue: 0.35)
                                          : Color(red: 0.35, green: 0.25, blue: 0.12))
                         .frame(width: 36, height: 36)
@@ -275,6 +315,42 @@ struct JournalView: View {
 }
 
 // MARK: - Book Page Wrapper
+
+// MARK: - Two-page spread (iPad landscape)
+
+private extension JournalView {
+    @ViewBuilder
+    func twoPageSpread(spread: Int) -> some View {
+        let leftIdx  = spread * 2
+        let rightIdx = spread * 2 + 1
+        HStack(spacing: 0) {
+            BookPage(pageType: pages[leftIdx], pageNumber: leftIdx + 1, totalPages: pages.count, pages: pages)
+                .environmentObject(gameState)
+
+            // Book spine shadow between the two pages
+            Rectangle()
+                .fill(LinearGradient(
+                    colors: [Color.black.opacity(0.30), Color.black.opacity(0.04), Color.black.opacity(0.30)],
+                    startPoint: .leading, endPoint: .trailing
+                ))
+                .frame(width: 10)
+
+            if rightIdx < pages.count {
+                BookPage(pageType: pages[rightIdx], pageNumber: rightIdx + 1, totalPages: pages.count, pages: pages)
+                    .environmentObject(gameState)
+            } else {
+                // Blank verso for odd page counts
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(Color.paperCream)
+                    .shadow(color: .black.opacity(0.45), radius: 8, x: 4, y: 4)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 6)
+            }
+        }
+    }
+}
+
+// MARK: - BookPage
 
 private struct BookPage: View {
     let pageType: DiaryPage
