@@ -197,16 +197,12 @@ struct ChineseGameView: View {
             headerBar
 
             HStack(spacing: 0) {
-                // Left: board in a scroll view (handles large boards)
-                ScrollView(showsIndicators: false) {
-                    VStack(spacing: 14) {
-                        levelHeader
-                        boardSection(cellSize: cs)
-                        inscriptionsSection
-                    }
-                    .padding(.horizontal, 18)
-                    .padding(.top, 8)
-                    .padding(.bottom, 16)
+                // Left: board only, vertically centred
+                VStack {
+                    Spacer()
+                    boardSection(cellSize: cs)
+                        .padding(.horizontal, 18)
+                    Spacer()
                 }
                 .frame(width: leftW)
 
@@ -215,20 +211,25 @@ struct ChineseGameView: View {
                     .frame(width: 1)
                     .padding(.vertical, 16)
 
-                // Right: palette + actions outside any scroll (preserves drag gestures), centred
+                // Right: header, palette, actions, inscriptions — centred
+                // Palette + actions stay outside any ScrollView to preserve drag gestures
                 VStack {
                     Spacer()
-                    VStack(spacing: 12) {
-                        piecesPalette
-                        actionRow
+                    VStack(spacing: 14) {
+                        levelHeader
+                        VStack(spacing: 12) {
+                            piecesPalette
+                            actionRow
+                        }
+                        .padding(14)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(Color.stoneMid.opacity(0.20))
+                                .overlay(RoundedRectangle(cornerRadius: 12)
+                                    .stroke(vermillion.opacity(0.30), lineWidth: 1))
+                        )
+                        inscriptionsSection
                     }
-                    .padding(14)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(Color.stoneMid.opacity(0.20))
-                            .overlay(RoundedRectangle(cornerRadius: 12)
-                                .stroke(vermillion.opacity(0.30), lineWidth: 1))
-                    )
                     .padding(.horizontal, 16)
                     Spacer()
                 }

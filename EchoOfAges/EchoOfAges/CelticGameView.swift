@@ -151,8 +151,9 @@ struct CelticGameView: View {
     private func celticIPadLandscapeContent(geo: GeometryProxy) -> some View {
         let leftW = geo.size.width * 0.68
         return HStack(spacing: 0) {
-            // Left: grid, sized to left panel width
-            ScrollView(showsIndicators: false) {
+            // Left: grid vertically centred
+            VStack {
+                Spacer()
                 VStack(spacing: 16) {
                     if gameState.celticCurrentLevelIndex == 0
                         && gameState.needsKeyGate(for: .celtic) {
@@ -160,8 +161,7 @@ struct CelticGameView: View {
                     }
                     if let p = puzzle { gridView(p) }
                 }
-                .padding(.top, 16)
-                .padding(.bottom, 24)
+                Spacer()
             }
             .frame(width: leftW)
             .onAppear { _gridWidth = leftW }
