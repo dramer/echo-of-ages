@@ -172,9 +172,8 @@ struct CelticGameView: View {
                 .frame(width: 1)
                 .padding(.vertical, 16)
 
-            // Right: controls vertically centred
-            VStack {
-                Spacer()
+            // Right: controls + scrollable inscriptions
+            ScrollView(showsIndicators: true) {
                 VStack(spacing: 14) {
                     subtitleText
                     mechanicRuleBanner
@@ -190,9 +189,10 @@ struct CelticGameView: View {
                                 .stroke(Color.celticGold.opacity(0.28), lineWidth: 1))
                     )
                     inscriptionsSection
+                    Spacer(minLength: 24)
                 }
                 .padding(.horizontal, 16)
-                Spacer()
+                .padding(.vertical, 14)
             }
         }
     }
