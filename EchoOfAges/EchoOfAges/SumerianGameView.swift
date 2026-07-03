@@ -180,8 +180,9 @@ struct SumerianGameView: View {
     private func sumerianIPadLandscapeContent(geo: GeometryProxy) -> some View {
         let leftW = geo.size.width * 0.68
         return HStack(spacing: 0) {
-            // Left: main tablet puzzle
-            ScrollView(showsIndicators: false) {
+            // Left: main tablet puzzle, vertically centred
+            VStack {
+                Spacer()
                 VStack(spacing: 16) {
                     tabletSection
                     if !level.scribes.isEmpty {
@@ -189,8 +190,8 @@ struct SumerianGameView: View {
                     }
                 }
                 .padding(.horizontal, 18)
-                .padding(.top, 10)
-                .padding(.bottom, 24)
+                .padding(.vertical, 10)
+                Spacer()
             }
             .frame(width: leftW)
 
