@@ -34,7 +34,7 @@ struct PathGameView: View {
             ZStack {
                 norseBackground
 
-                if geo.size.width > geo.size.height {
+                if geo.size.width > geo.size.height && UIDevice.current.userInterfaceIdiom == .pad {
                     landscapeLayout(geo: geo)
                 } else {
                     portraitLayout(geo: geo)
@@ -143,7 +143,7 @@ struct PathGameView: View {
 
     @ViewBuilder
     private func landscapeLayout(geo: GeometryProxy) -> some View {
-        let leftW      = geo.size.width * 0.60
+        let leftW      = geo.size.width * 0.68
         let rightW     = geo.size.width - leftW
         let barH:  CGFloat = 48
         let gridAvailW = leftW - 28
@@ -166,14 +166,15 @@ struct PathGameView: View {
                     .frame(width: 1)
                     .padding(.vertical, 16)
 
-                VStack(spacing: 0) {
-                    levelTitle
-                    Spacer(minLength: 10)
-                    norseBottomCard
-                    Spacer(minLength: 0)
+                VStack {
+                    Spacer()
+                    VStack(spacing: 12) {
+                        levelTitle
+                        norseBottomCard
+                    }
+                    .padding(.horizontal, 14)
+                    Spacer()
                 }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
                 .frame(width: rightW)
             }
         }

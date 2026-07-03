@@ -18,27 +18,36 @@ struct CelticGameView: View {
     @State private var showInscriptions = false
     @State private var showHelp        = false
     @State private var restoredDate: Date? = nil
+    @State private var _gridWidth: CGFloat = UIScreen.main.bounds.width
 
     private var difficulty: CelticDifficulty { gameState.celticCurrentDifficulty }
     private var puzzle: CelticPuzzle?         { gameState.celticCurrentPuzzle }
 
     private var cellSize: CGFloat {
         guard let p = puzzle else { return 80 }
-        let screenW = UIScreen.main.bounds.width
         // 68 px for horizontal padding + row-sum column; max cell capped at 160
-        let available = min(screenW - 68, 800.0)
+        let available = min(_gridWidth - 68, 800.0)
         return min(160, floor(available / CGFloat(p.cols)))
     }
 
     /// Linear scale relative to iPhone 16 (390 pt wide), clamped 1–2.
     private var uiScale: CGFloat {
-        min(2.0, max(1.0, UIScreen.main.bounds.width / 390.0))
+        min(2.0, max(1.0, _gridWidth / 390.0))
     }
 
     var body: some View {
+        GeometryReader { geo in
         ZStack {
             Color.celticForest.ignoresSafeArea()
 
+            let isPadLandscape = UIDevice.current.userInterfaceIdiom == .pad && geo.size.width > geo.size.height
+
+            if isPadLandscape {
+                VStack(spacing: 0) {
+                    celticHeader
+                    celticIPadLandscapeContent(geo: geo)
+                }
+            } else {
             VStack(spacing: 0) {
                 celticHeader
                 ScrollView {
@@ -73,6 +82,7 @@ struct CelticGameView: View {
                     .padding(.bottom, 8)
                 }
             }
+            } // end portrait/landscape
 
             if showHelp {
                 Color.black.opacity(0.55).ignoresSafeArea()
@@ -131,6 +141,58 @@ struct CelticGameView: View {
                     showComplete = false
                     messageRevealed = false
                 }
+            }
+        }
+        } // end GeometryReader
+    }
+
+    // MARK: - iPad Landscape Layout
+
+    private func celticIPadLandscapeContent(geo: GeometryProxy) -> some View {
+        let leftW = geo.size.width * 0.68
+        return HStack(spacing: 0) {
+            // Left: grid, sized to left panel width
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 16) {
+                    if gameState.celticCurrentLevelIndex == 0
+                        && gameState.needsKeyGate(for: .celtic) {
+                        celticMysteryMarkSlot.padding(.horizontal, 16)
+                    }
+                    if let p = puzzle { gridView(p) }
+                }
+                .padding(.top, 16)
+                .padding(.bottom, 24)
+            }
+            .frame(width: leftW)
+            .onAppear { _gridWidth = leftW }
+            .onChange(of: geo.size.width) { _, _ in _gridWidth = geo.size.width * 0.68 }
+
+            Rectangle()
+                .fill(Color.celticGold.opacity(0.25))
+                .frame(width: 1)
+                .padding(.vertical, 16)
+
+            // Right: controls vertically centred
+            VStack {
+                Spacer()
+                VStack(spacing: 14) {
+                    subtitleText
+                    mechanicRuleBanner
+                    VStack(spacing: 12) {
+                        paletteView
+                        actionButtons
+                    }
+                    .padding(14)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color.celticStone.opacity(0.20))
+                            .overlay(RoundedRectangle(cornerRadius: 12)
+                                .stroke(Color.celticGold.opacity(0.28), lineWidth: 1))
+                    )
+                    inscriptionsSection
+                }
+                .padding(.horizontal, 16)
+                Spacer()
             }
         }
     }

@@ -205,21 +205,29 @@ struct MayanWheelView: View {
 
     private func landscapeContent(_ geo: GeometryProxy) -> some View {
         let cSize = wheelCanvasSize(geo: geo, isLandscape: true)
+        let leftW = geo.size.width * 0.68
         return HStack(alignment: .top, spacing: 0) {
-            // Left column: wheel only, vertically centred in available height
+            // Left column: wheel only, vertically centred
             wheelCanvas(cSize)
+                .frame(width: leftW)
                 .frame(maxHeight: .infinity, alignment: .center)
 
-            // Right column: compact scrollable controls
-            ScrollView(showsIndicators: false) {
+            Rectangle()
+                .fill(jadeColor.opacity(0.18))
+                .frame(width: 1)
+                .padding(.vertical, 16)
+
+            // Right column: controls vertically centred
+            VStack {
+                Spacer()
                 VStack(spacing: 14) {
                     levelHeader
                     mayanWheelPaletteBox
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
+                Spacer()
             }
-            .frame(maxWidth: .infinity)
         }
     }
 
@@ -240,9 +248,9 @@ struct MayanWheelView: View {
 
     private func wheelCanvasSize(geo: GeometryProxy, isLandscape: Bool) -> CGFloat {
         if isLandscape {
-            // Wheel shares the left half; must also fit within the available height
-            let leftColW = geo.size.width * 0.50 - 64   // padding on left col
-            let availH   = geo.size.height - 36          // top/bottom breathing room
+            // Wheel takes 68% of width; must also fit within the available height
+            let leftColW = geo.size.width * 0.68 - 48
+            let availH   = geo.size.height - 36
             return min(leftColW, availH, 600)
         } else {
             return min(geo.size.width - 64, 640)

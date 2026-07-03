@@ -144,13 +144,21 @@ struct MayanGameView: View {
     }
 
     private func staticLandscapeContent(_ geo: GeometryProxy) -> some View {
-        HStack(alignment: .top, spacing: 0) {
-            // Left column: static wheel only
+        let leftW = geo.size.width * 0.68
+        return HStack(alignment: .top, spacing: 0) {
+            // Left column: static wheel, centred vertically
             wheelView(geo: geo, isLandscape: true)
+                .frame(width: leftW)
                 .frame(maxHeight: .infinity, alignment: .center)
 
-            // Right column: controls + inscriptions
-            ScrollView(showsIndicators: false) {
+            Rectangle()
+                .fill(jadeColor.opacity(0.18))
+                .frame(width: 1)
+                .padding(.vertical, 16)
+
+            // Right column: controls vertically centred
+            VStack {
+                Spacer()
                 VStack(spacing: 14) {
                     levelHeader
                     mayanPaletteBox
@@ -158,8 +166,8 @@ struct MayanGameView: View {
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
+                Spacer()
             }
-            .frame(maxWidth: .infinity)
         }
     }
 
@@ -387,8 +395,8 @@ struct MayanGameView: View {
     private func wheelDiameter(geo: GeometryProxy, isLandscape: Bool) -> CGFloat {
         let isPhone = UIDevice.current.userInterfaceIdiom == .phone
         if isLandscape {
-            // Left column takes ~50 % of width; wheel must also fit in available height
-            let leftColW = geo.size.width * 0.50 - 64
+            // Left column takes 68% of width; wheel must also fit in available height
+            let leftColW = geo.size.width * 0.68 - 48
             let availH   = geo.size.height - 36
             return min(leftColW, availH, 600)
         } else {

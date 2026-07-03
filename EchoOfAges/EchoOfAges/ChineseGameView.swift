@@ -51,17 +51,24 @@ struct ChineseGameView: View {
 
     // MARK: - Body
 
-    // Cell size computed from screen width — avoids GeometryReader height estimation bugs.
-    private var computedCellSize: CGFloat {
-        let screenW = UIScreen.main.bounds.width
-        let available = min(screenW - 36, 560.0)
+    // Cell size computed from available width — avoids GeometryReader height estimation bugs.
+    private var computedCellSize: CGFloat { computedCellSize(forWidth: UIScreen.main.bounds.width) }
+
+    private func computedCellSize(forWidth w: CGFloat) -> CGFloat {
+        let available = min(w - 36, 560.0)
         return max(44, available / CGFloat(level.cols))
     }
 
     var body: some View {
+        GeometryReader { geo in
         ZStack {
             Color.papyrus.ignoresSafeArea()
 
+            let isPadLandscape = UIDevice.current.userInterfaceIdiom == .pad && geo.size.width > geo.size.height
+
+            if isPadLandscape {
+                chineseIPadLandscapeBody(geo: geo)
+            } else {
             VStack(spacing: 0) {
                 headerBar
 
@@ -93,6 +100,7 @@ struct ChineseGameView: View {
                 .padding(.horizontal, 18)
                 .padding(.bottom, 8)
             }
+            } // end portrait/landscape
 
             if showHelp {
                 Color.black.opacity(0.55).ignoresSafeArea()
@@ -174,6 +182,57 @@ struct ChineseGameView: View {
         .onDisappear {
             showComplete = false
             messageRevealed = false
+        }
+        } // end GeometryReader
+    }
+
+    // MARK: - iPad Landscape Layout
+
+    @ViewBuilder
+    private func chineseIPadLandscapeBody(geo: GeometryProxy) -> some View {
+        let leftW = geo.size.width * 0.68
+        let cs = computedCellSize(forWidth: leftW - 36)
+
+        VStack(spacing: 0) {
+            headerBar
+
+            HStack(spacing: 0) {
+                // Left: board in a scroll view (handles large boards)
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 14) {
+                        levelHeader
+                        boardSection(cellSize: cs)
+                        inscriptionsSection
+                    }
+                    .padding(.horizontal, 18)
+                    .padding(.top, 8)
+                    .padding(.bottom, 16)
+                }
+                .frame(width: leftW)
+
+                Rectangle()
+                    .fill(vermillion.opacity(0.25))
+                    .frame(width: 1)
+                    .padding(.vertical, 16)
+
+                // Right: palette + actions outside any scroll (preserves drag gestures), centred
+                VStack {
+                    Spacer()
+                    VStack(spacing: 12) {
+                        piecesPalette
+                        actionRow
+                    }
+                    .padding(14)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color.stoneMid.opacity(0.20))
+                            .overlay(RoundedRectangle(cornerRadius: 12)
+                                .stroke(vermillion.opacity(0.30), lineWidth: 1))
+                    )
+                    .padding(.horizontal, 16)
+                    Spacer()
+                }
+            }
         }
     }
 

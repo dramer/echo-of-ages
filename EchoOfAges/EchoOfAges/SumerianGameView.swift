@@ -64,9 +64,18 @@ struct SumerianGameView: View {
     }
 
     var body: some View {
+        GeometryReader { geo in
         ZStack {
             clayBackground.ignoresSafeArea()
 
+            let isPadLandscape = UIDevice.current.userInterfaceIdiom == .pad && geo.size.width > geo.size.height
+
+            if isPadLandscape {
+                VStack(spacing: 0) {
+                    headerBar
+                    sumerianIPadLandscapeContent(geo: geo)
+                }
+            } else {
             VStack(spacing: 0) {
                 headerBar
 
@@ -96,6 +105,7 @@ struct SumerianGameView: View {
                     .padding(.bottom, 48)
                 }
             }
+            } // end portrait/landscape
 
             // Level complete overlay
             if showComplete {
@@ -161,6 +171,55 @@ struct SumerianGameView: View {
             gameState.saveSumerianState()
             showComplete = false
             messageRevealed = false
+        }
+        } // end GeometryReader
+    }
+
+    // MARK: iPad Landscape Layout
+
+    private func sumerianIPadLandscapeContent(geo: GeometryProxy) -> some View {
+        let leftW = geo.size.width * 0.68
+        return HStack(spacing: 0) {
+            // Left: main tablet puzzle
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 16) {
+                    tabletSection
+                    if !level.scribes.isEmpty {
+                        testimonySection
+                    }
+                }
+                .padding(.horizontal, 18)
+                .padding(.top, 10)
+                .padding(.bottom, 24)
+            }
+            .frame(width: leftW)
+
+            Rectangle()
+                .fill(clayDark.opacity(0.30))
+                .frame(width: 1)
+                .padding(.vertical, 16)
+
+            // Right: level info + controls, vertically centred
+            VStack {
+                Spacer()
+                VStack(spacing: 14) {
+                    levelHeader
+                    VStack(spacing: 12) {
+                        palette
+                        actionRow
+                    }
+                    .padding(14)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color(red: 0.72, green: 0.54, blue: 0.34).opacity(0.18))
+                            .overlay(RoundedRectangle(cornerRadius: 12)
+                                .stroke(clayDark.opacity(0.30), lineWidth: 1))
+                    )
+                    inscriptionsSection
+                }
+                .padding(.horizontal, 16)
+                Spacer()
+            }
         }
     }
 
