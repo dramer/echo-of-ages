@@ -147,18 +147,18 @@ struct PathGameView: View {
         let rightW     = geo.size.width - leftW
         let barH:  CGFloat = 48
         let gridAvailW = leftW - 28
-        let gridAvailH = geo.size.height - barH - 28
+        let gridAvailH = geo.size.height - barH - 20
 
         VStack(spacing: 0) {
             norseHeaderBar
 
             HStack(spacing: 0) {
-                VStack(spacing: 6) {
-                    pathGrid(availableWidth: gridAvailW, availableHeight: max(gridAvailH, 80))
+                VStack {
+                    Spacer()
+                    pathGrid(availableWidth: gridAvailW, availableHeight: max(gridAvailH, 80), maxCellSize: 140)
                         .padding(.horizontal, 14)
-                    Spacer(minLength: 0)
+                    Spacer()
                 }
-                .padding(.vertical, 10)
                 .frame(width: leftW)
 
                 Rectangle()
@@ -416,12 +416,13 @@ struct PathGameView: View {
 
     // MARK: Path Grid
 
-    private func pathGrid(availableWidth: CGFloat, availableHeight: CGFloat) -> some View {
+    private func pathGrid(availableWidth: CGFloat, availableHeight: CGFloat, maxCellSize: CGFloat = 80) -> some View {
         let level   = gameState.norseCurrentLevel
         let spacing = gridSpacing
         let pad     = gridPadding
         let cs      = cellSize(cols: level.cols, rows: level.rows,
-                               availableWidth: availableWidth, availableHeight: availableHeight)
+                               availableWidth: availableWidth, availableHeight: availableHeight,
+                               maxCell: maxCellSize)
         let gridW   = CGFloat(level.cols) * cs + CGFloat(level.cols - 1) * spacing + 2 * pad
         let gridH   = CGFloat(level.rows) * cs + CGFloat(level.rows - 1) * spacing + 2 * pad
 
@@ -485,12 +486,13 @@ struct PathGameView: View {
     private let gridPadding: CGFloat = 10
 
     private func cellSize(cols: Int, rows: Int,
-                          availableWidth: CGFloat, availableHeight: CGFloat) -> CGFloat {
+                          availableWidth: CGFloat, availableHeight: CGFloat,
+                          maxCell: CGFloat = 80) -> CGFloat {
         let hs  = CGFloat(cols - 1) * gridSpacing
         let vs  = CGFloat(rows - 1) * gridSpacing
         let byW = (availableWidth  - hs - 2 * gridPadding) / CGFloat(cols)
         let byH = (availableHeight - vs - 2 * gridPadding) / CGFloat(rows)
-        return min(byW, byH, 80)
+        return min(byW, byH, maxCell)
     }
 
     // MARK: Path Line Drawing (Canvas)
